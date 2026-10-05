@@ -241,6 +241,10 @@ def run() -> dict:
     _report(out)
     _repro_check(model, X)
     _write_candidates(labels, det, kilns)
+    try:  # Should tier: never fails the stage
+        transfer_test()
+    except Exception as e:
+        log.warning("transfer test skipped: %s", e)
     return out
 
 
@@ -315,3 +319,69 @@ def _report(o):
           f"NRT may use the model on NOAA-21: {o['nrt_ok']}", "", "## Permutation importance"]
     L += [f"- {d['feature']}: {d['value']}" for d in o["importance"]]
     (C.REPORTS / "classifier_report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+
+
+def transfer_test(district: str = C.TRANSFER_DISTRICT) -> dict:
+    """Frozen model on the held-out IGP district (no retraining): weak labels from its own APAD kilns."""
+    from datetime import date
+
+    from .ingest import read_units
+    from .kilns import link
+
+    units = read_units()
+    tr = units[units.level == "transfer"]
+    w, s, e, n = [round(v, 2) for v in tr.total_bounds]
+    y = int(C.GATE_SEASON[:4])
+    root = C.RAW / "firms" / "transfer"
+    backfill_dir = root / "VIIRS_SNPP_SP"
+    backfill_dir.mkdir(parents=True, exist_ok=True)
+    from . import ingest as I
+
+    s_ = I.session()
+    d = date(y, 7, 1)
+    while d <= date(y + 1, 6, 30):
+        p = backfill_dir / f"{d.isoformat()}.csv"
+        if not p.exists():
+            r = s_.get(f"{I.FIRMS}/api/area/csv/{C.FIRMS_MAP_KEY}/VIIRS_SNPP_SP/{w},{s},{e},{n}/5/{d.isoformat()}", timeout=120)
+            if r.ok and (r.text.startswith("latitude") or not r.text.strip()):
+                I.atomic_write(p, r.text)
+        d = date.fromordinal(d.toordinal() + 5)
+    frames = [I.normalise(pd.read_csv(p, dtype={"acq_date": str, "acq_time": str, "confidence": str, "satellite": str}), "VIIRS_SNPP_SP")
+              for p in sorted(backfill_dir.glob("*.csv")) if p.stat().st_size]
+    det = pd.concat(frames, ignore_index=True)
+    import shapely
+
+    poly = tr.geometry.iloc[0]
+    det = det[shapely.contains_xy(poly, det.lon.to_numpy(), det.lat.to_numpy()) & det.conf_class.isin(C.CONF_KEEP)].reset_index(drop=True)
+    inv = pd.read_parquet(C.INTERIM / "inventory.parquet")
+    pk = inv[(inv.country == "PK")]
+    pk = pk[shapely.contains_xy(poly.buffer(0.05), pk.lon.to_numpy(), pk.lat.to_numpy())]
+    pts = pd.DataFrame({"lat": pk.lat, "lon": pk.lon, "unit_type": "cluster", "unit_id": "k"})
+    lk = link(det, pts, "pixel")
+    firing = pd.to_datetime(det.date_local).dt.month.isin(C.FIRING_MONTHS).to_numpy()
+    tree = BallTree(_rad(pk.lat, pk.lon), metric="haversine")
+    far = tree.query(_rad(det.lat, det.lon), k=1)[0][:, 0] * R_EARTH > 3000
+    pos = det.index.isin(lk.det_idx) & firing
+    neg = far & firing
+    m = pos | neg
+    X = build_features(det)
+    model = joblib.load(C.MODELS / "kiln_clf.joblib")
+    yv = pos[m].astype(int)
+    out = {"district": district, "dr_computed": False, "pr_auc": {"p50": float("nan"), "lo": float("nan"), "hi": float("nan")}, "gate_pass": False,
+           "n_pos": int(pos.sum()), "n_neg": int(neg.sum())}
+    if 0 < yv.sum() < len(yv):
+        out["pr_auc"] = _ap_ci(yv, model.predict_proba(X[m])[:, 1], C.rng("classify"))
+        out["prevalence"] = float(yv.mean())
+        out["gate_pass"] = bool(out["pr_auc"]["lo"] > yv.mean())
+    cl = C.RAW / "gee" / "clear" / "transfer"
+    if cl.exists() and any(cl.rglob("*.parquet")):
+        from .gee import load_clear
+
+        c = load_clear("transfer")
+        c = c[(c.sensor == "N") & c.date_local.between(pd.Timestamp(y, 11, 1), pd.Timestamp(y + 1, 5, 31))]
+        clear_days = set(c[c.clear_frac >= 0.2].date_local)
+        kd = set(pd.to_datetime(det.loc[pos, "date_local"]))
+        out["dr_computed"] = True
+        out["dr_kiln_area"] = len(kd & clear_days) / max(len(clear_days), 1)
+    (C.INTERIM / "transfer.json").write_text(json.dumps(out, default=float), encoding="utf-8")
+    return out

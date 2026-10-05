@@ -110,20 +110,6 @@ def assert_clusters(clusters, n_kilns) -> None:
     assert clusters.n_kilns.max() <= max(1, C.MAX_CLUSTER_SHARE * n_kilns), "A4b: cluster > 2% of kilns"
 
 
-def _random_point_in(poly, rng, max_tries=200):
-    w, s, e, n = poly.bounds
-    from shapely import contains_xy
-
-    for _ in range(max_tries):
-        x = rng.uniform(w, e, 64)
-        y = rng.uniform(s, n, 64)
-        ok = contains_xy(poly, x, y)
-        if ok.any():
-            i = int(np.flatnonzero(ok)[0])
-            return y[i], x[i]
-    return None
-
-
 RUNGS = [  # (area level, min km from kiln, max km, require same wc class)
     ("district", 5, 10, True),
     ("district", 3, 10, True),
@@ -133,45 +119,53 @@ RUNGS = [  # (area level, min km from kiln, max km, require same wc class)
 
 
 def sample_controls(clusters, kilns, districts, divisions, n=3, rng=None, wc_lookup=None, attempts=C.CONTROL_ATTEMPTS_MAX):
-    """Seeded rejection sampling, bounded attempts per control per rung, recording rung_used.
+    """Seeded rejection sampling, at most `attempts` candidate points per control per rung, recording rung_used.
 
-    clusters: cluster_id, lat, lon, district, division, wc_class(optional).
-    wc_lookup(lat, lon) -> class; None treats every point as matching (logged).
+    Candidates are drawn in vectorised batches inside the (simplified, prepared) area polygon. A cluster's three
+    controls are >= 5 km apart from each other. wc_lookup(lat[], lon[]) -> class[]; None treats every point as matching.
     """
+    import shapely
+
     rng = rng if rng is not None else C.rng("kilns")
     ktree = BallTree(_rad(kilns.lat, kilns.lon), metric="haversine")
-    polys = {"district": districts.set_index("name_en").geometry, "division": divisions.set_index("name_en").geometry}
-    taken: list[tuple[float, float]] = []
+    polys = {}
+    for lvl, gdf in (("district", districts), ("division", divisions)):
+        g = gdf.set_index("name_en").geometry.simplify(0.002)
+        shapely.prepare(g.values)
+        polys[lvl] = g
     rows, dropped = [], []
     for c in clusters.itertuples():
-        got = []
+        got: list[tuple[float, float, int]] = []
         for rung, (lvl, kmin, kmax, same_wc) in enumerate(RUNGS):
             poly = polys[lvl].get(getattr(c, lvl), None)
             if poly is None:
                 continue
-            tries = 0
-            while len(got) < n and tries < attempts:
-                tries += 1
-                p = _random_point_in(poly, rng)
-                if p is None:
-                    break
-                lat, lon = p
-                dist_m, _ = ktree.query(_rad([lat], [lon]), k=1)
-                d_km = dist_m[0, 0] * R_EARTH / 1000
-                if not (kmin <= d_km <= kmax):
+            w, s, e, nn = poly.bounds
+            budget = attempts * (n - len(got))
+            while len(got) < n and budget > 0:
+                k = min(512, budget)
+                budget -= k
+                x, y = rng.uniform(w, e, k), rng.uniform(s, nn, k)
+                ok = shapely.contains_xy(poly, x, y)
+                x, y = x[ok], y[ok]
+                if not len(x):
                     continue
-                if taken and haversine_m(lat, lon, np.array([t[0] for t in taken]), np.array([t[1] for t in taken])).min() < 5000:
-                    continue
-                if same_wc and wc_lookup is not None and getattr(c, "wc_class", None) is not None and wc_lookup(lat, lon) != c.wc_class:
-                    continue
-                got.append((lat, lon, rung))
-                taken.append((lat, lon))
+                d_km = ktree.query(_rad(y, x), k=1)[0][:, 0] * R_EARTH / 1000
+                ok = (d_km >= kmin) & (d_km <= kmax)
+                x, y = x[ok], y[ok]
+                if same_wc and wc_lookup is not None and getattr(c, "wc_class", None) is not None and len(x):
+                    ok = np.asarray(wc_lookup(y, x)) == c.wc_class
+                    x, y = x[ok], y[ok]
+                for lat, lon in zip(y, x):
+                    if got and haversine_m(lat, lon, np.array([g[0] for g in got]), np.array([g[1] for g in got])).min() < 5000:
+                        continue
+                    got.append((float(lat), float(lon), rung))
+                    if len(got) == n:
+                        break
             if len(got) == n:
                 break
         if len(got) < n:
             dropped.append(c.cluster_id)
-            for lat, lon, _ in got:
-                taken.remove((lat, lon))
             continue
         for j, (lat, lon, rung) in enumerate(got):
             rows.append({"control_id": f"{c.cluster_id}_{j}", "cluster_id": c.cluster_id, "lat": lat, "lon": lon,
@@ -267,3 +261,8 @@ def run() -> None:
     _parquet(kilns, C.INTERIM / "kilns.parquet")
     _parquet(clusters.to_wkb(), C.INTERIM / "clusters.parquet")
     _parquet(ctrl, C.INTERIM / "controls.parquet")
+    # A4d: link every detection to clusters (kiln points) and controls (translated points) within its own pixel radius
+    det = pd.read_parquet(C.INTERIM / "detections.parquet", columns=["lat", "lon", "scan_km", "track_km"])
+    links = link(det, link_points(kilns, ctrl), "pixel")
+    _parquet(links.assign(radius_m="pixel"), C.INTERIM / "links.parquet")
+    log.info("links: %d detection-unit links", len(links))

@@ -125,7 +125,6 @@ def branch(g1: bool, g2: bool, eligible: bool, gn: bool) -> str:
 
 def run() -> dict:
 
-    from .ingest import _parquet
 
     season = C.GATE_SEASON
     det = pd.read_parquet(C.INTERIM / "detections.parquet")
@@ -135,8 +134,7 @@ def run() -> dict:
     clear = pd.read_parquet(C.INTERIM / "clear_footprints.parquet")
     pts = link_points(kilns, ctrl)
     near = det[det.lat.between(C.BBOX_S, C.BBOX_N)]
-    links = link(near, pts, "pixel")
-    _parquet(links.assign(radius_m="pixel"), C.INTERIM / "links.parquet")
+    links = pd.read_parquet(C.INTERIM / "links.parquet")
     units = list(clusters.cluster_id.astype(str)) + list(ctrl.control_id)
     is_kiln = np.array([True] * len(clusters) + [False] * len(ctrl))
     dist_of = dict(zip(clusters.cluster_id.astype(str), clusters.district)) | dict(zip(ctrl.control_id, ctrl.district))

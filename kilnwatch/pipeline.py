@@ -29,7 +29,10 @@ def grid_stage() -> None:
     _parquet(uc, C.INTERIM / "unit_cells.parquet")
     from .gee import write_admin_clear
 
-    write_admin_clear()
+    if (C.RAW / "gee" / "clear" / "admin").exists():
+        write_admin_clear()
+    else:
+        log.warning("GEE admin cache missing: clear.parquet not written (run `python -m kilnwatch gee`)")
     log.info("cell-days %d; unit cells %d (BD %d)", len(cd), len(uc), n_bd)
 
 
@@ -358,3 +361,41 @@ def _write_events():
     _dump({"policy": pol.rename(columns={"source_url": "url"}).to_dict("records"),
            "harvest": [{"crop": r.crop, "start_doy": int(pd.Timestamp(r.harvest_start).dayofyear), "end_doy": int(pd.Timestamp(r.harvest_end).dayofyear), "url": r.source_url}
                        for r in crop.itertuples()]}, PUB / "events.json")
+
+
+def figures() -> None:
+    """P1 money shots (offline PNGs) from the public JSON."""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    C.FIGURES.mkdir(parents=True, exist_ok=True)
+    h = json.loads((PUB / "harmonization.json").read_text(encoding="utf-8"))
+    y = h["yearly"]
+    s = [r["season"] for r in y]
+    fig, ax = plt.subplots(figsize=(10, 4.8), dpi=150)
+    ax.plot(s, [r["raw_sum"] for r in y], "--o", color="#9a9a9a", ms=3, label="Raw (sensors spliced)")
+    ax.fill_between(s, [r["h"]["lo"] for r in y], [r["h"]["hi"] for r in y], color="#fdba74", alpha=0.6, label="95% interval")
+    ax.plot(s, [r["h"]["p50"] for r in y], "-o", color="#c2410c", lw=2.5, ms=3, label="Harmonized (Aqua-MODIS equivalent)")
+    ax.plot(s, [r["aqua_obs"] for r in y], "-", color="#2563eb", lw=1, label="Aqua as observed (check)")
+    ax.axvline("2012-13", color="k", lw=0.8, ls=":")
+    ax.set_title(f"The 2012 jump is a sensor artefact: harmonized jump = {h['seam']['ratio'] * 100:.0f}% of raw")
+    ax.set_ylabel("Season fire activity (per 1,000 clear cells)")
+    ax.tick_params(axis="x", rotation=60)
+    ax.legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(C.FIGURES / "money_jump.png")
+    v = json.loads((PUB / "validation.json").read_text(encoding="utf-8"))
+    p = v["profiles"]
+    fig, ax = plt.subplots(figsize=(10, 4.2), dpi=150)
+    wk = pd.to_datetime(p["week"])
+    ax.plot(wk, p["kiln_day"], color="#b45309", lw=2.5, label="Kiln clusters · day")
+    ax.plot(wk, p["kiln_night"], color="#b45309", ls="--", label="Kiln clusters · night")
+    ax.plot(wk, p["ctrl_day"], color="#2563eb", lw=2.5, label="Matched controls · day")
+    ax.plot(wk, p["ctrl_night"], color="#2563eb", ls="--", label="Matched controls · night")
+    ax.set_title(f"Kilns burn for months, crop fires for days — gate season {C.GATE_SEASON}")
+    ax.set_ylabel("Share of clear days with a detection")
+    ax.legend(frameon=False, fontsize=8)
+    fig.tight_layout()
+    fig.savefig(C.FIGURES / "money_plateau.png")
