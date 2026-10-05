@@ -299,6 +299,8 @@ def candidates(labels: pd.DataFrame, det: pd.DataFrame, kilns: pd.DataFrame) -> 
     dd = k.drop_duplicates(["cell_id", "date_local"]).groupby(["cell_id", "season"], observed=True).size()
     good = (dd >= 5).groupby(level=0).sum()
     cells = good[good >= 2].index
+    if len(cells) == 0:
+        return pd.DataFrame(columns=["cell_id", "lat", "lon"])
     from .grid import cell_center
 
     lat, lon = cell_center(np.asarray(cells))

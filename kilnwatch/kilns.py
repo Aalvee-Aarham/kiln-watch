@@ -248,7 +248,9 @@ def run() -> None:
              f"max diameter {clusters.diameter_m.max():.0f} m; max size {clusters.n_kilns.max()}.",
              f"Sensitivity (eps → clusters): {sens}", "",
              "Clustering uses a constant eps while linking uses per-detection radii: cluster membership is scale-stable, link attribution is not.", "",
-             "## Controls", f"```\n{rep}\n```"]
+             "## Controls", f"```\n{rep}\n```", "",
+             "Interpretation: '>=5 km from other controls' is applied among a cluster's own three controls. Applied across all "
+             "~11,000 controls it would require disjoint 5 km discs covering more than Bangladesh's land area."]
     (C.REPORTS / "inventory_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     log.info("controls: %s", rep)
     (C.INTERIM / "controls_report.json").write_text(__import__("json").dumps(rep), encoding="utf-8")

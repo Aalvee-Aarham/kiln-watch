@@ -1,0 +1,21 @@
+{
+ "t_lo": 0.8819158689216128,
+ "t_hi": 1.0,
+ "features": [
+  "bt_mir",
+  "bt_tir",
+  "bt_diff",
+  "frp",
+  "is_night",
+  "scan",
+  "track",
+  "local_hour",
+  "conf_rank",
+  "p5",
+  "p30",
+  "iso1"
+ ],
+ "git_sha": "da4dd00",
+ "model": "hgb",
+ "nrt_ok": true
+}

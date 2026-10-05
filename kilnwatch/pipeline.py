@@ -25,7 +25,10 @@ def grid_stage() -> None:
     units = read_units()
     uc = unit_cells(units)
     n_bd = uc[uc.level == "district"].cell_id.nunique()
-    assert 250_000 <= n_bd <= 350_000, f"A2: Bangladesh unit cells {n_bd} outside 250k–350k"
+    # A2 (amended, see BLOCKERS.md): the plan's 250k–350k bound is the BBOX rectangle (297,600 cells), not the
+    # country. Bangladesh land cells must match its area: 147,570 km² / (1.113 km × 1.020 km at 23.7°N) ≈ 130k, ±10%.
+    expected = 147_570 / ((C.GRID_STEP * 111.32 * np.cos(np.radians(23.7))) * (C.GRID_STEP * 110.57))
+    assert abs(n_bd / expected - 1) <= 0.10, f"A2: Bangladesh unit cells {n_bd} vs area-derived {expected:.0f}"
     _parquet(uc, C.INTERIM / "unit_cells.parquet")
     from .gee import write_admin_clear
 

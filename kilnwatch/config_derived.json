@@ -1,0 +1,22 @@
+{
+  "CALIB_SEASONS": {
+    "value": [
+      "2012-13",
+      "2013-14",
+      "2014-15",
+      "2015-16",
+      "2016-17",
+      "2017-18",
+      "2018-19",
+      "2019-20",
+      "2020-21"
+    ],
+    "source": "FIRMS data_availability VIIRS_SNPP_SP min_date=2012-01-20",
+    "date": "2026-10-06"
+  },
+  "DBSCAN_EPS_M": {
+    "value": 318.2,
+    "source": "median VIIRS S-NPP pixel half-diagonal over Bangladesh (A4a)",
+    "date": "2026-10-06"
+  }
+}
