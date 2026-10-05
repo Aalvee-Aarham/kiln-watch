@@ -214,7 +214,6 @@ def to_myd_eq(rates: pd.DataFrame, draws: pd.DataFrame) -> pd.DataFrame:
 
 def sp_nrt_ratio(j1_sp: pd.Series, j1_nrt: pd.Series):
     """Ratio of NOAA-20 SP to NRT daily fire cell-days over their common days, with bootstrap CI."""
-    from .stats import bootstrap_ci
 
     both = pd.concat([j1_sp, j1_nrt], axis=1, join="inner").dropna()
     if len(both) < 10:

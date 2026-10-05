@@ -4,7 +4,6 @@ from __future__ import annotations
 import logging
 from concurrent.futures import ThreadPoolExecutor
 
-import numpy as np
 import pandas as pd
 
 from . import config as C

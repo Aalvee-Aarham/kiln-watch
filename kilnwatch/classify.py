@@ -203,6 +203,9 @@ def run() -> dict:
     kinds = {x["kind"] for x in holdouts}
     nrt_ok = {"cross_sensor_N_J1", "cross_sensor_J1_J2"} <= kinds
     assert "cross_sensor_N_J1" in kinds, "A7d: cross-sensor N->J1 holdout missing"
+    th = json.loads((C.MODELS / "thresholds.json").read_text(encoding="utf-8"))
+    th["nrt_ok"] = nrt_ok  # thresholds themselves stay frozen; this only records whether NOAA-21 may be labelled
+    (C.MODELS / "thresholds.json").write_text(json.dumps(th, indent=1), encoding="utf-8")
     # label-set comparison and persistence ablation (spatial CV on S-NPP)
     ls_rows = [{"kind": "footprint_only", "pr_auc": rep["pr_auc"]}]
     y2, w2 = labelsets["with_type2"]
@@ -237,7 +240,23 @@ def run() -> dict:
     (C.INTERIM / "classifier.json").write_text(json.dumps(out, default=float), encoding="utf-8")
     _report(out)
     _repro_check(model, X)
+    _write_candidates(labels, det, kilns)
     return out
+
+
+def _write_candidates(labels, det, kilns):
+    """Candidate unmapped kilns: locations to the regulator tier only; the public sees district counts."""
+
+    cand = candidates(labels, det, kilns)
+    uc = pd.read_parquet(C.INTERIM / "unit_cells.parquet")
+    units = pd.read_parquet(C.INTERIM / "units.parquet", columns=["unit_id", "name_en"])
+    dist = uc[uc.level == "district"].merge(units, on="unit_id").drop_duplicates("cell_id").set_index("cell_id").name_en
+    cand["district"] = cand.cell_id.map(dist)
+    reg = C.INTERIM / "regulator"
+    reg.mkdir(parents=True, exist_ok=True)
+    cand.to_csv(reg / "candidate_unmapped_kilns.csv", index=False)
+    by = cand.district.value_counts().to_dict()
+    (C.INTERIM / "candidates_by_district.json").write_text(json.dumps({"n": int(len(cand)), "by_district": {k: int(v) for k, v in by.items()}}), encoding="utf-8")
 
 
 def _importance(model, X, y, rng, n_rows=20000):

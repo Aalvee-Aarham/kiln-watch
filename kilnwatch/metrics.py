@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
-from .stats import bootstrap_ci
 
 log = logging.getLogger("kilnwatch.metrics")
 DAY0 = pd.Timestamp("2003-01-01")

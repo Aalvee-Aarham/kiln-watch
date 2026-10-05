@@ -1,7 +1,6 @@
 """FIRMS archive/API, boundaries, inventories, OpenAQ (architecture §5.1)."""
 from __future__ import annotations
 
-import io
 import json
 import logging
 import threading
@@ -10,7 +9,6 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date, timedelta
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import requests
 from requests.adapters import HTTPAdapter

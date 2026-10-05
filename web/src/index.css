@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@theme {
+  --color-raw: #9a9a9a;
+  --color-harm: #c2410c;
+  --color-band: #fdba74;
+  --color-split-1: #b45309;
+  --color-split-2: #15803d;
+  --color-split-3: #6b7280;
+  --color-kiln: #b45309;
+  --color-ctrl: #2563eb;
+  --color-ink: #1c1917;
+  --color-muted: #78716c;
+  --color-paper: #fafaf9;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Bengali", "Nirmala UI", sans-serif;
+  --radius-card: 0.75rem;
+}
+
+@layer components {
+  .card { @apply rounded-(--radius-card) border border-stone-200 bg-white p-4 shadow-sm; }
+  .btn { @apply rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-orange-600; }
+  .note { @apply mt-2 text-sm text-stone-600; }
+}
+
+body { @apply bg-(--color-paper) text-(--color-ink) font-sans; }
+.leaflet-container { font: inherit; }

@@ -1,7 +1,7 @@
 import numpy as np
 import pandas as pd
 
-from kilnwatch.harmonize import (STRATUM, fit_glm, fit_ratio, loso, loso_summary, pool_key, seam_stat)
+from kilnwatch.harmonize import STRATUM, fit_glm, fit_ratio, loso, loso_summary, pool_key, seam_stat
 
 SEASONS = [f"{y}-{(y + 1) % 100:02d}" for y in range(2012, 2021)]
 

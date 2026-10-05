@@ -124,7 +124,6 @@ def branch(g1: bool, g2: bool, eligible: bool, gn: bool) -> str:
 
 
 def run() -> dict:
-    import geopandas as gpd
 
     from .ingest import _parquet
 

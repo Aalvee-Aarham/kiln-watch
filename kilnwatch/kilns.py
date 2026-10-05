@@ -257,6 +257,7 @@ def run() -> None:
              "## Controls", f"```\n{rep}\n```"]
     (C.REPORTS / "inventory_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     log.info("controls: %s", rep)
+    (C.INTERIM / "controls_report.json").write_text(__import__("json").dumps(rep), encoding="utf-8")
     assert rep["dropped_frac"] <= C.CONTROL_DROP_MAX, f"A4c: national control drop {rep['dropped_frac']:.2f} > {C.CONTROL_DROP_MAX}"
     worst = max(rep["by_division"].values())
     assert worst <= C.CONTROL_DROP_MAX_DIV, f"A4c: division drop {worst:.2f} > {C.CONTROL_DROP_MAX_DIV}"
