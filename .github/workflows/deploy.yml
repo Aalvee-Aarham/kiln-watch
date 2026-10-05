@@ -8,7 +8,9 @@ concurrency: { group: pages, cancel-in-progress: false }
 jobs:
   nrt:
     runs-on: ubuntu-latest
-    env: { GH_TOKEN: '${{ github.token }}', FIRMS_MAP_KEY: '${{ secrets.FIRMS_MAP_KEY }}' }
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -17,17 +19,23 @@ jobs:
       - name: Download data-current (district normals)
         run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
       - uses: actions/cache@v4
-        with: { path: data/nrt, key: nrt-season-${{ github.run_id }}, restore-keys: nrt-season- }
+        with:
+          path: data/nrt
+          key: nrt-season-${{ github.run_id }}
+          restore-keys: nrt-season-
       - run: python -m kilnwatch nrt
       - run: pytest -q tests/test_export.py
       - uses: actions/upload-artifact@v4
         with: { name: nrt, path: web/public/data/nrt/ }
   deploy:
     needs: nrt
-    if: ${{ always() && (needs.nrt.result == 'success' || needs.nrt.result == 'skipped') }}
+    if: always() && (needs.nrt.result == 'success' || needs.nrt.result == 'skipped')
     runs-on: ubuntu-latest
-    environment: { name: github-pages, url: '${{ steps.d.outputs.page_url }}' }
-    env: { GH_TOKEN: '${{ github.token }}' }
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
       - run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
