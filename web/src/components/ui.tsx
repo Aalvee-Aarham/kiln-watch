@@ -350,7 +350,10 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, { err?: st
 }
 
 export function Loading<T>({ state, children, skeleton }: { state: { data?: T; error?: string; loading: boolean }; children: (d: T) => ReactNode; skeleton?: ReactNode }) {
-  if (state.error) return <StatusMessage kind="error">Couldn’t load this data ({state.error}). Check the link, or reload to try again.</StatusMessage>
+  if (state.error)
+    return state.error.endsWith('was not found')
+      ? <StatusMessage kind="info">This area isn’t in the demo dataset — the offline demo ships every district and a few upazilas. On the live site, all of Bangladesh is covered.</StatusMessage>
+      : <StatusMessage kind="error">Couldn’t load this data ({state.error}). Check the link, or reload to try again.</StatusMessage>
   if (!state.data) return <>{skeleton ?? <StatusMessage kind="loading">Loading…</StatusMessage>}</>
   return <>{children(state.data)}</>
 }

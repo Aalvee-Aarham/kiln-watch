@@ -207,6 +207,21 @@ def publish() -> None:
 
 
 # --- fixtures (synthetic, one complete set per branch) ---------------------------------------
+_BD: dict | None = None
+
+
+def _bd_geometry() -> dict:
+    """Simplified COD-AB ADM2/ADM3 shapes from data/static (committed), so fixture maps draw
+    the real country outline. Public CC BY-IGO boundaries only — no kiln data (invariant 3)."""
+    global _BD
+    if _BD is None:
+        _BD = {}
+        for lvl in ("district", "upazila"):
+            fc = json.loads((C.STATIC / f"bd_{lvl}s.geojson").read_text(encoding="utf-8"))
+            _BD[lvl] = {"by_name": {f["properties"]["name_en"]: f for f in fc["features"]}, "all": fc["features"]}
+    return _BD
+
+
 def write_fixtures(out: Path = C.WEB_FIXT) -> None:
     for b in BRANCHES:
         _fixture_set(b, out / b / "data")
@@ -226,14 +241,26 @@ def _fixture_set(branch: str, d: Path) -> None:
              ("BD302614", "upazila", "Dhamrai", "ধামরাই", "Dhaka", 30.0, 0.7, "plateau", (90.1, 23.85, 90.25, 24.0)),
              ("BD508131", "upazila", "Godagari", "গোদাগাড়ী", "Rajshahi", 3.0, 0.15, "spike", (88.3, 24.4, 88.45, 24.55))]
     feats = {"district": [], "upazila": []}
+    used = set()
     for uid, lvl, en, bn, div, kc, ks, kind, box in units:
         w, s, e, n = box
         kc_out = None if branch in ("nokiln",) else kc
+        real = _bd_geometry()[lvl]["by_name"].get(en)
+        if real is not None:  # real COD-AB shape for the synthetic unit, so the map looks like Bangladesh
+            used.add(real["properties"]["unit_id"])
+        geom = real["geometry"] if real is not None else {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}
         feats[lvl].append({"type": "Feature", "properties": {"unit_id": uid, "level": lvl, "name_en": en, "name_bn": bn, "division": div,
                                                               "kiln_count": kc_out, "kiln_share": None if kc_out is None else ks},
-                           "geometry": {"type": "Polygon", "coordinates": [[[w, s], [e, s], [e, n], [w, n], [w, s]]]}})
+                           "geometry": geom})
         _dump(_fixture_calendar(uid, kind, lvl == "district", keys, rng, branch), d / "calendar" / f"{uid}.json")
+    for f in _bd_geometry()["district"]["all"]:  # every real district is selectable in the demo
+        pid = f["properties"]["unit_id"]
+        if pid not in used:
+            _dump(_fixture_calendar(pid, "quiet", True, keys, rng, branch), d / "calendar" / f"{pid}.json")
     for lvl, fs in feats.items():
+        rest = [f for f in _bd_geometry()[lvl]["all"] if f["properties"]["unit_id"] not in used]  # complete the country, no data
+        fs.extend({"type": "Feature", "properties": {**f["properties"], "kiln_count": None, "kiln_share": None}, "geometry": f["geometry"]}
+                  for f in rest)
         _dump({"type": "FeatureCollection", "features": fs}, d / "aoi" / f"{lvl}s.geojson")
     _dump(_fixture_harmonization(rng), d / "harmonization.json")
     _dump(_fixture_validation(branch, rng), d / "validation.json")
@@ -241,9 +268,15 @@ def _fixture_set(branch: str, d: Path) -> None:
            "harvest": [{"crop": "aman", "start_doy": 305, "end_doy": 365, "url": "https://example.org/crop"},
                        {"crop": "boro", "start_doy": 91, "end_doy": 151, "url": "https://example.org/crop"}]}, d / "events.json")
     days = 97
+    nrt_d = {u[0]: {"h": [round(float(x), 3) for x in rng.gamma(2, 0.5, days)], "above_p90_days": int(rng.integers(0, 6))}
+             for u in units if u[1] == "district"}
+    for f in _bd_geometry()["district"]["all"]:  # full-country choropleth in the demo
+        pid = f["properties"]["unit_id"]
+        if pid not in nrt_d:
+            nrt_d[pid] = {"h": [round(float(x), 2) for x in rng.gamma(2, 0.15, days)], "above_p90_days": int(rng.integers(0, 4))}
     _dump({"updated_at": "2026-10-05T03:00:00Z", "provisional": True, "season": "2026-27", "day0": "2026-07-01",
            "national": {"h": [round(float(x), 3) for x in rng.gamma(2, 0.5, days)], "split": [{"key": k, "values": [round(float(x), 3) for x in rng.gamma(2, 0.2, days)]} for k in keys]},
-           "districts": {u[0]: {"h": [round(float(x), 3) for x in rng.gamma(2, 0.5, days)], "above_p90_days": int(rng.integers(0, 6))} for u in units if u[1] == "district"}},
+           "districts": nrt_d},
           d / "nrt" / "current_season.json")
     _dump({"tile": "90_23", "day0": "2003-01-01", "rows": [[int(1136241 + i), int(4000 + i % 300), int(i % 6)] for i in range(500)]}, d / "grid" / "90_23.json")
     _dump(_fixture_kiln_activity(rng), d / "kiln_activity.json")
@@ -285,10 +318,12 @@ def _fixture_calendar(uid, kind, is_district, keys, rng, branch):
         lam = np.where(firing, 1.2, 0.1)
     elif kind == "spike":
         lam = 0.05 + 3.0 * np.exp(-0.5 * ((doy - 110) / 6) ** 2) + 2.0 * np.exp(-0.5 * ((doy - 330) / 5) ** 2)
+    elif kind == "quiet":  # real districts without a demo unit: low, compressible series
+        lam = np.where(firing, rng.uniform(0.08, 0.3), 0.003)
     else:
         lam = np.where(firing, 0.5, 0.05) + 1.0 * np.exp(-0.5 * ((doy - 105) / 8) ** 2)
     h = rng.gamma(2, lam / 2)
-    h[rng.random(n_days) < 0.35] = 0
+    h[rng.random(n_days) < (0.97 if kind == "quiet" else 0.35)] = 0
     post = dates >= pd.Timestamp("2012-07-01")
     raw_a = np.where(dates < pd.Timestamp("2022-01-01"), h * rng.uniform(0.8, 1.2, n_days), 0)
     raw_n = np.where(dates >= pd.Timestamp("2012-01-20"), h * 4.0 * rng.uniform(0.8, 1.2, n_days), 0)
@@ -296,7 +331,7 @@ def _fixture_calendar(uid, kind, is_district, keys, rng, branch):
     nod = (np.isin(month, C.MONSOON_MONTHS) & (rng.random(n_days) < 0.3))
     h[nod] = 0
     nz = np.flatnonzero((h > 0) | (raw_n > 0) | (raw_a > 0))
-    share = {"plateau": 0.7, "spike": 0.1, "mixed": 0.35}[kind]
+    share = {"plateau": 0.7, "spike": 0.1, "mixed": 0.35, "quiet": 0.2}[kind]
     if branch in ("from2012", "partial"):
         share_arr = np.where(post, share, 0.0)
     else:
@@ -326,7 +361,11 @@ def _fixture_calendar(uid, kind, is_district, keys, rng, branch):
                         "duration": {"p50": 150.0 if kind == "plateau" else 40.0, "lo": 130.0 if kind == "plateau" else 30.0, "hi": 170.0 if kind == "plateau" else 55.0},
                         "peak": {"p50": 1.5, "lo": 1.2, "hi": 1.9}, "first": f"{y}-11-03", "last": f"{y + 1}-05-20"} for y in range(2003, 2025)]}
     if is_district:
-        cal["clear_frac"] = {s: [int(x) for x in np.where(np.isin(month, C.MONSOON_MONTHS), 30, 80) + rng.integers(-10, 10, n_days)] for s in ("A", "N")}
+        if kind == "quiet":  # seasonal constant, no daily noise: compresses to almost nothing
+            cf = {s: np.where(np.isin(month, C.MONSOON_MONTHS), 30, 80).tolist() for s in ("A", "N")}
+        else:
+            cf = {s: [int(x) for x in np.where(np.isin(month, C.MONSOON_MONTHS), 30, 80) + rng.integers(-10, 10, n_days)] for s in ("A", "N")}
+        cal["clear_frac"] = cf
     if branch == "nokiln":
         cal["index"] = r3(pd.Series(h).rolling(7, min_periods=1).mean().to_numpy()[nz])
     return cal
