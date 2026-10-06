@@ -97,8 +97,8 @@ function FirmsView() {
   const cal = useJson<Calendar>(pick ? `calendar/${pick}.json` : null)
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">How long do kilns fire each season?</h1>
-      <p className="max-w-3xl text-stone-700">Pooled over every mapped kiln in an area — never per kiln (site-level data is restricted to regulators). Vertical lines mark policy events; before-and-after comparisons are descriptive, not causal.</p>
+      <h1 className="h-display text-2xl">How long do kilns fire each season?</h1>
+      <p className="max-w-3xl text-muted">Pooled over every mapped kiln in an area — never per kiln (site-level data is restricted to regulators). Vertical lines mark policy events; before-and-after comparisons are descriptive, not causal.</p>
       <select aria-label="Area" className="btn" value={pick} onChange={(e) => setId(e.target.value)}>
         {all.map((p) => <option key={p.unit_id} value={p.unit_id}>{p.name_en} ({p.level}, {p.kiln_count} kilns)</option>)}
       </select>

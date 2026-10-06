@@ -13,6 +13,8 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "@fontsource-variable/anek-bangla": "^5.3.0",
+    "@fontsource/ibm-plex-mono": "^5.3.0",
     "echarts": "^6.1.0",
     "leaflet": "^1.9.4",
     "react": "^19.3.0",

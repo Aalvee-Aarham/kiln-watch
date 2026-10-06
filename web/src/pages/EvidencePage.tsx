@@ -6,7 +6,7 @@ import type { Harmonization, KilnActivity, Validation } from '../lib/types'
 const AMENDMENT_URL = 'https://github.com/Aalvee-Aarham/kiln-watch/blob/main/PREREGISTRATION_AMENDMENTS.md'
 
 const Pass = ({ ok }: { ok?: boolean }) => ok == null ? null
-  : <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{ok ? 'PASS' : 'FAIL'}</span>
+  : <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${ok ? 'bg-ok-soft text-ok' : 'bg-err-soft text-err'}`}>{ok ? 'PASS' : 'FAIL'}</span>
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
 /** Amendment 1: every channel tried for kilns (failures included), then the held-out confirmatory tests. */
@@ -36,8 +36,8 @@ export default function EvidencePage() {
   const nokiln = useMeta().data?.gate_branch === 'nokiln'
   return (
     <div className="space-y-4">
-      <h1 className="text-2xl font-bold">Evidence</h1>
-      <p className="max-w-3xl text-stone-700">Every number here was tested against a rule written down before the data were analysed. Failures are shown, not hidden.</p>
+      <h1 className="h-display text-2xl">Evidence</h1>
+      <p className="max-w-3xl text-muted">Every number here was tested against a rule written down before the data were analysed. Failures are shown, not hidden.</p>
       <Loading state={harm}>{(h) => (
         <div className="grid gap-4 md:grid-cols-2">
           <ChartCard title="Seam test: is the 2012 jump real?" summary={`Pre-registered pass: harmonized jump ≤ 25% of raw, a break in the raw series (p < 0.01) and none after harmonizing (p > 0.05).`}>
@@ -51,16 +51,16 @@ export default function EvidencePage() {
           <ChartCard title="Leave-one-season-out validation" summary={`Model ${h.selected_model} selected. The gated figure is pooled coverage across all held-out observations (target 90–97%); per-season rows are diagnostic.`}>
             <p className="mb-2 text-sm">Pooled 95%-interval coverage (n = {h.loso_pooled.n}): <b><CIText ci={{ p50: h.loso_pooled.covered.p50 * 100, lo: h.loso_pooled.covered.lo * 100, hi: h.loso_pooled.covered.hi * 100 }} d={1} />%</b>{' '}
               <Pass ok={h.loso_pooled.covered.p50 >= 0.9 && h.loso_pooled.covered.p50 <= 0.97} /></p>
-            <table className="w-full text-xs"><thead><tr className="text-left text-stone-500"><th>Held-out season</th><th>Model</th><th>MAE</th><th>Bias</th><th>Coverage</th></tr></thead>
-              <tbody>{h.loso_by_season.filter((r) => r.model === h.selected_model).map((r) => <tr key={r.season + r.model} className="border-t border-stone-100"><td>{r.season}</td><td>{r.model}</td><td>{fmt(r.mae, 3)}</td><td>{fmt(r.bias, 3)}</td><td>{pct(r.covered)}</td></tr>)}</tbody></table>
+            <table className="w-full text-xs"><thead><tr className="text-left text-muted"><th>Held-out season</th><th>Model</th><th>MAE</th><th>Bias</th><th>Coverage</th></tr></thead>
+              <tbody>{h.loso_by_season.filter((r) => r.model === h.selected_model).map((r) => <tr key={r.season + r.model} className="border-t border-line"><td>{r.season}</td><td>{r.model}</td><td>{fmt(r.mae, 3)}</td><td>{fmt(r.bias, 3)}</td><td>{pct(r.covered)}</td></tr>)}</tbody></table>
           </ChartCard>
         </div>)}
       </Loading>
       <Loading state={val}>{(v) => (
         <>
           <ChartCard title="Feasibility gates (pre-registered)" summary="G0 is an informational prior screen. G1 (VIIRS) and G2 (MODIS) must meet all three criteria — shape, contrast and seasonality — to unlock kiln layers for their eras.">
-            <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-stone-500"><th>Gate</th><th>Criterion</th><th>Value</th><th>Threshold</th><th>p</th><th></th></tr></thead>
-              <tbody>{v.gates.map((g, i) => <tr key={i} className="border-t border-stone-100"><td className="font-semibold">{g.gate}</td><td>{g.criterion}</td><td>{fmt(g.value, 3)}</td><td>{g.threshold}</td><td>{g.p == null ? '' : g.p < 0.001 ? '<0.001' : fmt(g.p, 3)}</td><td><Pass ok={g.pass} /></td></tr>)}</tbody></table></div>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-muted"><th>Gate</th><th>Criterion</th><th>Value</th><th>Threshold</th><th>p</th><th></th></tr></thead>
+              <tbody>{v.gates.map((g, i) => <tr key={i} className="border-t border-line"><td className="font-semibold">{g.gate}</td><td>{g.criterion}</td><td>{fmt(g.value, 3)}</td><td>{g.threshold}</td><td>{g.p == null ? '' : g.p < 0.001 ? '<0.001' : fmt(g.p, 3)}</td><td><Pass ok={g.pass} /></td></tr>)}</tbody></table></div>
           </ChartCard>
           {ka.data && <KilnChannels ka={ka.data} />}
           <div className="grid gap-4 md:grid-cols-2">

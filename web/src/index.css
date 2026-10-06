@@ -1,27 +1,112 @@
 @import "tailwindcss";
+@import "@fontsource-variable/anek-bangla";
+@import "@fontsource/ibm-plex-mono/400.css";
+@import "@fontsource/ibm-plex-mono/600.css";
 
+/* Observatory tokens — day (paper graphite). Night overrides below. */
 @theme {
-  --color-raw: #9a9a9a;
-  --color-harm: #c2410c;
-  --color-band: #fdba74;
-  --color-split-1: #b45309;
-  --color-split-2: #15803d;
-  --color-split-3: #6b7280;
-  --color-kiln: #b45309;
-  --color-ctrl: #2563eb;
-  --color-ink: #1c1917;
-  --color-muted: #78716c;
-  --color-paper: #fafaf9;
   --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans Bengali", "Nirmala UI", sans-serif;
+  --font-display: "Anek Bangla Variable", "Anek Bangla", system-ui, "Noto Sans Bengali", "Nirmala UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --color-bg: oklch(0.975 0.002 75);
+  --color-surface: oklch(1 0 0);
+  --color-surface-2: oklch(0.955 0.004 75);
+  --color-ink: oklch(0.22 0.01 60);
+  --color-muted: oklch(0.5 0.015 65);
+  --color-line: oklch(0.9 0.005 75);
+  --color-ember: oklch(0.55 0.19 35);
+  --color-ember-strong: oklch(0.45 0.17 35);
+
+  /* data vocabulary */
+  --color-raw: oklch(0.62 0.01 75);
+  --color-harm: oklch(0.55 0.19 35);
+  --color-band: oklch(0.82 0.11 65);
+  --color-kiln: oklch(0.55 0.13 45);
+  --color-veg: oklch(0.55 0.11 150);
+  --color-unknown: oklch(0.6 0.012 250);
+  --color-cloud: oklch(0.8 0.03 240);
+  --color-ctrl: oklch(0.55 0.14 250);
+  --color-split-1: var(--color-kiln);
+  --color-split-2: var(--color-veg);
+  --color-split-3: var(--color-unknown);
+  --color-fire-1: oklch(0.93 0.09 90);
+  --color-fire-2: oklch(0.8 0.14 70);
+  --color-fire-3: oklch(0.66 0.18 50);
+  --color-fire-4: oklch(0.52 0.17 40);
+  --color-fire-5: oklch(0.36 0.12 35);
+
+  /* semantic */
+  --color-ok: oklch(0.55 0.11 150);
+  --color-ok-soft: oklch(0.93 0.04 150);
+  --color-warn: oklch(0.7 0.14 70);
+  --color-warn-soft: oklch(0.96 0.05 80);
+  --color-err: oklch(0.55 0.2 25);
+  --color-err-soft: oklch(0.95 0.04 25);
+  --color-info: oklch(0.6 0.012 250);
+
   --radius-card: 0.75rem;
+
+  --animate-shimmer: shimmer 1.2s linear infinite;
+  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+}
+
+/* Night — VIIRS overpass blue-slate. Charts read these at runtime via lib/theme.ts. */
+:root[data-theme="night"] {
+  --color-bg: oklch(0.17 0.015 250);
+  --color-surface: oklch(0.21 0.017 250);
+  --color-surface-2: oklch(0.25 0.018 250);
+  --color-ink: oklch(0.93 0.01 85);
+  --color-muted: oklch(0.68 0.015 80);
+  --color-line: oklch(0.32 0.015 250);
+  --color-ember: oklch(0.65 0.19 35);
+  --color-ember-strong: oklch(0.55 0.17 35);
+
+  --color-raw: oklch(0.68 0.01 80);
+  --color-band: oklch(0.75 0.1 65);
+  --color-kiln: oklch(0.6 0.13 45);
+  --color-veg: oklch(0.6 0.11 150);
+  --color-unknown: oklch(0.65 0.012 250);
+  --color-cloud: oklch(0.34 0.03 240);
+  --color-ctrl: oklch(0.65 0.14 250);
+  --color-fire-1: oklch(0.85 0.09 90);
+  --color-fire-2: oklch(0.75 0.14 70);
+  --color-fire-3: oklch(0.66 0.18 50);
+  --color-fire-4: oklch(0.56 0.18 40);
+  --color-fire-5: oklch(0.44 0.14 35);
+
+  --color-ok-soft: oklch(0.3 0.04 150);
+  --color-warn-soft: oklch(0.32 0.05 80);
+  --color-err-soft: oklch(0.32 0.06 25);
 }
 
 @layer components {
-  .card { @apply rounded-(--radius-card) border border-stone-200 bg-white p-4 shadow-sm; }
-  .btn { @apply rounded-md border border-stone-300 bg-white px-3 py-1.5 text-sm hover:bg-stone-100 focus-visible:outline-2 focus-visible:outline-orange-600; }
-  .note { @apply mt-2 text-sm text-stone-600; }
+  .card { @apply rounded-(--radius-card) border border-line bg-surface p-4 shadow-sm; }
+  .btn { @apply rounded-md border border-line bg-surface px-3 py-1.5 text-sm transition-colors duration-120 hover:bg-surface-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember; }
+  .note { @apply mt-2 text-sm text-muted; }
+  .num { @apply font-mono tabular-nums; }
+  .h-display { @apply font-display font-semibold tracking-tight; }
+  .skeleton { @apply animate-shimmer rounded-md bg-surface-2;
+    background-image: linear-gradient(100deg, transparent 40%, color-mix(in oklch, var(--color-ink) 7%, transparent) 50%, transparent 60%);
+    background-size: 200% 100%; }
 }
 
-body { @apply bg-(--color-paper) text-(--color-ink) font-sans; }
-.leaflet-container { font: inherit; }
+@utility route-in {
+  animation: route-in 240ms var(--ease-out) both;
+}
+
+body { @apply bg-(--color-bg) text-(--color-ink) font-sans transition-colors duration-180; }
+.card, .btn, header { transition: background-color 180ms var(--ease-out), border-color 180ms var(--ease-out), color 180ms var(--ease-out); }
+.leaflet-container { font: inherit; background: var(--color-surface-2); }
 table th, table td { padding: 0.15rem 0.75rem 0.15rem 0; vertical-align: top; }
+tbody tr:hover { background: color-mix(in oklch, var(--color-surface-2) 60%, transparent); }
+
+:root { --ease-out: cubic-bezier(0.22, 1, 0.36, 1); }
+
+@keyframes route-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes sel-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.35; } }
+.map-sel { stroke: var(--color-ember) !important; animation: sel-pulse 0.9s ease-out 2; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

@@ -1,14 +1,15 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { ChartCard, CIText, DownloadButtons, EChart, Loading, SegmentedToggle, StatusMessage, useKilnActivity, useMeta } from '../components/ui'
+import { Breadcrumbs, ChartCard, CIText, DownloadButtons, EChart, Loading, SegmentedToggle, Skeleton, SkeletonCard, StatusMessage, useKilnActivity, useMeta } from '../components/ui'
 import { CalendarHeatmap, KilnSeasonShapeChart, NormalBandChart, SourceStackChart } from '../components/charts'
 import { fetchJson, useJson } from '../lib/data'
 import { useUrlState } from '../lib/url'
 import { useT } from '../lib/i18n'
+import { palette } from '../lib/theme'
 import { aggregateBox, calendarToCsv, resolveSplit, seasonMean } from '../lib/calendar'
 import { formatBox, tilesForBox, type Box } from '../lib/box'
 import { dayIso, seasonOf } from '../lib/days'
-import type { Calendar, FC, GridTile, Harmonization, Meta } from '../lib/types'
+import type { Calendar, FC, GridTile, Harmonization, Meta, UnitProps } from '../lib/types'
 
 const FireMap = lazy(() => import('../components/FireMap'))
 
@@ -26,35 +27,109 @@ export default function ExplorerPage() {
   const units = fc.data?.features.map((f) => f.properties) ?? []
   const sel = units.find((x) => x.unit_id === u.unitId)
 
+  useEffect(() => {
+    if (!drawing) return
+    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrawing(false) }
+    window.addEventListener('keydown', esc)
+    return () => window.removeEventListener('keydown', esc)
+  }, [drawing])
+
   return (
     <div className="grid gap-4 lg:grid-cols-[340px_1fr]">
       <aside className="space-y-3">
         <div className="card space-y-3">
           <label className="block text-sm font-semibold" htmlFor="unit-search">{t('pick')}</label>
-          <input id="unit-search" list="units" className="w-full rounded-md border border-stone-300 px-3 py-2" placeholder="e.g. Dhaka, Rajshahi…"
-            onChange={(e) => { const m = units.find((x) => x.name_en.toLowerCase() === e.target.value.toLowerCase() || x.name_bn === e.target.value); if (m) go(`/explore/${level}/${m.unit_id}`) }} />
-          <datalist id="units">{units.map((x) => <option key={x.unit_id} value={x.name_en}>{x.name_bn}</option>)}</datalist>
+          <UnitSearch units={units} onPick={(id) => go(`/explore/${level}/${id}`)} />
           <SegmentedToggle label="Area level" value={level} options={[['district', 'District'], ['upazila', 'Upazila']]}
             onChange={(v) => go(`/explore/${v}`)} />
-          <button className={`btn w-full ${drawing ? 'bg-orange-100' : ''}`} onClick={() => setDrawing(!drawing)} aria-pressed={drawing}>
-            {drawing ? 'Drag on the map to draw a box (click to cancel)' : '▭ Draw your own area'}
+          <button className={`btn w-full ${drawing ? 'border-ember bg-ember/10 text-ember' : ''}`} onClick={() => setDrawing(!drawing)} aria-pressed={drawing}>
+            {drawing ? 'Drag on the map to draw a box (Esc to cancel)' : '▭ Draw your own area'}
           </button>
         </div>
-        <Loading state={fc}>{(f) => (
-          <Suspense fallback={<StatusMessage kind="loading">Loading map…</StatusMessage>}>
+        <Loading state={fc} skeleton={<Skeleton className="h-[420px] w-full rounded-md" />}>{(f) => (
+          <Suspense fallback={<Skeleton className="h-[420px] w-full rounded-md" />}>
             <FireMap fc={f} selected={u.unitId} onSelect={(id) => go(`/explore/${level}/${id}`)} drawing={drawing} box={u.box}
               onBox={(b) => { setDrawing(false); go(`/explore/box/${formatBox(b)}`) }} />
           </Suspense>)}
         </Loading>
-        <p className="text-xs text-stone-500">{meta.data?.gate_branch === 'nokiln' ? 'Click an area, search by name, or draw your own box.' : 'Map colour = share of heat that is kiln-like. Click an area, search by name, or draw a box.'}</p>
+        <MapLegend />
+        <p className="text-xs text-muted">{meta.data?.gate_branch === 'nokiln' ? 'Click an area, search by name, or draw your own box.' : 'Map colour = share of heat that is kiln-like. Click an area, search by name, or draw a box.'}</p>
       </aside>
 
       <section className="min-w-0 space-y-4">
         {u.boxError && <StatusMessage kind="error">{u.boxError}</StatusMessage>}
         {u.box && meta.data && districts.data && <BoxView box={u.box} meta={meta.data} districts={districts.data} />}
         {!u.box && !u.unitId && !u.boxError && <Welcome units={units.slice(0, 6)} onPick={(id) => go(`/explore/${level}/${id}`)} nokiln={meta.data?.gate_branch === 'nokiln'} />}
-        {u.unitId && !u.box && meta.data && <UnitView unitId={u.unitId} name={sel ? `${sel.name_en} · ${sel.name_bn}` : u.unitId} meta={meta.data} u={u} setQ={setQ} kilnCount={sel?.kiln_count} />}
+        {u.unitId && !u.box && meta.data && (
+          <>
+            <Breadcrumbs items={(() => {
+              const crumbs: [string, string?][] = [['Bangladesh', '/explore']]
+              if (sel) crumbs.push([`${sel.division} division`], [sel.name_en])
+              else crumbs.push([level === 'district' ? 'District' : 'Upazila'])
+              return crumbs
+            })()} />
+            <UnitView unitId={u.unitId} name={sel ? `${sel.name_en} · ${sel.name_bn}` : u.unitId} meta={meta.data} u={u} setQ={setQ} kilnCount={sel?.kiln_count} />
+          </>
+        )}
       </section>
+    </div>
+  )
+}
+
+/** Filtered combobox over units: type-ahead on English or Bangla name, shows kiln count. */
+function UnitSearch({ units, onPick }: { units: UnitProps[]; onPick: (id: string) => void }) {
+  const [q, setQ] = useState('')
+  const [open, setOpen] = useState(false)
+  const [active, setActive] = useState(0)
+  const box = useRef<HTMLDivElement>(null)
+  const matches = useMemo(() => {
+    const s = q.trim().toLowerCase()
+    const m = s ? units.filter((x) => x.name_en.toLowerCase().includes(s) || x.name_bn.includes(q.trim())) : units
+    return m.slice(0, 8)
+  }, [q, units])
+  useEffect(() => {
+    const out = (e: MouseEvent) => { if (!box.current?.contains(e.target as Node)) setOpen(false) }
+    document.addEventListener('mousedown', out)
+    return () => document.removeEventListener('mousedown', out)
+  }, [])
+  const pick = (x: UnitProps) => { setOpen(false); setQ(''); onPick(x.unit_id) }
+  return (
+    <div ref={box} className="relative">
+      <input id="unit-search" className="w-full rounded-md border border-line bg-surface px-3 py-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ember"
+        placeholder="e.g. Dhaka, রাজশাহী…" value={q} role="combobox" aria-expanded={open} aria-controls="unit-list" aria-autocomplete="list"
+        onChange={(e) => { setQ(e.target.value); setOpen(true); setActive(0) }}
+        onFocus={() => setOpen(true)}
+        onKeyDown={(e) => {
+          if (e.key === 'ArrowDown') { e.preventDefault(); setActive((a) => Math.min(a + 1, matches.length - 1)); setOpen(true) }
+          else if (e.key === 'ArrowUp') { e.preventDefault(); setActive((a) => Math.max(a - 1, 0)) }
+          else if (e.key === 'Enter' && matches[active]) { e.preventDefault(); pick(matches[active]) }
+          else if (e.key === 'Escape') setOpen(false)
+        }} />
+      {open && matches.length > 0 && (
+        <ul id="unit-list" role="listbox" className="absolute top-full z-30 mt-1 max-h-72 w-full overflow-auto rounded-md border border-line bg-surface py-1 shadow-lg">
+          {matches.map((x, i) => (
+            <li key={x.unit_id} role="option" aria-selected={i === active}
+              className={`flex cursor-pointer items-baseline gap-2 px-3 py-1.5 text-sm ${i === active ? 'bg-surface-2' : ''}`}
+              onMouseDown={(e) => { e.preventDefault(); pick(x) }}
+              onMouseEnter={() => setActive(i)}>
+              <span>{x.name_en}</span><span className="text-muted">{x.name_bn}</span>
+              {x.kiln_count != null && x.kiln_count > 0 && <span className="num ml-auto text-xs text-muted">{x.kiln_count} kilns</span>}
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  )
+}
+
+function MapLegend() {
+  const cells = ['#fef3c7', '#fdba74', '#ea580c', '#9a3412']
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted" aria-hidden>
+      <span className="flex items-center gap-1">kiln-like share
+        {cells.map((c) => <span key={c} className="inline-block h-2.5 w-3.5 rounded-[2px]" style={{ background: c }} />)}
+        low → high
+      </span>
     </div>
   )
 }
@@ -62,7 +137,7 @@ export default function ExplorerPage() {
 function Welcome({ units, onPick, nokiln }: { units: { unit_id: string; name_en: string }[]; onPick: (id: string) => void; nokiln?: boolean }) {
   return (
     <div className="card">
-      <h2 className="text-lg font-semibold">Pick an area to see its burning calendar</h2>
+      <h2 className="h-display text-lg">Pick an area to see its burning calendar</h2>
       <p className="note">You will see every day since 2003 on one harmonized scale, how this season compares with normal, {nokiln
         ? 'unusual days and critical periods, and, where there are brick kilns, when the kiln season runs compared with the fires.'
         : 'and how much of the heat looks like brick kilns versus crop fires.'}</p>
@@ -78,7 +153,7 @@ function UnitView({ unitId, name, meta, u, setQ, kilnCount }: { unitId: string; 
   const t = useT()
   const split = resolveSplit(meta, u.split)
   return (
-    <Loading state={cal}>{(c) => {
+    <Loading state={cal} skeleton={<><SkeletonCard label="Loading burning calendar" /><SkeletonCard label="Loading seasonal range" /></>}>{(c) => {
       const seasons = c.seasons.map((s) => s.season)
       const complete = seasons.filter((s) => s !== seasonOf(new Date()))
       const season = u.season && seasons.includes(u.season) ? u.season : complete.at(-1) ?? seasons.at(-1) ?? seasonOf(new Date())
@@ -86,8 +161,8 @@ function UnitView({ unitId, name, meta, u, setQ, kilnCount }: { unitId: string; 
       return (
         <>
           <div className="card flex flex-wrap items-center gap-3">
-            <div><h2 className="text-xl font-bold">{name}</h2>
-              {kilnCount != null && <p className="text-sm text-stone-600">{kilnCount} mapped kilns (APAD inventory)</p>}</div>
+            <div><h2 className="h-display text-xl">{name}</h2>
+              {kilnCount != null && <p className="text-sm text-muted"><span className="num">{kilnCount}</span> mapped kilns (APAD inventory)</p>}</div>
             <div className="ml-auto flex flex-wrap gap-2">
               <SegmentedToggle label="Raw or harmonized" value={u.mode} options={[['harm', t('harm')], ['raw', t('raw')]]} onChange={(v) => setQ({ mode: v === 'harm' ? undefined : v })} />
               <SegmentedToggle label="Year layout" value={u.layout} options={[['cal', t('cal')], ['season', t('seasonLayout')]]} onChange={(v) => setQ({ layout: v === 'cal' ? undefined : v })} />
@@ -118,8 +193,8 @@ function UnitView({ unitId, name, meta, u, setQ, kilnCount }: { unitId: string; 
           </ChartCard>
           <ChartCard title="Season metrics (with 95% intervals)" summary="Midpoint and duration are counted in days from 1 July. First/last detection dates depend on the sensor’s sensitivity, so compare them with care.">
             <div className="overflow-x-auto"><table className="w-full text-sm">
-              <thead><tr className="text-left text-stone-500"><th>Season</th><th>Midpoint (day)</th><th>Duration (days)</th><th>Peak</th><th>First*</th><th>Last*</th></tr></thead>
-              <tbody>{c.seasons.slice().reverse().map((s) => <tr key={s.season} className="border-t border-stone-100"><td>{s.season}</td><td><CIText ci={s.midpoint} d={0} /></td><td><CIText ci={s.duration} d={0} /></td><td><CIText ci={s.peak} /></td><td>{s.first}</td><td>{s.last}</td></tr>)}</tbody>
+              <thead><tr className="text-left text-muted"><th>Season</th><th>Midpoint (day)</th><th>Duration (days)</th><th>Peak</th><th>First*</th><th>Last*</th></tr></thead>
+              <tbody>{c.seasons.slice().reverse().map((s) => <tr key={s.season} className="border-t border-line"><td className="num">{s.season}</td><td><CIText ci={s.midpoint} d={0} /></td><td><CIText ci={s.duration} d={0} /></td><td><CIText ci={s.peak} /></td><td className="num">{s.first}</td><td className="num">{s.last}</td></tr>)}</tbody>
             </table></div>
           </ChartCard>
         </>
@@ -142,6 +217,7 @@ function inPoly(lon: number, lat: number, g: GeoJSON.Geometry): boolean {
 }
 
 function BoxView({ box, meta, districts }: { box: Box; meta: Meta; districts: FC }) {
+  const p = palette()
   const [cx, cy] = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2]
   const host = districts.features.find((f) => inPoly(cx, cy, f.geometry))?.properties
   const cal = useJson<Calendar>(host ? `calendar/${host.unit_id}.json` : null)
@@ -149,7 +225,7 @@ function BoxView({ box, meta, districts }: { box: Box; meta: Meta; districts: FC
   const [tiles, setTiles] = useState<GridTile[] | null>(null)
   useMemo(() => { Promise.all(tilesForBox(box).map((t) => fetchJson<GridTile>(`grid/${t}.json`).catch(() => null))).then((x) => setTiles(x.filter(Boolean) as GridTile[])) }, [box])
   if (!host) return <StatusMessage kind="error">The box centre is not inside a Bangladesh district.</StatusMessage>
-  if (!tiles || !cal.data || !harm.data) return <StatusMessage kind="loading">Summing fire cells inside your box…</StatusMessage>
+  if (!tiles || !cal.data || !harm.data) return <SkeletonCard label="Summing fire cells inside your box" />
   const div = host.division
   const bs = harm.data.betas.filter((b) => b.step === 'A<-N' && b.division === div)
   const beta = bs.length ? bs.reduce((s, b) => s + b.beta.p50, 0) / bs.length : 0.25
@@ -159,12 +235,15 @@ function BoxView({ box, meta, districts }: { box: Box; meta: Meta; districts: FC
   for (const [d, v] of per) { const y = seasonOf(new Date(dayIso(d) + 'T00:00:00Z')); byYear.set(y, (byYear.get(y) ?? 0) + v) }
   const ys = [...byYear.keys()].sort()
   return (
-    <ChartCard title={`Your box: ${formatBox(box)}`} summary={<>Approximate; total burning only (no source split). Cloud cover is taken from {host.name_en} district and converted with the {div} division’s calibration (β ≈ {beta.toFixed(2)}). Share this view by copying the address bar.</>}>
-      {per.size === 0 ? <StatusMessage>No fire cell-days found inside this box.</StatusMessage> :
-        <EChart label="Season totals of harmonized activity inside the drawn box" height={280} option={{
-          grid: { left: 56, right: 16, top: 24, bottom: 40 }, tooltip: { trigger: 'axis' },
-          xAxis: { type: 'category', data: ys, axisLabel: { rotate: 45 } }, yAxis: { type: 'value', name: 'Season sum (MYD-eq)' },
-          series: [{ type: 'bar', data: ys.map((y) => Math.round(byYear.get(y)! * 100) / 100), color: '#c2410c' }] }} />}
-    </ChartCard>
+    <>
+      <Breadcrumbs items={[['Bangladesh', '/explore'], [`${host.division} division`], [`Box ${formatBox(box)}`]]} />
+      <ChartCard title={`Your box: ${formatBox(box)}`} summary={<>Approximate; total burning only (no source split). Cloud cover is taken from {host.name_en} district and converted with the {div} division’s calibration (β ≈ <span className="num">{beta.toFixed(2)}</span>). Share this view by copying the address bar.</>}>
+        {per.size === 0 ? <StatusMessage>No fire cell-days found inside this box.</StatusMessage> :
+          <EChart label="Season totals of harmonized activity inside the drawn box" exportName={`kilnwatch_box_${formatBox(box)}`} height={280} option={{
+            grid: { left: 56, right: 16, top: 24, bottom: 40 }, tooltip: { trigger: 'axis' },
+            xAxis: { type: 'category', data: ys, axisLabel: { rotate: 45 } }, yAxis: { type: 'value', name: 'Season sum (MYD-eq)' },
+            series: [{ type: 'bar', data: ys.map((y) => Math.round(byYear.get(y)! * 100) / 100), color: p.harm }] }} />}
+      </ChartCard>
+    </>
   )
 }

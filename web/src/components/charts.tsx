@@ -6,6 +6,7 @@ import { dateToDay, dayIso, dayToDate, seasonDayLabel, seasonOf, seasonStart } f
 import type { Calendar, Events, Harmonization, KilnActivity, KilnArea, KilnSeasonRow, Meta, NrtSeason, Validation } from '../lib/types'
 
 const MONTHS_SEASON = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
+const MONTHS_CAL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const seasonAxisLabel = (d: number) => MONTHS_SEASON[Math.min(11, Math.floor(d / 30.5))]
 const grid = { left: 56, right: 16, top: 36, bottom: 40 }
 const r2 = (v: number) => Math.round(v * 100) / 100
@@ -25,11 +26,11 @@ export function JumpChart({ h }: { h: Harmonization }) {
         { name: '95% interval', type: 'line', data: h.yearly.map((y) => r2(y.h.hi - y.h.lo)), stack: 'ci', lineStyle: { opacity: 0 }, symbol: 'none', areaStyle: { color: p.band, opacity: 0.5 } },
         { name: 'Harmonized (MYD-eq)', type: 'line', data: h.yearly.map((y) => r2(y.h.p50)), color: p.harm, lineStyle: { width: 3 },
           markLine: { silent: true, symbol: 'none', data: [{ xAxis: '2012-13', label: { formatter: 'VIIRS 375 m arrives' } }] } },
-        { name: 'Aqua as observed (check)', type: 'line', data: h.yearly.map((y) => (y.aqua_obs == null ? null : r2(y.aqua_obs))), color: '#2563eb', symbol: 'circle', symbolSize: 4, lineStyle: { width: 1 } },
+        { name: 'Aqua as observed (check)', type: 'line', data: h.yearly.map((y) => (y.aqua_obs == null ? null : r2(y.aqua_obs))), color: p.ctrl, symbol: 'circle', symbolSize: 4, lineStyle: { width: 1 } },
       ],
     }
-  }, [h, p.raw, p.harm, p.band])
-  return <EChart option={opt} height={340} label="Season totals of fire activity, raw versus harmonized" />
+  }, [h, p.raw, p.harm, p.band, p.ctrl])
+  return <EChart option={opt} height={340} label="Season totals of fire activity, raw versus harmonized" exportName="kilnwatch_jump" />
 }
 
 /** Kiln clusters vs matched controls through the gate season: plateau vs spikes, day and night. */
@@ -47,11 +48,12 @@ export function PlateauSpikeChart({ v }: { v: Validation }) {
       { name: 'Matched controls · night', type: 'line', data: pr.ctrl_night, color: p.ctrl, lineStyle: { type: 'dashed' } },
     ],
   }), [pr, p.kiln, p.ctrl])
-  return <EChart option={opt} height={320} label="Weekly detection rate at kiln clusters versus matched control sites" />
+  return <EChart option={opt} height={320} label="Weekly detection rate at kiln clusters versus matched control sites" exportName="kilnwatch_plateau" />
 }
 
-/** Year × day heatmap of daily activity. Grey = not observed (cloud). */
+/** Year × day heatmap of daily activity. Blue-slate = not observed (monsoon cloud). */
 export function CalendarHeatmap({ cal, mode, split, layout }: { cal: Calendar; mode: Mode; split: string; layout: 'cal' | 'season' }) {
+  const p = palette()
   const opt = useMemo(() => {
     const { cells, years } = heatmapCells(cal, seriesFor(cal, mode, split), layout)
     const vals = cells.map((c) => c[2]).filter((v) => v > 0).sort((a, b) => a - b)
@@ -65,15 +67,17 @@ export function CalendarHeatmap({ cal, mode, split, layout }: { cal: Calendar; m
         const d = new Date(layout === 'season' ? Date.UTC(y0, 6, 1 + x) : Date.UTC(y0, 0, 1 + x))
         return `${d.toISOString().slice(0, 10)}<br/>${v < 0 ? 'not observed (cloud)' : r2(v)}`
       } },
-      xAxis: { type: 'category', data: Array.from({ length: 366 }, (_, i) => i), axisLabel: { interval: 30, formatter: (d: string) => (layout === 'season' ? seasonAxisLabel(+d) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Math.min(11, Math.floor(+d / 30.5))]) }, splitArea: { show: false } },
-      yAxis: { type: 'category', data: ylab, inverse: true },
+      xAxis: { type: 'category', data: Array.from({ length: 366 }, (_, i) => i),
+        axisLabel: { interval: 30, formatter: (d: string) => (layout === 'season' ? seasonAxisLabel(+d) : MONTHS_CAL[Math.min(11, Math.floor(+d / 30.5))]) },
+        splitLine: { show: true, interval: 30, lineStyle: { color: p.line, opacity: 0.7 } }, splitArea: { show: false } },
+      yAxis: { type: 'category', data: ylab, inverse: true, splitLine: { show: false } },
       visualMap: { type: 'piecewise', orient: 'horizontal', left: 'center', bottom: 0, itemWidth: 12,
-        pieces: [{ lt: 0, color: '#d6d3d1', label: 'Cloud (not observed)' }, { gte: 0, lt: vmax * 0.1, color: '#fde68a', label: 'Low' }, { gte: vmax * 0.1, lt: vmax * 0.35, color: '#fbbf24', label: ' ' },
-          { gte: vmax * 0.35, lt: vmax * 0.7, color: '#ea580c', label: ' ' }, { gte: vmax * 0.7, color: '#7c2d12', label: 'High' }] },
-      series: [{ type: 'heatmap', data: cells, progressive: 5000 }],
+        pieces: [{ lt: 0, color: p.cloud, label: 'Cloud (not observed)' }, { gte: 0, lt: vmax * 0.1, color: p.fire[0], label: 'Low' }, { gte: vmax * 0.1, lt: vmax * 0.35, color: p.fire[1], label: ' ' },
+          { gte: vmax * 0.35, lt: vmax * 0.7, color: p.fire[2], label: ' ' }, { gte: vmax * 0.7, color: p.fire[4], label: 'High' }] },
+      series: [{ type: 'heatmap', data: cells, progressive: 5000, animationDelay: (i: number) => Math.floor(i / 366) * 40 }],
     }
-  }, [cal, mode, split, layout])
-  return <EChart option={opt} height={Math.max(260, 26 * 18)} label="Calendar heatmap of daily burning activity by year" />
+  }, [cal, mode, split, layout, p.cloud, p.line, p.fire])
+  return <EChart option={opt} height={Math.max(260, 26 * 18)} label="Calendar heatmap of daily burning activity by year" exportName="kilnwatch_calendar" />
 }
 
 /** One season against the normal range (p10–p90), unusual days marked, critical periods shaded. */
@@ -94,14 +98,14 @@ export function NormalBandChart({ cal, season, mode, split }: { cal: Calendar; s
       series: [
         { name: 'p10', type: 'line', data: cal.normal.p10, stack: 'n', symbol: 'none', lineStyle: { opacity: 0 }, tooltip: { show: false } },
         { name: 'Normal range (p10–p90)', type: 'line', data: cal.normal.p90.map((v, i) => r2(v - cal.normal.p10[i])), stack: 'n', symbol: 'none', lineStyle: { opacity: 0 }, areaStyle: { color: p.band, opacity: 0.45 },
-          markArea: { silent: true, label: { show: false }, itemStyle: { color: 'rgba(194,65,12,0.08)' }, data: cal.critical.map(([a, b]) => [{ xAxis: a }, { xAxis: b }]) } },
+          markArea: { silent: true, label: { show: false }, itemStyle: { color: p.ember, opacity: 0.06 }, data: cal.critical.map(([a, b]) => [{ xAxis: a }, { xAxis: b }]) } },
         { name: 'Median', type: 'line', data: cal.normal.p50, symbol: 'none', color: p.muted, lineStyle: { type: 'dotted' } },
         { name: season + ' (7-day mean)', type: 'line', data: cur, symbol: 'none', color: p.harm, lineStyle: { width: 2.5 } },
-        { name: 'Unusual (above p90)', type: 'scatter', data: unusual, color: '#7f1d1d', symbolSize: 7 },
+        { name: 'Unusual (above p90)', type: 'scatter', data: unusual, color: p.fire[4], symbolSize: 7 },
       ],
     }
-  }, [cal, season, mode, split, p.band, p.harm, p.muted])
-  return <EChart option={opt} height={320} label={`Season ${season} compared with the normal range`} />
+  }, [cal, season, mode, split, p.band, p.harm, p.muted, p.ember, p.fire])
+  return <EChart option={opt} height={320} label={`Season ${season} compared with the normal range`} exportName="kilnwatch_normal" />
 }
 
 /** Season totals by source (split[] with meta labels; no branch special-casing). */
@@ -126,7 +130,7 @@ export function SourceStackChart({ cal, meta, lang }: { cal: Calendar; meta: Met
       }),
     }
   }, [cal, meta, lang, p.split])
-  return <EChart option={opt} height={300} label="Season totals split by heat source" />
+  return <EChart option={opt} height={300} label="Season totals split by heat source" exportName="kilnwatch_sources" />
 }
 
 export function SeasonDurationChart({ cal, events }: { cal: Calendar; events?: Events }) {
@@ -142,7 +146,7 @@ export function SeasonDurationChart({ cal, events }: { cal: Calendar; events?: E
         markLine: { symbol: 'none', data: (events?.policy ?? []).map((e) => ({ xAxis: seasonOf(new Date(e.date + 'T00:00:00Z')), label: { formatter: e.label_en } })) } },
     ],
   }), [cal, events, p.band, p.kiln])
-  return <EChart option={opt} height={300} label="Length of the burning season by year with confidence interval" />
+  return <EChart option={opt} height={300} label="Length of the burning season by year with confidence interval" exportName="kilnwatch_duration" />
 }
 
 export function SeasonToDateChart({ nrt, meta }: { nrt: NrtSeason; meta: Meta }) {
@@ -158,12 +162,12 @@ export function SeasonToDateChart({ nrt, meta }: { nrt: NrtSeason; meta: Meta })
       ],
     }
   }, [nrt, meta, p.split, p.harm])
-  return <EChart option={opt} height={300} label="Current season to date, national" />
+  return <EChart option={opt} height={300} label="Current season to date, national" exportName="kilnwatch_nrt" />
 }
 
 export function RadiusSweepChart({ v }: { v: Validation }) {
   const p = palette()
-  return <EChart label="Detection rate by linking radius at kilns and controls" height={260} option={{
+  return <EChart label="Detection rate by linking radius at kilns and controls" exportName="kilnwatch_radius" height={260} option={{
     grid, tooltip: { trigger: 'axis' }, legend: { top: 0 },
     xAxis: { type: 'category', data: v.radius_sweep.map((r) => `${r.radius_m} m`) }, yAxis: { type: 'value', name: 'Mean DR' },
     series: [{ name: 'Kiln clusters', type: 'bar', data: v.radius_sweep.map((r) => r.kiln), color: p.kiln },
@@ -173,7 +177,7 @@ export function RadiusSweepChart({ v }: { v: Validation }) {
 
 export function PRCurveChart({ v }: { v: Validation }) {
   const p = palette()
-  return <EChart label="Precision-recall curve of the kiln classifier" height={260} option={{
+  return <EChart label="Precision-recall curve of the kiln classifier" exportName="kilnwatch_pr" height={260} option={{
     grid, tooltip: { trigger: 'axis' },
     xAxis: { type: 'value', name: 'Recall', min: 0, max: 1 }, yAxis: { type: 'value', name: 'Precision', min: 0, max: 1 },
     series: [{ type: 'line', data: v.classifier.pr_curve, color: p.harm, symbol: 'none', name: 'Classifier',
@@ -185,7 +189,7 @@ export function TropomiChart({ v }: { v: Validation }) {
   const t = v.tropomi
   if (!t || !t.monthly.length) return null
   const p = palette()
-  return <EChart label="TROPOMI NO2 belt-minus-ring versus activity index by month" height={260} option={{
+  return <EChart label="TROPOMI NO2 belt-minus-ring versus activity index by month" exportName="kilnwatch_tropomi" height={260} option={{
     grid: { ...grid, right: 56 }, tooltip: { trigger: 'axis' }, legend: { top: 0 },
     xAxis: { type: 'category', data: t.monthly.map((m) => m.month) },
     yAxis: [{ type: 'value', name: 'NO₂ belt − ring' }, { type: 'value', name: t.treatment }],
@@ -198,7 +202,7 @@ export function Pm25LagChart({ v, nokiln }: { v: Validation; nokiln?: boolean })
   if (!v.pm25?.length) return null
   const p = palette()
   const [a, b] = nokiln ? ['Non-harvest burning', 'Harvest-window burning'] : ['Kiln index', 'Vegetation index']
-  return <EChart label="Partial correlation of Dhaka PM2.5 with kiln and vegetation indices by lag" height={240} option={{
+  return <EChart label="Partial correlation of Dhaka PM2.5 with kiln and vegetation indices by lag" exportName="kilnwatch_pm25" height={240} option={{
     grid, tooltip: { trigger: 'axis' }, legend: { top: 0 },
     xAxis: { type: 'category', data: v.pm25.map((x) => `lag ${x.lag} d`) }, yAxis: { type: 'value', name: 'partial r' },
     series: [{ name: a, type: 'bar', data: v.pm25.map((x) => x.r_kiln.p50), color: p.kiln },
