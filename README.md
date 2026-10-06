@@ -2,6 +2,8 @@
 
 **NASA Space Apps Challenge 2026 — *Harmonization of MODIS and VIIRS Hot Spots***
 
+🌐 **Live site: https://aalvee-aarham.github.io/kiln-watch/** (updated daily from NASA FIRMS)
+
 Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh into **one consistent burning calendar**:
 
 1. **Harmonize.** MODIS (1 km, 2003–) and VIIRS (375 m, 2012–) see fire differently. When VIIRS arrives in 2012 raw detection counts jump several-fold, which is a sensor artefact, not a change in fire. We convert every sensor to one unit, *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells (MYD-eq)*, with 95% uncertainty bands, validated by leaving each season out in turn.
