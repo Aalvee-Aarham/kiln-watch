@@ -12,7 +12,7 @@ import { formatBox, parseBox, tilesForBox, type Box } from '../lib/box'
 import { dayIso, seasonOf, seasonStart } from '../lib/days'
 import type { Calendar, Events, FC, GridTile, Harmonization, Meta, NrtSeason, UnitProps } from '../lib/types'
 
-const FireMap = lazy(() => import('../components/FireMap'))
+const BdMap = lazy(() => import('../components/BdMap'))
 
 const useMedia = (q: string) => useSyncExternalStore(
   (l) => { const m = matchMedia(q); m.addEventListener('change', l); return () => m.removeEventListener('change', l) },
@@ -80,7 +80,7 @@ export default function ExplorerPage() {
         {showMap && <>
           <Loading state={fc} skeleton={<Skeleton className="h-[440px] w-full rounded-[10px]" />}>{(f) => (
             <Suspense fallback={<Skeleton className="h-[440px] w-full rounded-[10px]" />}>
-              <FireMap fc={f} selected={u.unitId} onSelect={(id) => go(`/explore/${level}/${id}`)} drawing={drawing} box={u.box}
+              <BdMap fc={f} selected={u.unitId} onSelect={(id) => go(`/explore/${level}/${id}`)} drawing={drawing} box={u.box}
                 values={metric?.values} labels={level === 'district'}
                 onBox={(b) => { setDrawing(false); go(`/explore/box/${formatBox(b)}`) }} />
             </Suspense>)}
