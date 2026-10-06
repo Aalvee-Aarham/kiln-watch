@@ -1,0 +1,33 @@
+{
+ "grid": {
+  "origin_lat": 20.0,
+  "origin_lon": 68.0,
+  "step": 0.01,
+  "rows": 1500,
+  "cols": 3000
+ },
+ "cases": [
+  {
+   "name": "dhaka",
+   "lat": 23.781,
+   "lon": 90.4125,
+   "id": 1136241
+  },
+  {
+   "name": "faisalabad",
+   "lat": 31.42,
+   "lon": 73.08,
+   "id": 3426508
+  }
+ ],
+ "out_of_grid": [
+  {
+   "lat": 23.0,
+   "lon": 100.0
+  },
+  {
+   "lat": 19.0,
+   "lon": 90.0
+  }
+ ]
+}

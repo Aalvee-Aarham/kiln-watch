@@ -14,3 +14,4 @@ web/test-results/
 web/playwright-report/
 graphify-out/cache/
 *.tmp
+logs/

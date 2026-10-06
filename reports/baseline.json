@@ -1,0 +1,129 @@
+{
+ "gate_branch": "nokiln",
+ "seam": {
+  "d_raw": 55.12479133102896,
+  "d_harm": 1.588665922908696,
+  "ratio": 0.028819445562498817,
+  "chow_p_raw": 5.953444009358959e-05,
+  "chow_p_harm": 0.2858583481577078
+ },
+ "loso_pooled": {
+  "model": "M0",
+  "n": 13340,
+  "covered": {
+   "p50": 0.9845577211394303,
+   "lo": 0.9823214727756844,
+   "hi": 0.9865149780991265
+  }
+ },
+ "selected_model": "M0",
+ "gates": [
+  {
+   "gate": "G1",
+   "criterion": "Shape: median S(kiln) / median S(control)",
+   "value": null,
+   "threshold": "\u2265 2, MW p < 0.01",
+   "p": 0.97977
+  },
+  {
+   "gate": "G1",
+   "criterion": "Shape: median P(kiln) vs median P(control)",
+   "value": 1.0,
+   "threshold": "< 1.000, MW p < 0.01",
+   "p": 0.00714
+  },
+  {
+   "gate": "G1",
+   "criterion": "Contrast: mean DR(kiln) / mean DR(control)",
+   "value": 0.46432,
+   "threshold": "\u2265 3, perm p < 0.01",
+   "p": 0.9643
+  },
+  {
+   "gate": "G1",
+   "criterion": "Seasonality: DR(Nov\u2013May) / DR(Jun\u2013Oct), kilns",
+   "value": 2.38275,
+   "threshold": "\u2265 3"
+  },
+  {
+   "gate": "G1",
+   "criterion": "All three criteria",
+   "value": 0.0,
+   "threshold": "all hold",
+   "pass": false
+  },
+  {
+   "gate": "G2",
+   "criterion": "Shape: median S(kiln) / median S(control)",
+   "value": null,
+   "threshold": "\u2265 2, MW p < 0.01",
+   "p": 0.7715
+  },
+  {
+   "gate": "G2",
+   "criterion": "Shape: median P(kiln) vs median P(control)",
+   "value": 1.0,
+   "threshold": "< 1.000, MW p < 0.01",
+   "p": 1.0
+  },
+  {
+   "gate": "G2",
+   "criterion": "Contrast: mean DR(kiln) / mean DR(control)",
+   "value": 0.72965,
+   "threshold": "\u2265 3, perm p < 0.01",
+   "p": 0.81102
+  },
+  {
+   "gate": "G2",
+   "criterion": "Seasonality: DR(Nov\u2013May) / DR(Jun\u2013Oct), kilns",
+   "value": null,
+   "threshold": "\u2265 3"
+  },
+  {
+   "gate": "G2",
+   "criterion": "All three criteria",
+   "value": 0.0,
+   "threshold": "all hold",
+   "pass": false
+  }
+ ],
+ "holdouts": [
+  {
+   "kind": "spatial",
+   "pr_auc": {
+    "p50": 0.21791293337959156,
+    "lo": 0.18015966734534047,
+    "hi": 0.27560352525073667
+   }
+  },
+  {
+   "kind": "temporal",
+   "pr_auc": {
+    "p50": 0.3272262991454673,
+    "lo": 0.2414059564815927,
+    "hi": 0.48638235732252344
+   }
+  },
+  {
+   "kind": "cross_sensor_N_J1",
+   "pr_auc": {
+    "p50": 0.29133735482609285,
+    "lo": 0.23053036791847567,
+    "hi": 0.37801579926758216
+   }
+  },
+  {
+   "kind": "cross_sensor_J1_J2",
+   "pr_auc": {
+    "p50": 0.3481606374454767,
+    "lo": 0.19351394460865445,
+    "hi": 0.49474560446180266
+   }
+  }
+ ],
+ "pr_auc": {
+  "p50": 0.21791293337959156,
+  "lo": 0.18015966734534047,
+  "hi": 0.27560352525073667
+ }
+}

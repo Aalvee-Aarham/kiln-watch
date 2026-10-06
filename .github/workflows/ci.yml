@@ -1,0 +1,31 @@
+name: ci
+on: [push, pull_request]
+jobs:
+  python:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: pip }
+      - run: pip install -r requirements.txt
+      - run: ruff check .
+      - run: pytest -q   # synthetic only; tests/test_isolation.py enforces NFR10
+  web-fixtures:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: web } }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test -- --run
+      - run: for b in full from2012 partial nightfire nokiln; do DATA_SRC=fixtures FIXTURE_BRANCH=$b npm run build; done
+      - name: Safety checks (name + value)
+        run: |
+          ! grep -rEq '"(kiln_id|cluster_id|candidate|kiln_lat|kiln_lon)"' dist/data
+          cd .. && pip install -q pandas numpy && python -m kilnwatch export --check-public web/dist/data
+      - name: Bundle size
+        run: du -sh dist/assets && find dist/assets -name '*.js' -exec sh -c 'gzip -c "$1" | wc -c | xargs echo "$1 gz:"' _ {} \;

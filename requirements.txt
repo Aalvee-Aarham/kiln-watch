@@ -1,0 +1,16 @@
+pandas>=2.2
+numpy>=2.0
+pyarrow>=17
+geopandas>=1.0
+shapely>=2.0
+pyogrio>=0.9
+scipy>=1.13
+scikit-learn>=1.5
+joblib
+matplotlib>=3.9
+earthengine-api>=1.0
+requests>=2.32
+python-dotenv>=1.0
+tabulate
+pytest>=8
+ruff>=0.6

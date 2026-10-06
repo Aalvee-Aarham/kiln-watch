@@ -1,0 +1,55 @@
+name: deploy
+on:
+  push: { branches: [main] }
+  schedule: [{ cron: '0 3 * * *' }]
+  workflow_dispatch:
+permissions: { contents: read, pages: write, id-token: write }
+concurrency: { group: pages, cancel-in-progress: false }
+jobs:
+  nrt:
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+      FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: pip }
+      - run: pip install -r requirements.txt
+      - name: Download data-current (district normals)
+        run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
+      - uses: actions/cache@v4
+        with:
+          path: data/nrt
+          key: nrt-season-${{ github.run_id }}
+          restore-keys: nrt-season-
+      - run: python -m kilnwatch nrt
+      - run: pytest -q tests/test_export.py
+      - uses: actions/upload-artifact@v4
+        with: { name: nrt, path: web/public/data/nrt/ }
+  deploy:
+    needs: nrt
+    if: always() && (needs.nrt.result == 'success' || needs.nrt.result == 'skipped')
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.d.outputs.page_url }}
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
+      - uses: actions/download-artifact@v4
+        with: { name: nrt, path: web/public/data/nrt }
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
+      - run: cd web && npm ci && DATA_SRC=real npm run build
+      - name: Safety checks
+        run: |
+          ! grep -rEq '"(kiln_id|cluster_id|candidate|kiln_lat|kiln_lon)"' web/dist/data
+          pip install -q pandas numpy && python -m kilnwatch export --check-public web/dist/data
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with: { path: web/dist }
+      - id: d
+        uses: actions/deploy-pages@v4

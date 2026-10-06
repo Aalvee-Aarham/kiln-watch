@@ -1,0 +1,82 @@
+// THE CONTRACT (implementation_plan §7.3). Frozen at S3; changes need a same-commit Python change + contract tests.
+export type Sensor = 'T' | 'A' | 'N' | 'J1' | 'J2'
+export type Pass = 'D' | 'N'
+export interface CI { p50: number; lo: number; hi: number }
+export type GateBranch = 'full' | 'from2012' | 'partial' | 'nightfire' | 'nokiln'
+
+export interface Meta {
+  generated_at: string; git_sha: string; prereg_sha: string
+  params: Record<string, number | string>
+  data_versions: Record<string, string>
+  credits: { name: string; url: string; licence: string }[]
+  non_claims: { en: string; bn: string }[]
+  gate_branch: GateBranch
+  split_labels: { key: string; label_en: string; label_bn: string }[]
+  activity_index: { key: 'HKFI' | 'HBI'; label_en: string; label_bn: string }
+  grid: { origin_lat: number; origin_lon: number; step: number; rows: number; cols: number }
+}
+
+export interface UnitProps {
+  unit_id: string; level: 'district' | 'upazila' | 'transfer'
+  name_en: string; name_bn: string; division: string
+  kiln_count: number | null; kiln_share: number | null
+}
+
+export interface Calendar {
+  unit_id: string; day0: '2003-01-01'
+  days: number[]                                       // sparse: day indices since day0 with any activity
+  raw: Partial<Record<Sensor, number[]>>               // per-sensor rate per 1000 clear cells, aligned to days
+  h: number[]                                          // harmonized MYD-eq, aligned to days
+  split: { key: string; values: number[] }[]
+  index?: number[]                                     // HKFI or HBI per meta.activity_index
+  nodata: [number, number][]                           // inclusive runs of not-observed days
+  clear_frac?: Partial<Record<Sensor, number[]>>       // districts only, dense, 0–100 ints
+  week0: string; h_lo: number[]; h_hi: number[]        // weekly CI, dense from week0
+  normal: { p10: number[]; p50: number[]; p90: number[] } // per day of season (0 = 1 July), 366 values
+  unusual: number[]; critical: [number, number][]      // unusual: day indices; critical: day-of-season windows
+  seasons: { season: string; midpoint: CI; duration: CI; peak: CI; first?: string; last?: string }[]
+}
+
+export interface Harmonization {
+  selected_model: 'M0' | 'M1'
+  yearly: { season: string; raw_sum: number; raw_by_sensor: Partial<Record<Sensor, number>>; h: CI; aqua_obs: number | null }[]
+  betas: { step: 'A<-N' | 'N<-J1' | 'J1<-J2'; division: string; month: number; pass: Pass
+           loc: 'kiln' | 'other'; beta: CI; rung_used: number; n_celldays: number; n_days: number }[]
+  loso_by_season: { season: string; model: 'M0' | 'M1'; mae: number; bias: number; covered: number }[]
+  loso_pooled: { model: 'M0' | 'M1'; n: number; covered: CI }
+  seam: { d_raw: number; d_harm: number; ratio: number; chow_p_raw: number; chow_p_harm: number }
+  sp_nrt_ratio?: CI
+}
+
+export interface Validation {
+  gates: { gate: 'G0' | 'G1' | 'G2' | 'G3' | 'GN'; criterion: string; value: number; threshold: string; p?: number; pass?: boolean }[]
+  profiles: { week: string[]; kiln_day: number[]; kiln_night: number[]; ctrl_day: number[]; ctrl_night: number[] }
+  radius_sweep: { radius_m: number; kiln: number; ctrl: number }[]
+  classifier: { pr_curve: [number, number][]; pr_auc: CI; baseline_pr_auc: number; prevalence: number
+                importance: { feature: string; value: number }[]
+                holdouts: { kind: 'spatial' | 'temporal' | 'cross_sensor_N_J1' | 'cross_sensor_J1_J2'; pr_auc: CI }[]
+                labelset: { kind: 'footprint_only' | 'with_type2'; pr_auc: CI }[]
+                ablation_no_persistence?: CI }
+  controls: { dropped_frac: number; by_division: Record<string, number>; rung_counts: Record<string, number> }
+  candidates: { n: number; precision_skdb?: CI; precision_s2?: CI; kappa?: number; by_district: Record<string, number> }
+  tropomi?: { treatment: 'HKFI' | 'HBI'; did_no2: CI; did_so2?: CI; monthly: { month: string; belt_minus_ring: number; index: number }[] }
+  pm25?: { lag: number; r_kiln: CI; r_veg: CI }[]
+  transfer?: { district: string; dr_computed: boolean; pr_auc: CI; gate_pass: boolean }
+  closure_cases?: { title: string; before_dr: number; after_dr: number; note: string }[]
+  skipped?: { stage: string; reason: string }[]
+}
+
+export interface Events {
+  policy: { date: string; label_en: string; label_bn: string; url: string }[]
+  harvest: { crop: string; start_doy: number; end_doy: number; url: string }[]
+}
+
+export interface NrtSeason {
+  updated_at: string; provisional: true; season: string; day0: string
+  national: { h: number[]; split: { key: string; values: number[] }[] }
+  districts: Record<string, { h: number[]; above_p90_days: number }>
+}
+
+export interface GridTile { tile: string; day0: string; rows: [cell: number, day: number, sensorPass: number][] }
+
+export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }
