@@ -206,9 +206,6 @@
     .measure, .measure canvas { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cg stroke='%23fbfeff' stroke-width='3.5'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v5M12 18v5M1 12h5M18 12h5'/%3E%3C/g%3E%3Cg stroke='%23182233' stroke-width='1.5'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v5M12 18v5M1 12h5M18 12h5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 12 12, crosshair !important; }
   }
 
-  .ritu { container-type: inline-size; }
-  @container (max-width: 460px) { .ritu-name { display: none; } }
-
   .term { text-decoration: underline dotted color-mix(in oklch, var(--color-muted) 70%, transparent); text-underline-offset: 3px; cursor: help; }
 
   /* Nav pill row: fades at the right edge on narrow screens so cut-off reads as scrollable. */
@@ -244,6 +241,10 @@
   .panel { border: 1px solid CanvasText; }
 }
 
+/* Explore compact bar: fixed (no layout shift), fades in once the full header has scrolled away. */
+.compact-bar { opacity: 0; transform: translateY(-6px); visibility: hidden; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s 160ms; }
+.compact-bar[data-on] { opacity: 1; transform: none; visibility: visible; transition-delay: 0s; }
+
 /* Reduced motion = fewer and gentler, not zero: drop travel/scale, keep short opacity and colour changes. */
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
@@ -251,4 +252,5 @@
   .seg-thumb { transition: none; }
   .menu-list { transition: opacity 120ms ease; @starting-style { opacity: 0; transform: none; } }
   ::view-transition-new(root) { animation: none; }
+  .compact-bar { transform: none; }
 }

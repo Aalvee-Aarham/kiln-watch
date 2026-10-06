@@ -23,7 +23,32 @@ const S = {
   mapNote: ['Use search to pick an area by keyboard.', 'কিবোর্ডে এলাকা বাছতে খোঁজ ব্যবহার করুন।'],
   englishOnly: ['', 'এই অংশটি এখনো ইংরেজিতে।'], ctrlZoom: ['Hold Ctrl to zoom the map', 'মানচিত্র বড় করতে Ctrl চেপে রাখুন'],
   daysAbove: ['days above normal this season', 'এই মৌসুমে স্বাভাবিকের চেয়ে বেশি দিন'], showMap: ['Map', 'মানচিত্র'],
+  seasonShort: ['Season', 'মৌসুম'], kilnsShort: ['Kilns', 'ভাটা'],
+  ctrlScroll: ['Hold Ctrl and scroll to zoom.', 'জুম করতে Ctrl চেপে স্ক্রল করুন।'],
+  bangladesh: ['Bangladesh', 'বাংলাদেশ'], division: ['division', 'বিভাগ'], yourArea: ['Your area', 'আপনার এলাকা'],
+  mappedKilns: ['mapped kilns (APAD inventory)', 'তালিকাভুক্ত ভাটা (APAD)'],
+  twoSeasons: ['Fires and kilns', 'আগুন ও ভাটা'], twoSeasonsTitle: ['Two burning seasons: fires and kilns', 'দুই পোড়ানোর মৌসুম: আগুন ও ভাটা'],
+  normalRange: ['Normal range (middle 80%)', 'স্বাভাবিক পরিসর (মাঝের ৮০%)'], median: ['Median', 'মধ্যমা'], mean7: ['7-day mean', '৭ দিনের গড়'],
+  unusualDay: ['Unusual day (above p90)', 'অস্বাভাবিক দিন (p90-এর উপরে)'], critical: ['critical', 'সংকটকাল'], today: ['today', 'আজ'],
+  notObserved: ['Not observed (cloud)', 'দেখা যায়নি (মেঘ)'], cloud: ['Cloud', 'মেঘ'], low: ['Low', 'কম'], high: ['High', 'বেশি'],
+  clickSeason: ['Click to open this season', 'ক্লিক করে এই মৌসুম খুলুন'], perClear: ['MYD-eq per 1,000 clear cells', 'প্রতি ১,০০০ মেঘমুক্ত ঘরে MYD-eq'],
+  kilnTypical: ['Kilns: typical season', 'ভাটা: সাধারণ মৌসুম'], middleHalf: ['Middle half of seasons', 'মৌসুমগুলোর মাঝের অর্ধেক'],
+  firesAvg: ['Fires: average season', 'আগুন: গড় মৌসুম'], lowerPanel: ['lower panel', 'নিচের প্যানেল'],
+  kilnExcess: ['Kiln excess', 'ভাটার বাড়তি সংকেত'], fireActivity: ['Fire activity (MYD-eq)', 'আগুনের মাত্রা (MYD-eq)'], seasonSum: ['Season sum (MYD-eq)', 'মৌসুমের মোট (MYD-eq)'],
+  harvest: ['harvest', 'ধান কাটা'], aman: ['Aman', 'আমন'], boro: ['Boro', 'বোরো'],
+  colSeason: ['Season', 'মৌসুম'], colMid: ['Midpoint (day)', 'মধ্যবিন্দু (দিন)'], colDur: ['Duration (days)', 'স্থায়িত্ব (দিন)'], colPeak: ['Peak', 'শীর্ষ'],
+  colFirst: ['First*', 'প্রথম*'], colLast: ['Last*', 'শেষ*'],
+  dlCsv: ['spreadsheet', 'স্প্রেডশিট'], dlJson: ['full data', 'পূর্ণ তথ্য'], dlPng: ['chart image', 'চার্টের ছবি'],
 } as const
+
+const DIVISION_BN: Record<string, string> = { Dhaka: 'ঢাকা', Chattogram: 'চট্টগ্রাম', Chittagong: 'চট্টগ্রাম', Rajshahi: 'রাজশাহী', Khulna: 'খুলনা',
+  Barishal: 'বরিশাল', Barisal: 'বরিশাল', Sylhet: 'সিলেট', Rangpur: 'রংপুর', Mymensingh: 'ময়মনসিংহ' }
+/** "Dhaka division" / "ঢাকা বিভাগ". */
+export const divisionName = (d: string, lang: Lang) => (lang === 'bn' ? `${DIVISION_BN[d] ?? d} বিভাগ` : `${d} division`)
+
+/** Short month names, January first ("Sep", never en-GB "Sept"). */
+export const monthNames = (lang: Lang) => Array.from({ length: 12 }, (_, m) =>
+  new Intl.DateTimeFormat(lang === 'bn' ? 'bn-BD' : 'en-US', { month: 'short', timeZone: 'UTC' }).format(Date.UTC(2001, m, 1)))
 export type Key = keyof typeof S
 
 export function useLang(): Lang {

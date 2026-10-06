@@ -96,7 +96,7 @@ export function aggregateBox(tiles: GridTile[], meta: Meta, box: [number, number
 }
 
 /** Plain-language verdict for one season: unusual days, the ritu most of them fell in, and days not observed. */
-export function seasonVerdict(cal: Calendar, season: string): { unusual: number; ritu?: Ritu; notObserved: number; text: string } {
+export function seasonVerdict(cal: Calendar, season: string, lang: 'en' | 'bn' = 'en'): { unusual: number; ritu?: Ritu; notObserved: number; text: string } {
   const d0 = seasonStart(season), d1 = d0 + 365
   const days = cal.unusual.filter((d) => d >= d0 && d <= d1)
   let notObserved = 0
@@ -104,9 +104,14 @@ export function seasonVerdict(cal: Calendar, season: string): { unusual: number;
   const tally = new Map<Ritu, number>()
   for (const d of days) { const r = rituOf(dayToDate(d)); tally.set(r, (tally.get(r) ?? 0) + 1) }
   const ritu = [...tally].sort((a, b) => b[1] - a[1])[0]?.[0]
-  const cloud = notObserved ? ` ${notObserved} days were not observed (cloud).` : ''
-  const text = days.length
-    ? `${season} had ${days.length} day${days.length === 1 ? '' : 's'} above the 90th-percentile normal; most fell in ${ritu!.en} (${ritu!.span}).${cloud}`
-    : `${season} stayed within the normal range on every observed day.${cloud}`
+  const n = (x: number) => x.toLocaleString('bn-BD')
+  const cloud = !notObserved ? '' : lang === 'bn' ? ` ${n(notObserved)} দিন মেঘের কারণে দেখা যায়নি।` : ` ${notObserved} days were not observed (cloud).`
+  const text = lang === 'bn'
+    ? days.length
+      ? `${season} মৌসুমে ${n(days.length)} দিন ৯০তম শতাংশের স্বাভাবিক মাত্রার উপরে ছিল; বেশিরভাগই ${ritu!.bn} ঋতুতে।${cloud}`
+      : `${season} মৌসুমে প্রতিটি পর্যবেক্ষিত দিন স্বাভাবিক পরিসরের মধ্যে ছিল।${cloud}`
+    : days.length
+      ? `${season} had ${days.length} day${days.length === 1 ? '' : 's'} above the 90th-percentile normal; most fell in ${ritu!.en} (${ritu!.span}).${cloud}`
+      : `${season} stayed within the normal range on every observed day.${cloud}`
   return { unusual: days.length, ritu, notObserved, text }
 }

@@ -27,7 +27,7 @@ export function ensureChartTheme(name: string): string {
     legend: { textStyle: { fontSize: 13, color: p.ink }, itemWidth: 14, itemHeight: 8, icon: 'roundRect', itemGap: 16 },
     title: { textStyle: { color: p.ink } },
     tooltip: {
-      backgroundColor: p.surface, borderColor: p.line, borderWidth: 1, padding: [8, 10],
+      backgroundColor: p.surface, borderColor: p.line, borderWidth: 1, padding: [8, 10], confine: true, // never off-screen on a phone
       textStyle: { color: p.ink, fontSize: 13, fontFamily: font },
       transitionDuration: 0.12,
       extraCssText: 'box-shadow: 0 8px 24px -8px rgba(15,20,40,0.25); border-radius: 8px; font-variant-numeric: tabular-nums;',

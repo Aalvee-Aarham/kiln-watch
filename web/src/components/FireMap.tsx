@@ -5,6 +5,7 @@ import 'leaflet/dist/leaflet.css'
 import { palette, rampColor, useTheme } from '../lib/theme'
 import type { FC } from '../lib/types'
 import { boxAreaKm2, type Box } from '../lib/box'
+import { useT } from '../lib/i18n'
 
 const MIN_KM2 = 100 // same floor as parseBox: reject at draw time, not after navigation
 
@@ -34,6 +35,8 @@ export default function FireMap({ fc, selected, onSelect, drawing, box, onBox, v
           const v = values?.[id]
           layer.bindTooltip(`<b>${f.properties.name_en}</b> · ${f.properties.name_bn}${v != null ? `<br/>${v}` : ''}`, { sticky: true, direction: 'top', offset: [0, -8] })
           if (labels) layer.bindTooltip(f.properties.name_en, { permanent: true, direction: 'center', className: 'map-label', interactive: false })
+          // Search is the keyboard route; hundreds of unnamed polygon tab stops are not.
+          layer.on('add', () => (layer as L.Path).getElement()?.setAttribute('tabindex', '-1'))
           layer.on('click', () => !drawing && onSelect(id))
           layer.on('mouseover', (e) => { if (id !== selected) (e.target as L.Path).setStyle({ color: p.ink, weight: 1.5, opacity: 1 }) })
           layer.on('mouseout', (e) => { if (id !== selected) (e.target as L.Path).setStyle(style(id)) })
@@ -60,6 +63,7 @@ function LabelZoom() {
 /** Wheel scrolls the page; Ctrl/⌘ + wheel zooms the map, and a plain wheel shows how. */
 function CtrlZoom() {
   const map = useMap()
+  const t = useT()
   const [hint, setHint] = useState(false)
   useEffect(() => {
     const el = map.getContainer()
@@ -73,7 +77,7 @@ function CtrlZoom() {
   }, [map])
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 z-[500] grid place-items-center bg-ink/30 text-sm font-medium text-on-ink transition-opacity duration-200"
-      style={{ opacity: hint ? 1 : 0 }}>Hold Ctrl to zoom the map</div>
+      style={{ opacity: hint ? 1 : 0 }}>{t('ctrlZoom')}</div>
   )
 }
 

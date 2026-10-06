@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { CIText, Loading, Term, useKilnActivity, Section, SkeletonCard, StatusMessage, Verdict, VerdictStrip, fmt, useMeta } from '../components/ui'
+import { CIText, Loading, Term, useKilnActivity, Section, SkeletonCard, Verdict, VerdictStrip, fmt, useMeta, useTitle } from '../components/ui'
 import { Pm25LagChart, PRCurveChart, RadiusSweepChart, TropomiChart } from '../components/charts'
 import { useJson } from '../lib/data'
 import type { Harmonization, KilnActivity, Validation } from '../lib/types'
@@ -24,19 +24,24 @@ function passRange(threshold: string): [number, number] | null {
   return m[1] === '≥' || m[1] === '>' ? [Number(m[2]), Infinity] : [-Infinity, Number(m[2])]
 }
 
+// A threshold inside 0–1 on a value inside 0–1 is a share: draw it on 0–1, never past 100%.
+const unitRange = (r: [number, number], v: number) => v >= 0 && v <= 1 && [r[0], r[1]].every((x) => !Number.isFinite(x) || (x >= 0 && x <= 1))
+
 /** One test as a verdict strip when its threshold bounds the value, otherwise as a plain verdict row. */
 function TestRow({ label, value, threshold, p, pass, log }: { label: ReactNode; value: number | null; threshold: string; p?: number | null; pass?: boolean; log?: boolean }) {
   const r = passRange(threshold)
   const pNote = p != null ? <>p {p < 0.001 ? '< 0.001' : `= ${fmt(p, 3)}`}</> : undefined
   if (r && value != null && Number.isFinite(value) && pass != null) return (
     <VerdictStrip label={<>{label} <span className="text-muted">({threshold})</span></>} value={value} log={log} verdict={pass}
-      domain={log ? [0.1, 10] : [Math.min(0, value * 1.2), Math.max(1, Number.isFinite(r[0]) ? r[0] * 2 : 0, Number.isFinite(r[1]) ? r[1] * 2 : 0, value * 1.2)]}
+      domain={log ? [0.1, 10] : unitRange(r, value) ? [0, 1] : [Math.min(0, value * 1.2), Math.max(1, Number.isFinite(r[0]) ? r[0] * 2 : 0, Number.isFinite(r[1]) ? r[1] * 2 : 0, value * 1.2)]}
       pass={[Math.max(r[0], log ? 0.1 : -Infinity), Math.min(r[1], log ? 10 : Infinity)]}
       format={(x) => (log ? `${x.toFixed(2)}×` : fmt(x, 3))} note={pNote} />)
   return (
     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1 py-3">
       <span>{label}</span>
-      <span className="text-sm text-muted">{threshold === 'informational' ? `${fmt(value, 3)} (informational)` : <>{value != null && threshold !== 'all hold' && <span className="num">{fmt(value, 3)} · </span>}{threshold}{pNote && <> · {pNote}</>}</>}</span>
+      <span className="text-sm text-muted">{threshold === 'informational' ? `${fmt(value, 3)} (informational)`
+        : threshold === 'all hold' ? 'passes only if all three criteria hold'
+        : <>{value != null && <>observed <span className="num text-ink">{fmt(value, 3)}</span> · </>}passes if {threshold}{pNote && <> · {pNote}</>}</>}</span>
       <span className="ml-auto"><Verdict pass={pass} /></span>
     </div>
   )
@@ -62,7 +67,15 @@ function KilnChannels({ ka }: { ka: KilnActivity }) {
   )
 }
 
+const SENSOR: Record<string, string> = { T: 'Terra', A: 'Aqua', N: 'S-NPP', J1: 'NOAA-20', J2: 'NOAA-21' }
+const holdoutName = (k: string) => {
+  const m = k.match(/^cross_sensor_(\w+?)_(\w+)$/)
+  return m ? `${SENSOR[m[1]] ?? m[1]} → ${SENSOR[m[2]] ?? m[2]}` : ({ spatial: 'unseen districts', temporal: 'later years' } as Record<string, string>)[k] ?? k.replaceAll('_', ' ')
+}
+const LABELSET: Record<string, string> = { footprint_only: 'kiln footprints only', with_type2: 'plus type 2 labels' }
+
 export default function EvidencePage() {
+  useTitle('Evidence')
   const val = useJson<Validation>('validation.json')
   const harm = useJson<Harmonization>('harmonization.json')
   const ka = useKilnActivity()
@@ -100,7 +113,7 @@ export default function EvidencePage() {
       <Loading state={val} skeleton={<SkeletonCard label="Loading feasibility gates" shape="table" />}>{(v) => (
         <>
           <Section title="Feasibility gates" plate={false}
-            summary="G0 is an informational prior screen. G1 (VIIRS) and G2 (MODIS) must meet all three criteria (shape, contrast and seasonality) to unlock kiln layers for their eras.">
+            summary="G0 is an informational prior screen. G1 (VIIRS) and G2 (MODIS) must meet all three criteria (shape, contrast and seasonality) to unlock kiln layers for their eras. DR is the fire-detection rate per site; type 2 is FIRMS’s “static source” flag.">
             <div className="divide-y divide-line">
               {v.gates.map((g, i) => <TestRow key={i} label={<><span className="mr-2 font-semibold">{g.gate}</span>{g.criterion}</>}
                 value={g.value} threshold={g.threshold} p={g.p} pass={g.pass} log={g.criterion.startsWith('Contrast')} />)}
@@ -120,13 +133,13 @@ export default function EvidencePage() {
           <Section title="Classifier robustness" plate={false}>
             <div className="grid gap-x-10 gap-y-4 sm:grid-cols-3">
               <div><h3 className="mb-1 font-semibold">Four holdouts</h3><p className="mb-2 text-sm text-muted">Unseen districts, later years, and satellites the model never trained on.</p>
-                <dl className="space-y-1 text-sm">{v.classifier.holdouts.map((h) => <div key={h.kind} className="flex justify-between gap-3"><dt>{h.kind.replaceAll('_', ' ')}</dt><dd><CIText ci={h.pr_auc} d={3} /></dd></div>)}</dl></div>
-              <div><h3 className="mb-1 font-semibold">Label sets and persistence</h3><p className="mb-2 text-sm text-muted">FIRMS type=2 labels share construction with persistence features, so both label sets and a no-persistence model are reported.</p>
-                <dl className="space-y-1 text-sm">{v.classifier.labelset.map((l) => <div key={l.kind} className="flex justify-between gap-3"><dt>{l.kind.replace('_', ' ')}</dt><dd><CIText ci={l.pr_auc} d={3} /></dd></div>)}
-                  {v.classifier.ablation_no_persistence && <div className="flex justify-between gap-3"><dt>without p5/p30</dt><dd><CIText ci={v.classifier.ablation_no_persistence} d={3} /></dd></div>}</dl></div>
+                <dl className="space-y-1 text-sm">{v.classifier.holdouts.map((h) => <div key={h.kind} className="flex justify-between gap-3"><dt>{holdoutName(h.kind)}</dt><dd><CIText ci={h.pr_auc} d={3} /></dd></div>)}</dl></div>
+              <div><h3 className="mb-1 font-semibold">Label sets and persistence</h3><p className="mb-2 text-sm text-muted">FIRMS “static source” labels (type 2) are built from persistence, like some model features, so both label sets and a no-persistence model are reported.</p>
+                <dl className="space-y-1 text-sm">{v.classifier.labelset.map((l) => <div key={l.kind} className="flex justify-between gap-3"><dt>{LABELSET[l.kind] ?? l.kind.replaceAll('_', ' ')}</dt><dd><CIText ci={l.pr_auc} d={3} /></dd></div>)}
+                  {v.classifier.ablation_no_persistence && <div className="flex justify-between gap-3"><dt>without persistence features</dt><dd><CIText ci={v.classifier.ablation_no_persistence} d={3} /></dd></div>}</dl></div>
               <div><h3 className="mb-1 font-semibold">Matched controls</h3><p className="mb-2 text-sm text-muted">Clusters without three valid controls are dropped; the stage fails above 20% nationally or 40% in any division.</p>
                 <p className="text-sm">Dropped: <span className="num">{pct(v.controls.dropped_frac)}</span></p>
-                <p className="text-sm">Rungs used: {Object.entries(v.controls.rung_counts).map(([k, n]) => `${k}: ${n}`).join(', ')}</p></div>
+                <p className="text-sm">Matched at relaxation step {Object.keys(v.controls.rung_counts).join(' / ')}: <span className="num">{Object.values(v.controls.rung_counts).join(' / ')}</span> clusters</p></div>
             </div>
           </Section>
 
@@ -139,7 +152,8 @@ export default function EvidencePage() {
             <Section title="Candidate unmapped kilns" plate={false} summary="Persistent kiln-like heat more than 1 km from any mapped kiln. Locations go only to the regulator; the public sees district counts.">
               <p className="text-sm"><span className="num text-2xl font-semibold">{v.candidates.n}</span> candidates. Most in: {Object.entries(v.candidates.by_district).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([d, n]) => `${d} (${n})`).join(', ') || 'none'}.</p></Section>
           </div>
-          {v.skipped?.length ? <StatusMessage>Skipped layers: {v.skipped.map((s) => `${s.stage} (${s.reason})`).join('; ')}</StatusMessage> : null}
+          {v.skipped?.length ? <More label={`${v.skipped.length === 1 ? 'One optional check was' : `${v.skipped.length} optional checks were`} not run for this data build`}>
+            <ul className="space-y-1 text-sm text-muted">{v.skipped.map((s) => <li key={s.stage}><span className="code">{s.stage}</span>: {s.reason}</li>)}</ul></More> : null}
         </>)}
       </Loading>
     </div>

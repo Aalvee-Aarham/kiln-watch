@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { Icon, Loading, ProvisionalBadge, Section, Skeleton, SkeletonCard, Sparkline, fmt, useKilnActivity, useMeta } from '../components/ui'
+import { Icon, Loading, ProvisionalBadge, Section, Skeleton, SkeletonCard, Sparkline, fmt, useKilnActivity, useMeta, useTitle } from '../components/ui'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import type { FC, NrtSeason } from '../lib/types'
@@ -8,6 +8,7 @@ import type { FC, NrtSeason } from '../lib/types'
 const SeasonToDateChart = lazy(() => import('../components/charts').then((m) => ({ default: m.SeasonToDateChart })))
 
 export function ThisSeasonPage() {
+  useTitle('This season')
   const nrt = useJson<NrtSeason>('nrt/current_season.json')
   const meta = useMeta()
   const lang = useLang()
@@ -28,12 +29,14 @@ export function ThisSeasonPage() {
             <h1 className="h-display text-[clamp(2.5rem,6vw,4rem)]">Season {n.season} so far</h1>
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <ProvisionalBadge />
-              <span>Updated {updated.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' })} UTC, refreshed daily from FIRMS near-real-time data.</span>
+              <span>Updated {updated.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).replace('Sept', 'Sep')} UTC, refreshed daily from FIRMS near-real-time data.</span>
               <details className="w-full sm:w-auto"><summary className="text-ink underline decoration-dotted underline-offset-4">Why provisional?</summary>
                 <p className="mt-1 prose-measure">Until archive-quality data arrive, the cloud-free share of each area uses its typical (median) value for that day of the year, and the source labels come from the frozen classifier.</p></details>
             </div>
             <p className="mt-5 prose-measure text-lg">{above > 0
-              ? <><b>{above}</b> of the {rows.length} most active districts have had days above their 90th-percentile normal this season. They are ranked below.</>
+              ? above === rows.length
+                ? <>{rows.length === 1 ? 'One district has' : <><b>{rows.length}</b> districts have</>} had days above their 90th-percentile normal this season. They are ranked below.</>
+                : <><b>{above}</b> of the {rows.length} most active districts have had days above their 90th-percentile normal this season. They are ranked below.</>
               : <>No district has gone above its 90th-percentile normal yet this season.</>}</p>
           </header>
           {meta.data && <Section title="National activity by week, by source" download={{ name: 'kilnwatch_nrt', png: true, json: n.national }}
@@ -55,7 +58,7 @@ export function ThisSeasonPage() {
                         <span className="num w-14 text-right text-sm">{d.above_p90_days} d</span>
                       </span>
                       <span className="row-span-2 sm:row-span-1"><Sparkline values={d.h.slice(-90)} /></span>
-                      <span className="num hidden text-right text-sm text-muted sm:block">{fmt(d.h.reduce((s, v) => s + v, 0), 1)} total</span>
+                      <span className="num hidden text-right text-sm text-muted sm:block">{fmt(d.h.reduce((s, v) => s + v, 0), 1)} MYD-eq</span>
                       <span className="hidden text-muted sm:block"><Icon name="chevron" /></span>
                     </Link>
                   </li>)
@@ -79,6 +82,7 @@ const PIPELINE: [string, string][] = [
 ]
 
 export function MethodPage() {
+  useTitle('Method')
   const meta = useMeta()
   const ka = useKilnActivity()
   const lang = useLang()

@@ -5,12 +5,24 @@ import { needsPattern, palette, splitColor, useTheme, type Palette } from '../li
 import { dense, heatmapCells, seriesFor, type Mode } from '../lib/calendar'
 import { dateToDay, dayIso, dayToDate, seasonDay, seasonDayLabel, seasonOf, seasonStart } from '../lib/days'
 import { rituOf } from '../lib/ritu'
-import { useLang } from '../lib/i18n'
+import { monthNames, useLang, useT } from '../lib/i18n'
+import type { Lang } from '../lib/url'
 import type { Calendar, Events, Harmonization, KilnActivity, KilnArea, KilnSeasonRow, Meta, NrtSeason, Validation } from '../lib/types'
 
 const MONTHS_SEASON = ['Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun']
-const MONTHS_CAL = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
 const seasonAxisLabel = (d: number) => MONTHS_SEASON[Math.min(11, Math.floor(d / 30.5))]
+
+// Day index of each month's first day (non-leap), calendar-year and season-year (1 Jul) layouts.
+const MONTH_STARTS = { cal: [0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334], season: [0, 31, 62, 92, 123, 153, 184, 215, 243, 274, 304, 335] }
+/** Day-of-year x axis labelled at real month starts (every other month on a phone), in the reader's language. */
+function monthAxis(layout: 'cal' | 'season', lang: Lang, every = 1) {
+  const names = monthNames(lang)
+  const at = new Map(MONTH_STARTS[layout].map((d, k) => [d, k]))
+  return {
+    interval: (i: number) => at.has(i) && at.get(i)! % every === 0,
+    formatter: (d: string) => names[layout === 'season' ? (at.get(+d)! + 6) % 12 : at.get(+d)!] ?? '',
+  }
+}
 const r2 = (v: number) => Math.round(v * 100) / 100
 const vf = (v: unknown) => (typeof v === 'number' ? r2(v).toLocaleString('en-US') : '–')
 
@@ -112,6 +124,8 @@ export function CalendarHeatmap({ cal, mode, split, layout, events, onPickDay }:
 }) {
   const p = usePalette()
   const lang = useLang()
+  const t = useT()
+  const narrow = useNarrow()
   // Row cascade on the first draw only; later mode/split/layout changes just recolour.
   const drawn = useRef(false)
   useEffect(() => { drawn.current = true }, [])
@@ -128,22 +142,24 @@ export function CalendarHeatmap({ cal, mode, split, layout, events, onPickDay }:
         const [x, yi, v] = q.value
         const d = dateOf(x, yi)
         const r = rituOf(d)
-        return `<b>${d.toISOString().slice(0, 10)}</b> · ${lang === 'bn' ? r.bn : r.en}<br/>${v < 0 ? 'Not observed (cloud)' : `${r2(v)} MYD-eq per 1,000 clear cells`}<br/><span style="opacity:.7">Click to open this season</span>`
+        return `<b>${d.toISOString().slice(0, 10)}</b> · ${lang === 'bn' ? r.bn : r.en}<br/>${v < 0 ? t('notObserved') : `<b>${r2(v)}</b> ${t('perClear')}`}<br/><span style="opacity:.7">${t('clickSeason')}</span>`
       } },
+      // Crosshair (day rule + year-row shade): a 1–2px cell's own highlight is too small to see.
       xAxis: { type: 'category', data: Array.from({ length: 366 }, (_, i) => i),
-        axisLabel: { interval: 30, hideOverlap: true, formatter: (d: string) => (layout === 'season' ? seasonAxisLabel(+d) : MONTHS_CAL[Math.min(11, Math.floor(+d / 30.5))]) },
-        axisLine: { show: false } },
-      yAxis: { type: 'category', data: ylab, inverse: true, axisLine: { show: false }, axisLabel: { interval: years.length > 16 ? 1 : 0 } },
-      visualMap: { type: 'piecewise', orient: 'horizontal', left: HEAT_GRID.left, bottom: 0, itemWidth: 14, itemHeight: 10, itemGap: 6, textStyle: { color: p.muted },
-        pieces: [{ lt: 0, color: p.cloud, label: 'Not observed (cloud)' },
-          { gte: 0, lt: vmax * 0.1, color: p.fire[0], label: 'Low' }, { gte: vmax * 0.1, lt: vmax * 0.3, color: p.fire[1], label: ' ' },
+        axisLabel: { hideOverlap: true, ...monthAxis(layout, lang, narrow ? 2 : 1) }, axisLine: { show: false },
+        axisPointer: { show: true, type: 'line', triggerTooltip: false, triggerEmphasis: false, label: { show: false }, lineStyle: { color: p.ink, opacity: 0.55, type: 'solid' } } },
+      yAxis: { type: 'category', data: ylab, inverse: true, axisLine: { show: false }, axisLabel: { interval: years.length > 16 ? 1 : 0 },
+        axisPointer: { show: true, type: 'line', triggerTooltip: false, triggerEmphasis: false, label: { show: false }, lineStyle: { color: p.ink, opacity: 0.55, type: 'solid' } } },
+      visualMap: { type: 'piecewise', orient: 'horizontal', left: narrow ? 8 : HEAT_GRID.left, bottom: 0, itemWidth: 14, itemHeight: 10, itemGap: narrow ? 4 : 6, textStyle: { color: p.muted },
+        pieces: [{ lt: 0, color: p.cloud, label: narrow ? t('cloud') : t('notObserved') },
+          { gte: 0, lt: vmax * 0.1, color: p.fire[0], label: t('low') }, { gte: vmax * 0.1, lt: vmax * 0.3, color: p.fire[1], label: ' ' },
           { gte: vmax * 0.3, lt: vmax * 0.55, color: p.fire[2], label: ' ' }, { gte: vmax * 0.55, lt: vmax * 0.8, color: p.fire[3], label: ' ' },
-          { gte: vmax * 0.8, color: p.fire[4], label: 'High' }] },
-      series: [{ type: 'heatmap', data: cells, progressive: 5000, cursor: 'inherit', emphasis: { itemStyle: { borderColor: p.ink, borderWidth: 1 } },
+          { gte: vmax * 0.8, color: p.fire[4], label: t('high') }] },
+      series: [{ type: 'heatmap', data: cells, progressive: 5000, cursor: 'inherit', emphasis: { itemStyle: { borderColor: p.ink, borderWidth: 2 } },
         animationDuration: animate ? 400 : 200, animationDelay: animate ? (i: number) => (cells[i]?.[1] ?? 0) * 25 : 0 }],
     }
     return { opt, years }
-  }, [cal, mode, split, layout, p, lang])
+  }, [cal, mode, split, layout, p, lang, t, narrow])
   const click = (q: { value?: unknown }) => {
     if (!onPickDay || !Array.isArray(q.value)) return
     const [x, yi] = q.value as number[]
@@ -164,6 +180,9 @@ const BAND_GRID = { left: 48, right: 16, top: 16, bottom: 28 }
 /** One season against the normal range (p10–p90), unusual days marked, critical periods labelled. */
 export function NormalBandChart({ cal, season, mode, split, events, markDay }: { cal: Calendar; season: string; mode: Mode; split: string; events?: Events; markDay?: number }) {
   const p = usePalette()
+  const lang = useLang()
+  const t = useT()
+  const narrow = useNarrow()
   const opt = useMemo(() => {
     const d0 = seasonStart(season)
     const dz = dense(cal, seriesFor(cal, mode, split))
@@ -174,28 +193,28 @@ export function NormalBandChart({ cal, season, mode, split, events, markDay }: {
     const unusual = x.filter((i) => unusualSet.has(d0 + i)).map((i) => [i, cur[i]])
     const today = seasonOf(new Date()) === season ? seasonDay(new Date()) : null
     const rules = [
-      ...(today != null ? [{ xAxis: today, lineStyle: { color: p.muted, type: 'dashed' }, label: { formatter: 'today', color: p.muted } }] : []),
+      ...(today != null ? [{ xAxis: today, lineStyle: { color: p.muted, type: 'dashed' }, label: { formatter: t('today'), color: p.muted } }] : []),
       ...(markDay != null && markDay >= 0 && markDay < 366 ? [{ xAxis: markDay, lineStyle: { color: p.orbit, width: 1.5, type: 'solid' }, label: { formatter: dayIso(d0 + markDay), color: p.orbit } }] : []),
     ]
     return {
       grid: BAND_GRID, tooltip: { trigger: 'axis', valueFormatter: vf },
-      xAxis: { type: 'category', data: x, boundaryGap: false, axisLabel: { interval: 30, hideOverlap: true, formatter: (d: string) => seasonAxisLabel(+d) } },
-      yAxis: { type: 'value', name: 'MYD-eq per 1,000 clear cells' },
+      xAxis: { type: 'category', data: x, boundaryGap: false, axisLabel: { hideOverlap: true, ...monthAxis('season', lang, narrow ? 2 : 1) } },
+      yAxis: { type: 'value', name: t('perClear') },
       series: [
         { name: 'p10', type: 'line', data: cal.normal.p10, stack: 'n', lineStyle: { opacity: 0 }, tooltip: { show: false } },
-        { name: 'Normal range (p10–p90)', type: 'line', data: cal.normal.p90.map((v, i) => r2(v - cal.normal.p10[i])), stack: 'n', lineStyle: { opacity: 0 }, areaStyle: { color: p.band, opacity: 0.7 }, tooltip: { show: false },
-          markArea: { silent: true, itemStyle: { color: p.heat, opacity: 0.07 }, label: { show: true, position: 'insideTop', formatter: 'critical', color: p.muted, fontSize: 11 },
+        { name: t('normalRange'), type: 'line', data: cal.normal.p90.map((v, i) => r2(v - cal.normal.p10[i])), stack: 'n', lineStyle: { opacity: 0 }, areaStyle: { color: p.band, opacity: 0.7 }, tooltip: { show: false },
+          markArea: { silent: true, itemStyle: { color: p.heat, opacity: 0.07 }, label: { show: true, position: 'insideTop', formatter: t('critical'), color: p.muted, fontSize: 11 },
             data: cal.critical.map(([a, b]) => [{ xAxis: a }, { xAxis: b }]) } },
-        { name: 'Median', type: 'line', data: cal.normal.p50, color: p.muted, lineStyle: { type: 'dotted', width: 1.5 } },
-        { name: season + ' (7-day mean)', type: 'line', data: cur, color: p.heat, lineStyle: { width: 2.5 },
+        { name: t('median'), type: 'line', data: cal.normal.p50, color: p.muted, lineStyle: { type: 'dotted', width: 1.5 } },
+        { name: `${season}, ${t('mean7')}`, type: 'line', data: cur, color: p.heat, lineStyle: { width: 2.5 },
           markLine: rules.length ? { silent: true, symbol: 'none', label: { position: 'insideEndTop', fontSize: 11 }, data: rules } : undefined },
-        { name: 'Unusual (above p90)', type: 'scatter', data: unusual, color: p.fire[4], symbolSize: 8, itemStyle: { borderColor: p.surface, borderWidth: 2 } },
+        { name: t('unusualDay'), type: 'scatter', data: unusual, color: p.fire[4], symbolSize: 8, itemStyle: { borderColor: p.surface, borderWidth: 2 } },
       ],
     }
-  }, [cal, season, mode, split, p, markDay])
+  }, [cal, season, mode, split, p, markDay, lang, t, narrow])
   return (
     <>
-      <Legend items={[{ label: 'Normal range (middle 80%)', color: p.band, kind: 'band' }, { label: 'Median', color: p.muted, kind: 'dash' }, { label: `${season}, 7-day mean`, color: p.heat }, { label: 'Unusual day (above p90)', color: p.fire[4], kind: 'dot' }]} />
+      <Legend items={[{ label: t('normalRange'), color: p.band, kind: 'band' }, { label: t('median'), color: p.muted, kind: 'dash' }, { label: `${season}, ${t('mean7')}`, color: p.heat }, { label: t('unusualDay'), color: p.fire[4], kind: 'dot' }]} />
       <RituBand layout="season" events={events} left={BAND_GRID.left} right={BAND_GRID.right} />
       <EChart option={opt} height={300} label={`Season ${season} compared with the normal range`} exportName="kilnwatch_normal" />
     </>
@@ -210,6 +229,7 @@ const splitLabel = (meta: Meta, key: string, lang: 'en' | 'bn') => {
 /** Season totals by source. Colour follows the split key (theme.SPLIT_SLOT); 1px surface seams between segments. */
 export function SourceStackChart({ cal, meta, lang }: { cal: Calendar; meta: Meta; lang: 'en' | 'bn' }) {
   const p = usePalette()
+  const t = useT()
   const opt = useMemo(() => {
     const bySeason = new Map<string, number[]>()
     cal.days.forEach((d, i) => {
@@ -218,17 +238,19 @@ export function SourceStackChart({ cal, meta, lang }: { cal: Calendar; meta: Met
       cal.split.forEach((sp, k) => { row[k] += sp.values[i] })
       bySeason.set(s, row)
     })
-    const seasons = [...bySeason.keys()].sort()
+    // Whole seasons only: a season the record covers in part (2002-03 starts in January) would read as a quiet year.
+    const first = cal.days[0], last = cal.days.at(-1) ?? first
+    const seasons = [...bySeason.keys()].sort().filter((s) => seasonStart(s) >= first && seasonStart(s) + 364 <= last)
     return {
       grid: { left: 48, right: 16, top: 16, bottom: 28 }, tooltip: { trigger: 'axis', valueFormatter: vf },
-      xAxis: { type: 'category', data: seasons, axisLabel: { hideOverlap: true } }, yAxis: { type: 'value', name: 'Season sum (MYD-eq)' },
+      xAxis: { type: 'category', data: seasons, axisLabel: { hideOverlap: true } }, yAxis: { type: 'value', name: t('seasonSum') },
       series: cal.split.map((sp, k) => ({
         name: splitLabel(meta, sp.key, lang), type: 'bar', stack: 's', barMaxWidth: 28, color: splitColor(sp.key, p, k),
         itemStyle: { borderColor: p.surface, borderWidth: 1, borderRadius: k === cal.split.length - 1 ? [3, 3, 0, 0] : 0, decal: needsPattern(sp.key) ? plumDecal : undefined },
         data: seasons.map((s) => r2(bySeason.get(s)![k])),
       })),
     }
-  }, [cal, meta, lang, p])
+  }, [cal, meta, lang, p, t])
   return (
     <>
       <Legend items={cal.split.map((sp, k) => ({ label: splitLabel(meta, sp.key, lang), color: splitColor(sp.key, p, k), kind: 'bar' as const }))} />
@@ -260,7 +282,7 @@ export function SeasonToDateChart({ nrt, meta, lang }: { nrt: NrtSeason; meta: M
   const opt = useMemo(() => {
     const d0 = dateToDay(nrt.day0)
     const weeks = Math.ceil(nrt.national.h.length / 7)
-    const label = Array.from({ length: weeks }, (_, w) => new Date(dayIso(d0 + w * 7) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }))
+    const label = Array.from({ length: weeks }, (_, w) => new Date(dayIso(d0 + w * 7) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('Sept', 'Sep'))
     const sumWeek = (a: number[], w: number) => r2(a.slice(w * 7, w * 7 + 7).reduce((s, v) => s + v, 0))
     return {
       grid: { left: 44, right: 16, top: 16, bottom: 28 },
@@ -376,9 +398,13 @@ export function kilnBins(ka: KilnActivity, periods = ka.periods ?? []) {
  */
 export function KilnSeasonShapeChart({ ka, area, season, burning }: { ka: KilnActivity; area: KilnArea; season?: string; burning?: number[] }) {
   const p = usePalette()
+  const t = useT()
+  const lang = useLang()
   const unit = ka.layer === 's1' ? 'dB' : 'nW/cm²/sr'
   const opt = useMemo(() => {
-    const { nb, at, label } = kilnBins(ka)
+    const { nb, at } = kilnBins(ka)
+    const ms = monthNames(lang)
+    const label = (b: number) => (nb === 12 ? ms[(b + 6) % 12] : b % 2 ? '' : ms[(b / 2 + 6) % 12])
     const byBin: number[][] = Array.from({ length: nb }, () => [])
     const sel: (number | null)[] = Array(nb).fill(null)
     at.forEach((a, i) => { const v = area.e?.[i]; if (v != null) { byBin[a.bin].push(v); if (a.season === season) sel[a.bin] = v } })
@@ -391,25 +417,34 @@ export function KilnSeasonShapeChart({ ka, area, season, burning }: { ka: KilnAc
     const xAxis = (gridIndex: number, show: boolean) => ({ type: 'category', data: bins, gridIndex, boundaryGap: false, axisLabel: { show, interval: 0, formatter: (b: string) => label(+b) } })
     const grids = burnBins ? [{ left: 52, right: 12, top: 24, height: '46%' }, { left: 52, right: 12, bottom: 28, height: '24%' }] : [{ left: 52, right: 12, top: 24, bottom: 28 }]
     return {
-      grid: grids, tooltip: { trigger: 'axis', valueFormatter: vf }, axisPointer: { link: [{ xAxisIndex: 'all' }] },
+      // One readout for both panels, headed by the time of season (not the bin index).
+      grid: grids, axisPointer: { link: [{ xAxisIndex: 'all' }] },
+      tooltip: { trigger: 'axis', formatter: (ps: { axisValue: string; marker: string; seriesName: string; value: unknown }[]) => `<b>${kilnWhen(nb, +ps[0].axisValue, lang)}</b>`
+        + ps.filter((x) => typeof x.value === 'number').map((x) => `<br/>${x.marker}${x.seriesName}<b style="float:right;margin-left:20px">${vf(x.value)}</b>`).join('') },
       xAxis: burnBins ? [xAxis(0, false), xAxis(1, true)] : [xAxis(0, true)],
-      yAxis: [{ type: 'value', gridIndex: 0, name: `Kiln excess (${unit})` }, ...(burnBins ? [{ type: 'value', gridIndex: 1, name: 'Fire activity (MYD-eq)' }] : [])],
+      yAxis: [{ type: 'value', gridIndex: 0, name: `${t('kilnExcess')} (${unit})` }, ...(burnBins ? [{ type: 'value', gridIndex: 1, name: t('fireActivity') }] : [])],
       series: [
         { name: 'p25', type: 'line', data: p25, stack: 'iqr', lineStyle: { opacity: 0 }, tooltip: { show: false } },
-        { name: 'Middle half of seasons', type: 'line', data: p75.map((v, i) => (v == null || p25[i] == null ? null : r2(v - p25[i]!))), stack: 'iqr', lineStyle: { opacity: 0 }, areaStyle: { color: p.brick, opacity: 0.18 }, tooltip: { show: false } },
-        { name: 'Kilns: typical season', type: 'line', data: p50, color: p.brick, lineStyle: { width: 2.5 } },
+        { name: t('middleHalf'), type: 'line', data: p75.map((v, i) => (v == null || p25[i] == null ? null : r2(v - p25[i]!))), stack: 'iqr', lineStyle: { opacity: 0 }, areaStyle: { color: p.brick, opacity: 0.18 }, tooltip: { show: false } },
+        { name: t('kilnTypical'), type: 'line', data: p50, color: p.brick, lineStyle: { width: 2.5 } },
         ...(season ? [{ name: season, type: 'line', data: sel, color: p.ink, lineStyle: { type: 'dashed', width: 1.5 } }] : []),
-        ...(burnBins ? [{ name: 'Fires: average season', type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: burnBins, color: p.heat, lineStyle: { width: 2 }, areaStyle: { color: p.heat, opacity: 0.12 } }] : []),
+        ...(burnBins ? [{ name: t('firesAvg'), type: 'line', xAxisIndex: 1, yAxisIndex: 1, data: burnBins, color: p.heat, lineStyle: { width: 2 }, areaStyle: { color: p.heat, opacity: 0.12 } }] : []),
       ],
     }
-  }, [ka, area, season, burning, p, unit])
+  }, [ka, area, season, burning, p, unit, t, lang])
   return (
     <>
-      <Legend items={[{ label: 'Kilns: typical season', color: p.brick }, { label: 'Middle half of seasons', color: p.brick, kind: 'band' },
-        ...(season ? [{ label: season, color: p.ink, kind: 'dash' as const }] : []), ...(burning ? [{ label: 'Fires: average season (lower panel)', color: p.heat }] : [])]} />
+      <Legend items={[{ label: t('kilnTypical'), color: p.brick }, { label: t('middleHalf'), color: p.brick, kind: 'band' },
+        ...(season ? [{ label: season, color: p.ink, kind: 'dash' as const }] : []), ...(burning ? [{ label: `${t('firesAvg')} (${t('lowerPanel')})`, color: p.heat }] : [])]} />
       <EChart option={opt} height={burning ? 380 : 300} label="Kiln night-light excess through the season, with the area's fire season in a separate panel below" exportName="kilnwatch_kiln_shape" />
     </>
   )
+}
+
+/** A kiln bin as a time of season: "Jan" (monthly) or "Jan 1–15" / "Jan 16–end" (half-monthly). */
+function kilnWhen(nb: number, b: number, lang: Lang) {
+  const m = monthNames(lang)[(Math.floor(nb === 12 ? b : b / 2) + 6) % 12]
+  return nb === 12 ? m : `${m} ${b % 2 ? (lang === 'bn' ? '১৬–শেষ' : '16–end') : (lang === 'bn' ? '১–১৫' : '1–15')}`
 }
 
 /** Kiln calendar: one row per season, one cell per half-month; colour = kiln excess over the monsoon baseline. */
@@ -423,7 +458,7 @@ export function KilnCalendarHeatmap({ ka, area }: { ka: KilnActivity; area: Kiln
     at.forEach((a, i) => { const v = area.e?.[i]; const y = seasons.indexOf(a.season); if (v != null && y >= 0) cells.push([a.bin, y, r2(v)]) })
     const vals = cells.map((c) => c[2]).sort((a, b) => a - b)
     const vmax = Math.max(0.05, vals[Math.floor(vals.length * 0.97)] ?? 1)
-    const when = (b: number) => (nb === 12 ? MONTHS_SEASON[b] : `${MONTHS_SEASON[Math.floor(b / 2)]} ${b % 2 ? '16–end' : '1–15'}`)
+    const when = (b: number) => kilnWhen(nb, b, 'en')
     return {
       grid: { left: 64, right: 12, top: 8, bottom: 52, show: true, backgroundColor: p.surface2, borderWidth: 0 },
       tooltip: { formatter: (x: { value: [number, number, number] }) => `<b>${seasons[x.value[1]]}</b> · ${when(x.value[0])}<br/>kiln excess ${x.value[2]}` },
