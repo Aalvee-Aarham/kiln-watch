@@ -1,5 +1,6 @@
 import type { Calendar, GridTile, Meta, Sensor } from './types'
-import { dayIso, dayToDate, seasonOf } from './days'
+import { dayIso, dayToDate, seasonOf, seasonStart } from './days'
+import { rituOf, type Ritu } from './ritu'
 import { cellId } from './box'
 
 export type Mode = 'raw' | 'harm'
@@ -92,4 +93,20 @@ export function aggregateBox(tiles: GridTile[], meta: Meta, box: [number, number
     out.set(d, (1000 * v) / Math.max(1, cf * Math.min(boxCells, totalCells)))
   }
   return out
+}
+
+/** Plain-language verdict for one season: unusual days, the ritu most of them fell in, and days not observed. */
+export function seasonVerdict(cal: Calendar, season: string): { unusual: number; ritu?: Ritu; notObserved: number; text: string } {
+  const d0 = seasonStart(season), d1 = d0 + 365
+  const days = cal.unusual.filter((d) => d >= d0 && d <= d1)
+  let notObserved = 0
+  for (const [a, b] of cal.nodata) notObserved += Math.max(0, Math.min(b, d1) - Math.max(a, d0) + 1)
+  const tally = new Map<Ritu, number>()
+  for (const d of days) { const r = rituOf(dayToDate(d)); tally.set(r, (tally.get(r) ?? 0) + 1) }
+  const ritu = [...tally].sort((a, b) => b[1] - a[1])[0]?.[0]
+  const cloud = notObserved ? ` ${notObserved} days were not observed (cloud).` : ''
+  const text = days.length
+    ? `${season} had ${days.length} day${days.length === 1 ? '' : 's'} above the 90th-percentile normal; most fell in ${ritu!.en} (${ritu!.span}).${cloud}`
+    : `${season} stayed within the normal range on every observed day.${cloud}`
+  return { unusual: days.length, ritu, notObserved, text }
 }
