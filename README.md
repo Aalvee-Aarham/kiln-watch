@@ -8,7 +8,18 @@ Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh i
 2. **Separate.** Each VIIRS detection is labelled *kiln-like*, *vegetation-like* or *unknown* by a weakly supervised classifier trained on detections at 4,760 mapped brick kilns versus matched control sites. It uses heat signature and persistence, never location or date, and is tested on unseen districts, later years and other satellites.
 3. **Show.** For any district, upazila or drawn box, the site shows the full daily history, the normal range, unusual days, critical periods and the current season (updated daily). All of it is downloadable as CSV or JSON.
 
-> Results and headline numbers: see [`reports/`](reports/) (gate, harmonization, classifier and validation reports) and the **Evidence** page of the site.
+## Results (real data, built 6 Oct 2026)
+
+| Test (pre-registered) | Result |
+|---|---|
+| **Seam:** harmonized 2012 jump ≤ 25% of raw; break in raw (p < 0.01) and none after (p > 0.05) | **PASS**: 55.1 → 1.6 (**2.9%**); Chow p 6×10⁻⁵ raw, 0.29 harmonized |
+| **Leave-one-season-out:** pooled 95% coverage 0.90–0.97 | **FAIL (conservative)**: 0.985 [0.982–0.987]. Intervals are too wide, not too narrow. See BLOCKERS.md |
+| **G1, kilns visible to VIIRS:** DR(kiln)/DR(control) ≥ 3, perm p < 0.01, plus shape and seasonality | **FAIL**: 0.46×, p = 0.96 across 3,653 clusters and 10,959 matched controls |
+| **G2, kilns visible to MODIS** | **FAIL**: 0.73× |
+| → Gate branch | **`nokiln`**: calendar ships in full; split = Aman / Boro harvest windows / other; index = HBI |
+
+Data: 1,221,809 FIRMS detections (2003 → today) · 13M Earth Engine daily clear-land fractions · 4,760 APAD kilns · 560 district and upazila calendars.
+Full reports: [`reports/`](reports/) · Evidence page of the site · pitch materials in [`presentation/`](presentation/).
 
 ---
 

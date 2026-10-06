@@ -68,8 +68,8 @@ export function CalendarHeatmap({ cal, mode, split, layout }: { cal: Calendar; m
       xAxis: { type: 'category', data: Array.from({ length: 366 }, (_, i) => i), axisLabel: { interval: 30, formatter: (d: string) => (layout === 'season' ? seasonAxisLabel(+d) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][Math.min(11, Math.floor(+d / 30.5))]) }, splitArea: { show: false } },
       yAxis: { type: 'category', data: ylab, inverse: true },
       visualMap: { type: 'piecewise', orient: 'horizontal', left: 'center', bottom: 0, itemWidth: 12,
-        pieces: [{ lt: 0, color: '#d6d3d1', label: 'Cloud (not observed)' }, { gte: 0, lt: vmax * 0.1, color: '#fde68a', label: 'Low' }, { gte: vmax * 0.1, lt: vmax * 0.35, color: '#fbbf24', label: '' },
-          { gte: vmax * 0.35, lt: vmax * 0.7, color: '#ea580c', label: '' }, { gte: vmax * 0.7, color: '#7c2d12', label: 'High' }] },
+        pieces: [{ lt: 0, color: '#d6d3d1', label: 'Cloud (not observed)' }, { gte: 0, lt: vmax * 0.1, color: '#fde68a', label: 'Low' }, { gte: vmax * 0.1, lt: vmax * 0.35, color: '#fbbf24', label: ' ' },
+          { gte: vmax * 0.35, lt: vmax * 0.7, color: '#ea580c', label: ' ' }, { gte: vmax * 0.7, color: '#7c2d12', label: 'High' }] },
       series: [{ type: 'heatmap', data: cells, progressive: 5000 }],
     }
   }, [cal, mode, split, layout])
@@ -194,13 +194,14 @@ export function TropomiChart({ v }: { v: Validation }) {
   }} />
 }
 
-export function Pm25LagChart({ v }: { v: Validation }) {
+export function Pm25LagChart({ v, nokiln }: { v: Validation; nokiln?: boolean }) {
   if (!v.pm25?.length) return null
   const p = palette()
+  const [a, b] = nokiln ? ['Non-harvest burning', 'Harvest-window burning'] : ['Kiln index', 'Vegetation index']
   return <EChart label="Partial correlation of Dhaka PM2.5 with kiln and vegetation indices by lag" height={240} option={{
     grid, tooltip: { trigger: 'axis' }, legend: { top: 0 },
     xAxis: { type: 'category', data: v.pm25.map((x) => `lag ${x.lag} d`) }, yAxis: { type: 'value', name: 'partial r' },
-    series: [{ name: 'Kiln index', type: 'bar', data: v.pm25.map((x) => x.r_kiln.p50), color: p.kiln },
-      { name: 'Vegetation index', type: 'bar', data: v.pm25.map((x) => x.r_veg.p50), color: p.split[1] }],
+    series: [{ name: a, type: 'bar', data: v.pm25.map((x) => x.r_kiln.p50), color: p.kiln },
+      { name: b, type: 'bar', data: v.pm25.map((x) => x.r_veg.p50), color: p.split[1] }],
   }} />
 }

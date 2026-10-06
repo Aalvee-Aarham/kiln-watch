@@ -75,7 +75,8 @@ export function SegmentedToggle<T extends string>({ value, options, onChange, la
   )
 }
 
-export const fmt = (v: number | null | undefined, d = 2) => (v == null || !Number.isFinite(v) ? '–' : Number(v.toFixed(d)).toLocaleString())
+export const fmt = (v: number | null | undefined, d = 2) =>
+  v == null || !Number.isFinite(v) ? '–' : v !== 0 && Math.abs(v) < 1e-3 ? v.toExponential(1) : Number(v.toFixed(d)).toLocaleString(undefined, { maximumFractionDigits: d })
 export const CIText = ({ ci, d = 2 }: { ci: CI; d?: number }) => (
   <span>{fmt(ci.p50, d)} <span className="text-stone-500">[{fmt(ci.lo, d)}–{fmt(ci.hi, d)}]</span></span>
 )

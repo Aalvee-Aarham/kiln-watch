@@ -147,11 +147,15 @@ def era5_daily(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
     p = CACHE / "era5" / f"{lat:.2f}_{lon:.2f}_{start}_{end}.parquet"
     if p.exists():
         return pd.read_parquet(p)
-    col = E.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR").filterDate(start, end).select(
-        ["temperature_2m", "total_precipitation_sum", "u_component_of_wind_10m", "v_component_of_wind_10m"])
     pt = E.Geometry.Point([lon, lat])
-    vals = col.getRegion(pt, 11132).getInfo()
-    df = pd.DataFrame(vals[1:], columns=vals[0])
+    parts = []
+    for y in range(int(start[:4]), int(end[:4]) + 1):  # one request per year stays under the memory limit
+        col = E.ImageCollection("ECMWF/ERA5_LAND/DAILY_AGGR").filterDate(max(start, f"{y}-01-01"), min(end, f"{y + 1}-01-01")).select(
+            ["temperature_2m", "total_precipitation_sum", "u_component_of_wind_10m", "v_component_of_wind_10m"])
+        vals = col.getRegion(pt, 11132).getInfo()
+        if len(vals) > 1:
+            parts.append(pd.DataFrame(vals[1:], columns=vals[0]))
+    df = pd.concat(parts, ignore_index=True)
     df["date"] = pd.to_datetime(df["time"], unit="ms").dt.normalize()
     df = df.drop(columns=["id", "longitude", "latitude", "time"])
     p.parent.mkdir(parents=True, exist_ok=True)

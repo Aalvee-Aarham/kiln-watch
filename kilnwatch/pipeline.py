@@ -328,7 +328,7 @@ def _write_aoi(units, shares, branch):
         cnt = gpd.sjoin(pts, u[["unit_id", "geometry"]], predicate="within").groupby("unit_id").size()
         u["kiln_count"] = u.unit_id.map(cnt).fillna(0).astype(int) if branch != "nokiln" else None
         u["kiln_share"] = u.unit_id.map(shares).round(3) if branch != "nokiln" else None
-        tol = 0.001 if level == "district" else 0.004
+        tol = 0.002 if level == "district" else 0.004  # ~200 m / ~400 m: below map display resolution, inside budgets
         u["geometry"] = u.geometry.simplify(tol)
         gj = json.loads(u[["unit_id", "level", "name_en", "name_bn", "division", "kiln_count", "kiln_share", "geometry"]].to_json(na="null"))
         for f in gj["features"]:
@@ -397,8 +397,21 @@ def figures() -> None:
     ax.plot(wk, p["kiln_night"], color="#b45309", ls="--", label="Kiln clusters · night")
     ax.plot(wk, p["ctrl_day"], color="#2563eb", lw=2.5, label="Matched controls · day")
     ax.plot(wk, p["ctrl_night"], color="#2563eb", ls="--", label="Matched controls · night")
-    ax.set_title(f"Kilns burn for months, crop fires for days — gate season {C.GATE_SEASON}")
+    nok = C.load_derived()["GATE_BRANCH"]["value"] == "nokiln"
+    ax.set_title(f"Pre-registered gate {C.GATE_SEASON}: kiln clusters are no brighter than matched controls" if nok
+                 else f"Kilns burn for months, crop fires for days — gate season {C.GATE_SEASON}")
     ax.set_ylabel("Share of clear days with a detection")
     ax.legend(frameon=False, fontsize=8)
     fig.tight_layout()
     fig.savefig(C.FIGURES / "money_plateau.png")
+
+
+def write_baseline() -> dict:
+    """I1: freeze the headline numbers; I3 (clean-clone rerun) asserts against them."""
+    h = json.loads((PUB / "harmonization.json").read_text(encoding="utf-8"))
+    v = json.loads((PUB / "validation.json").read_text(encoding="utf-8"))
+    b = {"gate_branch": C.load_derived()["GATE_BRANCH"]["value"], "seam": h["seam"], "loso_pooled": h["loso_pooled"],
+         "selected_model": h["selected_model"], "gates": [g for g in v["gates"] if g["gate"] in ("G1", "G2")],
+         "holdouts": v["classifier"]["holdouts"], "pr_auc": v["classifier"]["pr_auc"]}
+    (C.REPORTS / "baseline.json").write_text(json.dumps(b, indent=1), encoding="utf-8")
+    return b

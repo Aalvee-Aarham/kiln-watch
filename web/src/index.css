@@ -24,3 +24,4 @@
 
 body { @apply bg-(--color-paper) text-(--color-ink) font-sans; }
 .leaflet-container { font: inherit; }
+table th, table td { padding: 0.15rem 0.75rem 0.15rem 0; vertical-align: top; }

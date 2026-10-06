@@ -3,6 +3,8 @@ import { ChartCard, Loading, useMeta } from '../components/ui'
 import { JumpChart, PlateauSpikeChart } from '../components/charts'
 import { useJson } from '../lib/data'
 import type { Harmonization, Validation } from '../lib/types'
+import moneyJump from '../assets/money_jump.png'
+import moneyPlateau from '../assets/money_plateau.png'
 
 export default function StoryPage() {
   const meta = useMeta()
@@ -32,7 +34,7 @@ export default function StoryPage() {
       </ol>
 
       <Loading state={harm}>{(h) => (
-        <ChartCard title="The 2012 “jump” is a sensor artefact"
+        <ChartCard title="The 2012 “jump” is a sensor artefact" actions={<a className="btn" href={moneyJump} download>⬇ Figure</a>}
           summary={<>The grey dashed line splices the raw records: when VIIRS arrives in 2012 detections appear to quadruple. Fires did not quadruple — the new sensor sees smaller fires.
             After harmonization (orange, with 95% interval) the jump shrinks to {(h.seam.ratio * 100).toFixed(0)}% of its raw size, and the blue Aqua line (the same instrument throughout) confirms the level.</>}>
           <JumpChart h={h} />
@@ -40,7 +42,7 @@ export default function StoryPage() {
       </Loading>
 
       <Loading state={val}>{(v) => meta.data?.gate_branch === 'nokiln'
-        ? <ChartCard title="Kilns could not be seen thermally — and we say so"><p>The pre-registered gate G1 failed: VIIRS detections at kilns were not distinguishable from matched controls. The harmonized calendar still ships; source separation uses harvest windows instead. See Evidence.</p></ChartCard>
+        ? <NegativeResult v={v} />
         : (
           <ChartCard title="Kilns burn for months; crop fires burn for days"
             summary="Weekly share of cloud-free days with a fire detection at brick-kiln clusters (brown) versus matched control sites with the same land cover (blue), through the pre-registered gate season. A steady plateau at kilns, short spikes at controls: the signature the classifier learns.">
@@ -51,6 +53,23 @@ export default function StoryPage() {
   )
 }
 
+function NegativeResult({ v }: { v: Validation }) {
+  const c = v.gates.find((g) => g.gate === 'G1' && g.criterion.startsWith('Contrast'))
+  return (
+    <ChartCard title="A pre-registered surprise: satellites cannot see Bangladesh’s brick kilns" actions={<a className="btn" href={moneyPlateau} download>⬇ Figure</a>}
+      summary="We wrote the test down before looking at the data. It failed, so we publish that — and the harmonized calendar, which does not depend on it, ships in full. Source separation uses the Aman and Boro rice-harvest windows instead.">
+      <div className="grid gap-3 sm:grid-cols-3">
+        <div className="rounded-lg bg-stone-100 p-3"><div className="text-3xl font-bold text-orange-700">{c ? `${c.value.toFixed(2)}×` : '–'}</div>
+          <div className="text-sm text-stone-600">fire-detection rate at 3,600+ mapped kiln clusters vs matched control sites (pre-registered pass: ≥ 3×)</div></div>
+        <div className="rounded-lg bg-stone-100 p-3"><div className="text-3xl font-bold text-orange-700">{c?.p != null ? `p = ${c.p.toFixed(2)}` : '–'}</div>
+          <div className="text-sm text-stone-600">permutation test, 10,000 shuffles within districts — no kiln signal</div></div>
+        <div className="rounded-lg bg-stone-100 p-3"><div className="text-3xl font-bold text-orange-700">0</div>
+          <div className="text-sm text-stone-600">kiln clusters bright enough for a site-level calendar, VIIRS 375 m or MODIS 1 km</div></div>
+      </div>
+    </ChartCard>
+  )
+}
+
 function Headline({ h }: { h: Harmonization }) {
   const s = h.seam
   const cov = h.loso_pooled.covered
@@ -58,7 +77,7 @@ function Headline({ h }: { h: Harmonization }) {
     <p className="mt-2 max-w-3xl text-base opacity-95 sm:text-lg">
       Spliced naïvely, satellite records show a {s.d_raw > 0 ? `${Math.round(s.d_raw)}-unit` : ''} jump in burning when VIIRS arrives in 2012.
       Harmonized, the jump falls to <b>{(s.ratio * 100).toFixed(0)}%</b> of that (Chow test p = {s.chow_p_harm.toFixed(2)} for a break, vs {s.chow_p_raw.toExponential(1)} raw),
-      and held-out seasons fall inside our 95% intervals <b>{(cov.p50 * 100).toFixed(0)}%</b> of the time [{(cov.lo * 100).toFixed(0)}–{(cov.hi * 100).toFixed(0)}%].
+      and held-out seasons fall inside our 95% intervals <b>{(cov.p50 * 100).toFixed(1)}%</b> of the time{cov.p50 > 0.97 ? ' — above our pre-registered 90–97% target, so the bands are conservative (too wide), and we report that as a miss' : ''}.
     </p>
   )
 }

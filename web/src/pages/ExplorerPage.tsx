@@ -46,7 +46,7 @@ export default function ExplorerPage() {
               onBox={(b) => { setDrawing(false); go(`/explore/box/${formatBox(b)}`) }} />
           </Suspense>)}
         </Loading>
-        <p className="text-xs text-stone-500">Map colour = share of heat that is kiln-like. Click an area, search by name, or draw a box.</p>
+        <p className="text-xs text-stone-500">{meta.data?.gate_branch === 'nokiln' ? 'Click an area, search by name, or draw your own box.' : 'Map colour = share of heat that is kiln-like. Click an area, search by name, or draw a box.'}</p>
       </aside>
 
       <section className="min-w-0 space-y-4">
@@ -76,7 +76,8 @@ function UnitView({ unitId, name, meta, u, setQ, kilnCount }: { unitId: string; 
   return (
     <Loading state={cal}>{(c) => {
       const seasons = c.seasons.map((s) => s.season)
-      const season = u.season && seasons.includes(u.season) ? u.season : seasons.at(-1) ?? seasonOf(new Date())
+      const complete = seasons.filter((s) => s !== seasonOf(new Date()))
+      const season = u.season && seasons.includes(u.season) ? u.season : complete.at(-1) ?? seasons.at(-1) ?? seasonOf(new Date())
       const label = (k: string) => meta.split_labels.find((s) => s.key === k)?.[u.lang === 'bn' ? 'label_bn' : 'label_en'] ?? k
       return (
         <>

@@ -1,4 +1,4 @@
-import { ChartCard, CIText, fmt, Loading, StatusMessage } from '../components/ui'
+import { ChartCard, CIText, fmt, Loading, StatusMessage, useMeta } from '../components/ui'
 import { Pm25LagChart, PRCurveChart, RadiusSweepChart, TropomiChart } from '../components/charts'
 import { useJson } from '../lib/data'
 import type { Harmonization, Validation } from '../lib/types'
@@ -10,6 +10,7 @@ const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 export default function EvidencePage() {
   const val = useJson<Validation>('validation.json')
   const harm = useJson<Harmonization>('harmonization.json')
+  const nokiln = useMeta().data?.gate_branch === 'nokiln'
   return (
     <div className="space-y-4">
       <h1 className="text-2xl font-bold">Evidence</h1>
@@ -54,7 +55,7 @@ export default function EvidencePage() {
           </div>
           <div className="grid gap-4 md:grid-cols-2">
             {v.tropomi && <ChartCard title="Air-quality cross-check (TROPOMI NO₂)" summary={<>Difference-in-differences, kiln belts minus nearby rings, firing minus monsoon: <CIText ci={v.tropomi.did_no2} d={8} /> mol/m². Treatment: {v.tropomi.treatment}.</>}><TropomiChart v={v} /></ChartCard>}
-            {v.pm25 && <ChartCard title="Dhaka PM2.5 (OpenAQ)" summary="Correlational and caveated: weather and seasonality confound it."><Pm25LagChart v={v} /></ChartCard>}
+            {v.pm25 && <ChartCard title="Dhaka PM2.5 (OpenAQ)" summary="Correlational and caveated: weather and seasonality confound it."><Pm25LagChart v={v} nokiln={nokiln} /></ChartCard>}
             {v.transfer && <ChartCard title={`Transfer test: ${v.transfer.district}`} summary="The frozen model on a district it never saw, with its own boundary and clouds.">
               <p className="text-sm">PR-AUC <CIText ci={v.transfer.pr_auc} d={3} /> <Pass ok={v.transfer.gate_pass} /></p></ChartCard>}
             <ChartCard title="Candidate unmapped kilns" summary="Persistent kiln-like heat more than 1 km from any mapped kiln. Locations go only to the regulator; the public sees district counts.">

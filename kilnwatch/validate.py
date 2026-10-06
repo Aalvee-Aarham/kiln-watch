@@ -68,8 +68,12 @@ def tropomi_did(branch: str) -> dict | None:
     no2 = pd.concat([pd.read_parquet(f) for f in files])
     units = read_units()
     up = units[units.level == "upazila"].copy()
-    aoi = json.loads((C.INTERIM / "public" / "aoi" / "upazilas.geojson").read_text(encoding="utf-8"))
-    kc = {f["properties"]["unit_id"]: f["properties"]["kiln_count"] or 0 for f in aoi["features"]}
+    import geopandas as gpd
+
+    inv = pd.read_parquet(C.INTERIM / "inventory.parquet")
+    inv = inv[inv.country == "BD"]
+    pts = gpd.GeoDataFrame(inv, geometry=gpd.points_from_xy(inv.lon, inv.lat), crs=4326)
+    kc = gpd.sjoin(pts, up[["unit_id", "geometry"]], predicate="within").groupby("unit_id").size()
     up["k"] = up.unit_id.map(kc).fillna(0)
     cen = up.to_crs(C.METRIC_CRS).geometry.centroid
     belts = up[up.k >= 50]
@@ -114,9 +118,13 @@ def pm25_lags() -> list[dict] | None:
             continue
         c = json.loads(f.read_text(encoding="utf-8"))
         sp = {s["key"]: s["values"] for s in c["split"]}
+        z = [0.0] * len(c["days"])
+        # kiln branches: kiln-like vs vegetation-like; nokiln: non-harvest ('other') vs harvest windows (aman + boro)
+        a = sp.get("kiln", sp.get("other", z))
+        b = sp["vegetation"] if "vegetation" in sp else [x + y for x, y in zip(sp.get("aman", z), sp.get("boro", z))]
         for i, d in enumerate(c["days"]):
-            kiln[d] = kiln.get(d, 0) + sp.get("kiln", [0] * len(c["days"]))[i]
-            veg[d] = veg.get(d, 0) + sp.get("vegetation", [0] * len(c["days"]))[i]
+            kiln[d] = kiln.get(d, 0) + a[i]
+            veg[d] = veg.get(d, 0) + b[i]
             days[d] = 1
     idx = pd.Timestamp("2003-01-01") + pd.to_timedelta(sorted(days), "D")
     sig = pd.DataFrame({"kiln": [kiln[d] for d in sorted(days)], "veg": [veg[d] for d in sorted(days)]}, index=idx)
