@@ -9,6 +9,21 @@ import type { CI, Events, KilnActivity, Meta } from '../lib/types'
 
 export function useMeta() { return useJson<Meta>('meta.json') }
 
+/** Always-visible honesty strip: says which kind of data this build serves (real / offline real copy / synthetic). */
+export function DemoBanner() {
+  const meta = useMeta().data
+  const t = useT()
+  if (meta?.demo?.mode === 'real-offline-copy')
+    return <div role="note" className="border-b border-line bg-surface-2 text-center text-[13px] text-muted">
+      <p className="mx-auto max-w-[1200px] px-4 py-1.5">{t('demoReal')}{meta.demo.source_sha && <> · <span className="code">{meta.demo.source_sha}</span></>}</p>
+    </div>
+  if (meta?.git_sha === 'fixture')
+    return <div role="note" className="border-b border-warn/40 bg-warn-soft text-center text-[13px]">
+      <p className="mx-auto max-w-[1200px] px-4 py-1.5">{t('demoSynthetic')}</p>
+    </div>
+  return null
+}
+
 /** Per-page browser title, so tabs, history and bookmarks say where they lead. */
 export function useTitle(title?: string) {
   useEffect(() => { document.title = title ? `${title} · Kiln Watch` : 'Kiln Watch — Bangladesh burning calendar' }, [title])
@@ -88,17 +103,27 @@ export function AppShell({ children }: { children: ReactNode }) {
   const loc = useLocation()
   const q = lang === 'bn' ? '?lang=bn' : ''
   const navRef = useRef<HTMLElement>(null)
+  const headerRef = useRef<HTMLElement>(null)
   const showKilns = useKilnsVisible()
   const tabs: [string, Key, Key?][] = [['/', 'story'], ['/explore', 'explore'], ['/season', 'season', 'seasonShort'],
     ...(showKilns ? [['/kilns', 'kilns', 'kilnsShort'] as [string, Key, Key]] : []), ['/evidence', 'evidence'], ['/method', 'method']]
   useEffect(() => { document.documentElement.lang = lang }, [lang])
+  // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.
+  useLayoutEffect(() => {
+    const h = headerRef.current
+    if (!h) return
+    const ro = new ResizeObserver(() => document.documentElement.style.setProperty('--header-h', `${h.offsetHeight}px`))
+    ro.observe(h)
+    return () => ro.disconnect()
+  }, [])
   // keep the active tab visible in the scrolling pill row (no animation: it follows a navigation)
   useEffect(() => { navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [loc.pathname])
   return (
     <div className="min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2">{t('skip')}</a>
-      <header className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-5 gap-y-1 px-4 py-2">
+      <DemoBanner />
+      <header ref={headerRef} className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur-md">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:flex-nowrap min-[900px]:gap-x-5">
           <NavLink to={'/' + q} className="flex shrink-0 items-center gap-2 py-1">
             <CalStrip className="h-3.5 w-7 rounded-[2px]" />
             <span className="h-display text-[19px]">Kiln Watch</span>
@@ -106,8 +131,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-1 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
             {tabs.map(([to, k, short]) => (
               <NavLink key={to} to={to + q} end={to === '/'}
-                className={({ isActive }) => `relative shrink-0 rounded-[4px] px-2 py-1.5 text-[15px] sm:px-2.5 transition-colors duration-150 ${isActive ? 'font-semibold text-ink after:absolute after:inset-x-2 sm:after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
-                {short ? <><span className="sm:hidden">{t(short)}</span><span className="max-sm:hidden">{t(k)}</span></> : t(k)}
+                className={({ isActive }) => `relative shrink-0 rounded-[4px] px-1.5 py-1.5 text-[14px] min-[900px]:px-2.5 min-[900px]:text-[15px] transition-colors duration-150 ${isActive ? 'font-semibold text-ink after:absolute after:inset-x-1.5 min-[900px]:after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
+                {short ? <><span className="min-[900px]:hidden">{t(short)}</span><span className="max-[899px]:hidden">{t(k)}</span></> : t(k)}
               </NavLink>
             ))}
           </nav>
@@ -161,7 +186,7 @@ export function Section({ id, title, summary, actions, download, table, children
 }) {
   const [showTable, setShowTable] = useState(false)
   return (
-    <section id={id} className="scroll-mt-24 sm:scroll-mt-28" aria-label={typeof title === 'string' ? title : undefined}>
+    <section id={id} className="scroll-mt-[calc(var(--header-h,96px)+0.75rem)] sm:scroll-mt-[calc(var(--header-h,53px)+3.5rem)]" aria-label={typeof title === 'string' ? title : undefined}>
       <div className="section-head">
         <h2 className="h-section">{title}</h2>
         <div className="ml-auto flex flex-wrap items-center gap-2">

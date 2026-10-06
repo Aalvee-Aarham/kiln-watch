@@ -223,8 +223,75 @@ def _bd_geometry() -> dict:
 
 
 def write_fixtures(out: Path = C.WEB_FIXT) -> None:
+    real = _real_release_dir()
     for b in BRANCHES:
-        _fixture_set(b, out / b / "data")
+        if b == "nokiln" and real is not None:  # the real run's gate_branch is nokiln: ship it as a verbatim offline copy
+            _fixture_set_real(out / b / "data", real)
+        else:
+            _fixture_set(b, out / b / "data")
+
+
+RELEASE_TARBALL = C.ROOT / "data" / "releases" / "public-data.tar.gz"
+RELEASE_NRT = C.ROOT / "data" / "releases" / "nrt-current.json"
+
+
+def _real_release_dir() -> Path | None:
+    """Extract the committed immutable public-data release once (data/releases/public, gitignored).
+
+    Source: GitHub release data-<sha> (`gh release download <tag> --pattern public-data.tar.gz`),
+    plus a snapshot of the live site's real NRT season. Absent tarball -> fixtures stay synthetic."""
+    if not RELEASE_TARBALL.exists():
+        return None
+    cache = RELEASE_TARBALL.parent / "public"
+    if not (cache / "meta.json").exists():
+        cache.mkdir(parents=True, exist_ok=True)
+        with tarfile.open(RELEASE_TARBALL) as tf:
+            tf.extractall(cache)
+    if RELEASE_NRT.exists():
+        nrt = cache / "nrt" / "current_season.json"
+        if not nrt.exists():
+            nrt.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy(RELEASE_NRT, nrt)
+    return cache
+
+
+def _fixture_set_real(d: Path, src: Path) -> None:
+    if d.exists():
+        shutil.rmtree(d)
+    shutil.copytree(src, d)
+    # kiln_activity season CIs from release c310275 predate the activity.py p50 fix (bootstrap median):
+    # a CI that cannot bracket its median is treated as not estimable, the file's own convention for degenerate rows.
+    ka_p = d / "kiln_activity.json"
+    ka = json.loads(ka_p.read_text(encoding="utf-8"))
+    repairs = 0
+    for a in [ka.get("national"), *ka.get("areas", {}).values()]:
+        for s in a.get("seasons") or []:
+            for m in ("onset", "end", "duration", "peak", "peak_value"):
+                v = s.get(m)
+                if v and not (v["lo"] <= v["p50"] <= v["hi"]):
+                    s[m] = None
+                    repairs += 1
+    m = json.loads((d / "meta.json").read_text(encoding="utf-8"))
+    m["demo"] = {"mode": "real-offline-copy", "source_sha": m.get("git_sha"),
+                 "nrt_updated_at": json.loads((d / "nrt" / "current_season.json").read_text(encoding="utf-8")).get("updated_at") if (d / "nrt" / "current_season.json").exists() else None,
+                 "note_en": "Offline demo: verbatim copy of the real pipeline export. The live site refreshes daily.",
+                 "note_bn": "অফলাইন ডেমো: প্রকৃত পাইপলাইন রপ্তানির হুবহু অনুলিপি। লাইভ সাইট প্রতিদিন হালনাগাদ হয়।"}
+    if repairs:
+        m["demo"]["repairs"] = {"kiln_activity_ci_nullled": repairs}
+    _dump(m, d / "meta.json")
+    if repairs:
+        ka_p.write_text(json.dumps(ka, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
+        log.info("real fixture: nulled %d non-bracketing season CIs in kiln_activity.json", repairs)
+
+
+def events_payload() -> dict:
+    """events.json from the real curated CSVs in data/static (same payload the pipeline writes)."""
+    pol = pd.read_csv(C.STATIC / "policy_events.csv")
+    crop = pd.read_csv(C.STATIC / "crop_calendar.csv")
+    return {"policy": pol.rename(columns={"source_url": "url"}).to_dict("records"),
+            "harvest": [{"crop": r.crop, "start_doy": int(pd.Timestamp(r.harvest_start).dayofyear),
+                         "end_doy": int(pd.Timestamp(r.harvest_end).dayofyear), "url": r.source_url}
+                        for r in crop.itertuples()]}
 
 
 def _fixture_set(branch: str, d: Path) -> None:
@@ -264,9 +331,7 @@ def _fixture_set(branch: str, d: Path) -> None:
         _dump({"type": "FeatureCollection", "features": fs}, d / "aoi" / f"{lvl}s.geojson")
     _dump(_fixture_harmonization(rng), d / "harmonization.json")
     _dump(_fixture_validation(branch, rng), d / "validation.json")
-    _dump({"policy": [{"date": "2013-11-20", "label_en": "Brick Kiln Act 2013", "label_bn": "ইটভাটা আইন ২০১৩", "url": "https://example.org/act2013"}],
-           "harvest": [{"crop": "aman", "start_doy": 305, "end_doy": 365, "url": "https://example.org/crop"},
-                       {"crop": "boro", "start_doy": 91, "end_doy": 151, "url": "https://example.org/crop"}]}, d / "events.json")
+    _dump(events_payload(), d / "events.json")
     days = 97
     nrt_d = {u[0]: {"h": [round(float(x), 3) for x in rng.gamma(2, 0.5, days)], "above_p90_days": int(rng.integers(0, 6))}
              for u in units if u[1] == "district"}

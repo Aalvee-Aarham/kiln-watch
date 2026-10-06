@@ -39,6 +39,8 @@ const S = {
   colSeason: ['Season', 'মৌসুম'], colMid: ['Midpoint (day)', 'মধ্যবিন্দু (দিন)'], colDur: ['Duration (days)', 'স্থায়িত্ব (দিন)'], colPeak: ['Peak', 'শীর্ষ'],
   colFirst: ['First*', 'প্রথম*'], colLast: ['Last*', 'শেষ*'],
   dlCsv: ['spreadsheet', 'স্প্রেডশিট'], dlJson: ['full data', 'পূর্ণ তথ্য'], dlPng: ['chart image', 'চার্টের ছবি'],
+  demoReal: ['Real satellite data: offline copy of the real pipeline build (the live site refreshes daily)', 'প্রকৃত স্যাটেলাইট তথ্য: প্রকৃত পাইপলাইন বিল্ডের অফলাইন অনুলিপি (লাইভ সাইট প্রতিদিন হালনাগাদ হয়)'],
+  demoSynthetic: ['Demo mode: synthetic data, not real satellite observations. The live site serves real data.', 'ডেমো মোড: কৃত্রিম তথ্য, প্রকৃত স্যাটেলাইট পর্যবেক্ষণ নয়। লাইভ সাইটে প্রকৃত তথ্য রয়েছে।'],
 } as const
 
 const DIVISION_BN: Record<string, string> = { Dhaka: 'ঢাকা', Chattogram: 'চট্টগ্রাম', Chittagong: 'চট্টগ্রাম', Rajshahi: 'রাজশাহী', Khulna: 'খুলনা',

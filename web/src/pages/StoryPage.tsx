@@ -39,8 +39,10 @@ export default function StoryPage() {
     <div className="space-y-20">
       {lang === 'bn' && <p className="text-sm text-muted" lang="bn">{t('englishOnly')}</p>}
       <header className="space-y-6">
-        <h1 className="h-display max-w-[19ch] text-[clamp(2.75rem,8vw,5.25rem)]">Twenty-three years of fire, on one honest scale.</h1>
-        <p className="prose-measure text-lg text-muted">When NASA’s sharper VIIRS sensor arrived in 2012, recorded fire over Bangladesh appeared to jump overnight. It didn’t. Kiln Watch puts every satellite on one scale, so a district’s burning calendar can be read across two decades.</p>
+        <div className="hero-ground space-y-6">
+          <h1 className="h-display max-w-[19ch] text-[clamp(2.75rem,8vw,5.25rem)]">Twenty-three years of fire, on one honest scale.</h1>
+          <p className="prose-measure text-lg text-muted">When NASA’s sharper VIIRS sensor arrived in 2012, recorded fire over Bangladesh appeared to jump overnight. It didn’t. Kiln Watch puts every satellite on one scale, so a district’s burning calendar can be read across two decades.</p>
+        </div>
         <Loading state={cal} skeleton={<Skeleton className="h-[290px] w-full" />}>{(c) => <Ledger cal={c} events={events.data} caption={`${name(top)} district, the most active this season`} />}</Loading>
         <div className="flex flex-wrap gap-2">
           <Link to={'/explore' + q} className="btn btn-primary min-h-11 px-5 text-base">{t('openDistrict')}</Link>

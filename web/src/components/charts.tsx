@@ -67,7 +67,13 @@ export function JumpChart({ h }: { h: Harmonization }) {
   const narrow = useNarrow()
   const opt = useMemo(() => {
     const s = h.yearly.map((y) => y.season)
-    const end = (text: string, color: string) => (narrow ? undefined : { show: true, formatter: text, color, fontSize: 12, fontWeight: 600 })
+    // The Aqua check is meant to land on the harmonized line, so their end labels can collide (labelLayout skips end labels):
+    // within ~one label height of plot space, push the higher one up and the lower one down.
+    const lastH = h.yearly.at(-1)?.h.p50 ?? 0, lastA = h.yearly.findLast((y) => y.aqua_obs != null)?.aqua_obs ?? lastH
+    const yMax = Math.max(...h.yearly.flatMap((y) => [y.raw_sum, y.h.hi, y.aqua_obs ?? 0]), 1)
+    const gapPx = (Math.abs(lastH - lastA) / yMax) * 260 // ≈ plot height of the 330px chart
+    const nudge = gapPx < 14 ? (14 - gapPx) / 2 + 1 : 0
+    const end = (text: string, color: string, dy = 0) => (narrow ? undefined : { show: true, formatter: text, color, fontSize: 12, fontWeight: 600, offset: [0, dy] })
     return {
       grid: { left: 44, right: narrow ? 12 : 104, top: 28, bottom: 28 },
       tooltip: { trigger: 'axis', valueFormatter: vf },
@@ -79,9 +85,9 @@ export function JumpChart({ h }: { h: Harmonization }) {
             data: [{ xAxis: '2012-13' }] } },
         { name: 'CI low', type: 'line', data: h.yearly.map((y) => r2(y.h.lo)), stack: 'ci', lineStyle: { opacity: 0 }, tooltip: { show: false } },
         { name: '95% interval', type: 'line', data: h.yearly.map((y) => r2(y.h.hi - y.h.lo)), stack: 'ci', lineStyle: { opacity: 0 }, areaStyle: { color: p.heat, opacity: 0.18 }, tooltip: { show: false } },
-        { name: 'Harmonized (MYD-eq)', type: 'line', data: h.yearly.map((y) => r2(y.h.p50)), color: p.heat, lineStyle: { width: 2.5 }, endLabel: end('Harmonized', p.heat) },
+        { name: 'Harmonized (MYD-eq)', type: 'line', data: h.yearly.map((y) => r2(y.h.p50)), color: p.heat, lineStyle: { width: 2.5 }, endLabel: end('Harmonized', p.heat, lastH >= lastA ? -nudge : nudge) },
         { name: 'Aqua as observed (check)', type: 'line', data: h.yearly.map((y) => (y.aqua_obs == null ? null : r2(y.aqua_obs))), color: p.orbit, symbol: 'circle', symbolSize: 6,
-          itemStyle: { borderColor: p.surface, borderWidth: 1.5 }, lineStyle: { width: 1.5 }, endLabel: end('Aqua check', p.orbit) },
+          itemStyle: { borderColor: p.surface, borderWidth: 1.5 }, lineStyle: { width: 1.5 }, endLabel: end('Aqua check', p.orbit, lastH >= lastA ? nudge : -nudge) },
       ],
     }
   }, [h, p, narrow])

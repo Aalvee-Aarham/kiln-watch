@@ -35,6 +35,18 @@ def test_meta(branch):
     assert len(m["non_claims"]) == 9
 
 
+def test_real_offline_branch_is_really_real():
+    """With the committed release tarball, the nokiln fixture set is a verbatim real export, labeled as such."""
+    if not (C.ROOT / "data" / "releases" / "public-data.tar.gz").exists():
+        pytest.skip("real release tarball not present")
+    m = load("nokiln", "meta.json")
+    assert m["demo"]["mode"] == "real-offline-copy"
+    assert "firms" in m["data_versions"] and "fixtures" not in m["data_versions"]
+    assert m["git_sha"] not in ("fixture", "unknown")
+    cal = json.loads((FIXT / "nokiln" / "data" / "calendar" / "BD4561.json").read_text(encoding="utf-8"))
+    assert cal["days"], "Mymensingh real calendar must carry observed days"
+
+
 @pytest.mark.parametrize("branch", BRANCHES)
 def test_calendars(branch):
     m = load(branch, "meta.json")

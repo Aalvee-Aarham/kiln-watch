@@ -357,13 +357,9 @@ def _write_grid_tiles(cd):
 
 
 def _write_events():
-    from .export import _dump
+    from .export import _dump, events_payload
 
-    pol = pd.read_csv(C.STATIC / "policy_events.csv")
-    crop = pd.read_csv(C.STATIC / "crop_calendar.csv")
-    _dump({"policy": pol.rename(columns={"source_url": "url"}).to_dict("records"),
-           "harvest": [{"crop": r.crop, "start_doy": int(pd.Timestamp(r.harvest_start).dayofyear), "end_doy": int(pd.Timestamp(r.harvest_end).dayofyear), "url": r.source_url}
-                       for r in crop.itertuples()]}, PUB / "events.json")
+    _dump(events_payload(), PUB / "events.json")
 
 
 def figures() -> None:
