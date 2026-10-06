@@ -9,7 +9,7 @@ PRE = ["FIRING_MONTHS", "MONSOON_MONTHS", "CONF_KEEP", "MIN_SNPP_CELLDAYS", "MIN
 
 
 def test_preregistered_constants_match():
-    text = (C.ROOT / "PREREGISTRATION.md").read_text(encoding="utf-8")
+    text = (C.ROOT / "docs" / "PREREGISTRATION.md").read_text(encoding="utf-8")
     for name in PRE:
         m = re.search(rf"^{name} = (.+)$", text, re.M)
         assert m, f"{name} missing from PREREGISTRATION.md"

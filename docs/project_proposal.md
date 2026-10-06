@@ -1,5 +1,7 @@
 # Kiln Watch: Project Proposal
 
+> **Post-build note (6 Oct 2026).** This document is a pre-build planning artifact (prior-work disclosure); its content is unchanged. In the built repository, `reports/` lives at `docs/reports/` and pitch material at `docs/presentation/`. See `file_structure.md` v3.1 for the as-built tree.
+
 **A harmonized MODIS–VIIRS burning-activity calendar for Bangladesh that separates brick-kiln heat from vegetation fires**
 
 | | |

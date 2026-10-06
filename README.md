@@ -21,7 +21,7 @@ Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh i
 | → Gate branch | **`nokiln`**: calendar ships in full; split = Aman / Boro harvest windows / other; index = HBI |
 
 Data: 1,221,809 FIRMS detections (2003 → today) · 13M Earth Engine daily clear-land fractions · 4,760 APAD kilns · 560 district and upazila calendars.
-Full reports: [`reports/`](reports/) · Evidence page of the site · pitch materials in [`presentation/`](presentation/).
+Full reports: [`docs/reports/`](docs/reports/) · Evidence page of the site · pitch materials in [`docs/presentation/`](docs/presentation/).
 
 ---
 
@@ -49,7 +49,7 @@ cd web; npm install; npm run dev          # http://localhost:5173/kiln-watch/
 | 6 | `python -m kilnwatch gates` | Pre-registered feasibility gates G0–G3 → `GATE_BRANCH` |
 | 7 | `python -m kilnwatch harmonize` | Calibration chain Aqua ← S-NPP ← NOAA-20 ← NOAA-21, pooling ladder, M0/M1, leave-one-season-out, seam test |
 | 8 | `python -m kilnwatch classify` | Source classifier, 4 holdouts, label-set comparison, persistence ablation, transfer test |
-| 9 | `python -m kilnwatch metrics` | ~570 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
+| 9 | `python -m kilnwatch metrics` | ~560 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
 | 10 | `python -m kilnwatch validate` | Validation layers (shape across seasons, TROPOMI NO₂ DiD, Dhaka PM2.5 lags) |
 | 11 | `python -m kilnwatch export` | Public tier → `web/public/data/`, with name + value safety checks and size budgets |
 | 12 | `cd web; $env:DATA_SRC="real"; npm run build` | Static site in `web/dist/` |
@@ -70,7 +70,7 @@ npm run e2e                    # Playwright smoke test of every route from the b
 - **Site:** React 19 + TypeScript + Vite + Tailwind CSS v4 + ECharts + Leaflet (`web/`). Static, no server; deep links via `HashRouter`.
 - **Contract:** `web/src/lib/types.ts` (Python writes it, TypeScript reads it). It is tested under all five gate branches.
 - **Daily updates:** `.github/workflows/deploy.yml` fetches FIRMS near-real-time data, labels it with the frozen model and redeploys.
-- **Pre-registration:** [`PREREGISTRATION.md`](PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited.
+- **Pre-registration:** [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited.
 - **Knowledge graph:** `graphify-out/` holds a graph of the design docs (`graphify query "<question>"`).
 
 ## Responsible release

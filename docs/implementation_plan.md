@@ -1,5 +1,7 @@
 # Kiln Watch: Implementation Plan
 
+> **Post-build note (6 Oct 2026).** This document is a pre-build planning artifact (prior-work disclosure); its content is unchanged. In the built repository, `reports/` lives at `docs/reports/`, pitch material at `docs/presentation/`, and governance files (`PREREGISTRATION.md`, `CLAUDE.md`, `VERIFICATION.md`, `BLOCKERS.md`) in `docs/`. Path references below (e.g. `reports/baseline.json`) resolve to their `docs/` locations. See `file_structure.md` v3.1 for the as-built tree.
+
 **Challenge:** NASA Space Apps 2026, *Harmonization of MODIS and VIIRS Hot Spots*
 **Plan version:** v2.1 (final) — 6 October 2026. Supersedes v2.0, v1.0 and planning plan v3.0. Closes every finding in `Implementation_Plan_v1_Audit.txt` (18 findings) and `Kiln_Watch_Implementation_Plan_Improvements.txt` (27 findings). **v2.1** closes two gaps found while syncing `architecture.md` and `file_structure.md`: the primary-inventory rule referred to the gate season while the gate season was derived from the inventory (§12), and the deploy job had no source for the real public export once `web/public/data/` became gitignored (§2, §7.1, §9, §11).
 **Status:** Buildable once **Phase 0** (§17) is complete. Phase 0 is blocking by design.

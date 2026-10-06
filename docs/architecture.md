@@ -1,5 +1,7 @@
 # Kiln Watch: Architecture
 
+> **Post-build note (6 Oct 2026).** This document is a pre-build planning artifact (prior-work disclosure); its content is unchanged. In the built repository, `reports/` lives at `docs/reports/`, pitch material at `docs/presentation/`, and governance files (`PREREGISTRATION.md`, `CLAUDE.md`, `VERIFICATION.md`, `BLOCKERS.md`) alongside this file in `docs/`. `config.REPORTS` points there.
+
 **Event:** NASA Space Apps Challenge 2026 (14–15 Nov 2026)
 **Challenge:** Harmonization of MODIS and VIIRS Hot Spots
 **Document version:** 2.0 — 6 October 2026. Supersedes architecture v1.0. Synced to `implementation_plan.md` v2.1 and closes every finding in `Architecture_FileStructure_Audit.txt`.
