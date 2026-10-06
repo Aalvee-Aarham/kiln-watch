@@ -70,6 +70,27 @@ def test_harmonization(branch):
 
 
 @pytest.mark.parametrize("branch", BRANCHES)
+def test_kiln_activity(branch):
+    k = load(branch, "kiln_activity.json")
+    has(k, ["layer", "pilots", "tests", "pass"])
+    assert k["layer"] in ("ntl", "s1", None)
+    for t in k["tests"]:
+        has(t, ["test", "criterion", "value", "threshold", "pass"])
+        assert t["test"] in ("GL", "GS")
+    if k["layer"]:
+        n = len(k["periods"])
+        assert k["periods"] == sorted(k["periods"]) and k["cadence"] in ("half-month", "month")
+        for a in [k["national"], *k["areas"].values()]:
+            has(a, ["n_clusters", "seasons"])
+            assert a["n_clusters"] >= 5
+            for key in ("e", "lo", "hi"):
+                assert key not in a or len(a[key]) == n
+            for s in a["seasons"]:
+                for m in ("onset", "end", "duration", "peak"):
+                    assert s[m] is None or s[m]["lo"] <= s[m]["p50"] <= s[m]["hi"]
+
+
+@pytest.mark.parametrize("branch", BRANCHES)
 def test_validation(branch):
     v = load(branch, "validation.json")
     has(v, ["gates", "profiles", "radius_sweep", "classifier", "controls", "candidates"])

@@ -1,15 +1,38 @@
-import { ChartCard, CIText, fmt, Loading, StatusMessage, useMeta } from '../components/ui'
+import { ChartCard, CIText, fmt, Loading, StatusMessage, useKilnActivity, useMeta } from '../components/ui'
 import { Pm25LagChart, PRCurveChart, RadiusSweepChart, TropomiChart } from '../components/charts'
 import { useJson } from '../lib/data'
-import type { Harmonization, Validation } from '../lib/types'
+import type { Harmonization, KilnActivity, Validation } from '../lib/types'
+
+const AMENDMENT_URL = 'https://github.com/Aalvee-Aarham/kiln-watch/blob/main/PREREGISTRATION_AMENDMENTS.md'
 
 const Pass = ({ ok }: { ok?: boolean }) => ok == null ? null
   : <span className={`rounded px-1.5 py-0.5 text-xs font-bold ${ok ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{ok ? 'PASS' : 'FAIL'}</span>
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 
+/** Amendment 1: every channel tried for kilns (failures included), then the held-out confirmatory tests. */
+function KilnChannels({ ka }: { ka: KilnActivity }) {
+  return (
+    <ChartCard title="Which satellites can see brick kilns? (pre-registration amendment 1)"
+      summary={<>After the fire gates failed we tried six channels on one pilot sample of 400 Dhaka kiln clusters. The two that showed a signal were then tested
+        on every other cluster and an unseen season (2022-23), under rules <a className="text-orange-700 underline" href={AMENDMENT_URL}>written down before that test</a>.
+        The placebo row swaps each kiln for one of its own controls, and it must show nothing.</>}>
+      <div className="overflow-x-auto"><table className="w-full text-sm">
+        <thead><tr className="text-left text-stone-500"><th>Channel</th><th>Measure</th><th>Kiln sites</th><th>Matched controls</th><th>Reading</th></tr></thead>
+        <tbody>{ka.pilots.map((r) => <tr key={r.channel} className="border-t border-stone-100"><td className="font-semibold">{r.channel}</td><td>{r.measure}</td><td>{r.kiln}</td><td>{r.control}</td><td>{r.reading}</td></tr>)}</tbody>
+      </table></div>
+      <div className="mt-4 overflow-x-auto"><table className="w-full text-sm">
+        <thead><tr className="text-left text-stone-500"><th>Test</th><th>Criterion (held-out clusters)</th><th>Value</th><th>Threshold</th><th>p</th><th></th></tr></thead>
+        <tbody>{ka.tests.map((g, i) => <tr key={i} className="border-t border-stone-100"><td className="font-semibold">{g.test === 'GL' ? 'GL · night lights' : 'GS · radar'}</td><td>{g.criterion}</td>
+          <td>{fmt(g.value, 3)}</td><td>{g.threshold}</td><td>{g.p == null ? '' : g.p < 0.001 ? '<0.001' : fmt(g.p, 3)}</td><td><Pass ok={g.pass} /></td></tr>)}</tbody>
+      </table></div>
+    </ChartCard>
+  )
+}
+
 export default function EvidencePage() {
   const val = useJson<Validation>('validation.json')
   const harm = useJson<Harmonization>('harmonization.json')
+  const ka = useKilnActivity()
   const nokiln = useMeta().data?.gate_branch === 'nokiln'
   return (
     <div className="space-y-4">
@@ -39,6 +62,7 @@ export default function EvidencePage() {
             <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="text-left text-stone-500"><th>Gate</th><th>Criterion</th><th>Value</th><th>Threshold</th><th>p</th><th></th></tr></thead>
               <tbody>{v.gates.map((g, i) => <tr key={i} className="border-t border-stone-100"><td className="font-semibold">{g.gate}</td><td>{g.criterion}</td><td>{fmt(g.value, 3)}</td><td>{g.threshold}</td><td>{g.p == null ? '' : g.p < 0.001 ? '<0.001' : fmt(g.p, 3)}</td><td><Pass ok={g.pass} /></td></tr>)}</tbody></table></div>
           </ChartCard>
+          {ka.data && <KilnChannels ka={ka.data} />}
           <div className="grid gap-4 md:grid-cols-2">
             <ChartCard title="Radius sweep" summary="A kiln signal should appear at the pixel scale and not need wide radii; signal that only appears far out is landscape burning."><RadiusSweepChart v={v} /></ChartCard>
             <ChartCard title="Classifier precision–recall" summary={<>PR-AUC <CIText ci={v.classifier.pr_auc} d={3} /> vs rule baseline {fmt(v.classifier.baseline_pr_auc, 3)} and prevalence {fmt(v.classifier.prevalence, 3)}.</>}><PRCurveChart v={v} /></ChartCard>

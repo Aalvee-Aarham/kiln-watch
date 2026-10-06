@@ -1,0 +1,9 @@
+# 7-slide deck outline (submission limit: 7 slides including the title, in English)
+
+1. **Title.** Kiln Watch: one honest fire record for Bangladesh, and the kiln season fire satellites can't see. Team, challenge name and live-site QR code.
+2. **The problem.** `money_jump.png`. "Splice MODIS and VIIRS and burning triples in 2012. It didn't." Note: S-NPP data delivery ends 1 Nov 2026 and MODIS ends in 2027, so the record has to survive the handover.
+3. **Harmonization.** One unit (Aqua-MODIS-equivalent cell-days per 1,000 cloud-free cells). Calibration chain Aqua ← S-NPP ← NOAA-20 ← NOAA-21. Results: seam ratio 0.029 (pass ≤ 0.25); Chow p 6×10⁻⁵ → 0.29; leave-one-season-out coverage 98.5%, so the intervals are conservative, and we report that as a miss.
+4. **The calendar.** Explorer screenshot: heatmap, normal range, unusual days, critical periods, current season updated daily, drawn box, CSV/JSON, Bangla. Map every item in the challenge brief to a feature (the table in `project_proposal.md` §2).
+5. **Can fire satellites see brick kilns?** The pre-registered test failed: 0.46× matched farmland, p = 0.96, and only 37 of 3,653 clusters had any night detection in 14 years. So the fire calendar is not contaminated by kilns.
+6. **The right sensor.** Six channels tried: FIRMS, ECOSTRESS, Landsat thermal, TROPOMI, Black Marble, Sentinel-1. Night lights pass a held-out, pre-specified test (72% of 3,253 clusters, 13/13 seasons, placebo null). Chart: kiln season against the fire calendar. Kiln season runs mid-Nov → mid-Apr, about 150 days now vs about 90 in 2012.
+7. **Impact and honesty.** Users: early-warning responders, DoE inspectors, air-quality researchers, journalists. Area-level only, never per kiln. Non-claims. Open code, pre-registration plus amendment, daily updates, works offline.

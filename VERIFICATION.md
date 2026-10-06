@@ -18,3 +18,6 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | I4 | Every page works with the network off | | | |
 | P1 | Four rehearsals logged; a naive viewer restates the headline correctly | | | |
 | P2 | Second team member confirms every submission field and link | | | |
+| A1-K | Kiln activity (Amendment 1): the national kiln-season curve peaks Dec–Feb and is flat Jul–Sep; 3 districts spot-checked against local knowledge of their kiln season | | | |
+| A1-K | Kiln activity: the Bangla non-claims in `kilnwatch/activity.py` read correctly to a native speaker | | | |
+| P0 | Local Lead confirms in writing how pre-event work (5–6 Oct 2026) is treated; README/submission disclosure updated with the ruling | | | |

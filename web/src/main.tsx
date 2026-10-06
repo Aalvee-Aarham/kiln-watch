@@ -2,7 +2,7 @@ import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Route, Routes } from 'react-router'
 import './index.css'
-import { AppShell, ErrorBoundary, StatusMessage, useMeta } from './components/ui'
+import { AppShell, ErrorBoundary, StatusMessage, useKilnsVisible, useMeta } from './components/ui'
 import StoryPage from './pages/StoryPage'
 import { MethodPage, ThisSeasonPage } from './pages/OtherPages'
 
@@ -12,7 +12,7 @@ const KilnSeasonsPage = lazy(() => import('./pages/KilnSeasonsPage'))
 
 function App() {
   const meta = useMeta().data
-  const kilnsHidden = meta?.gate_branch === 'partial' || meta?.gate_branch === 'nokiln'
+  const kilnsHidden = !useKilnsVisible()
   return (
     <AppShell>
       <ErrorBoundary>

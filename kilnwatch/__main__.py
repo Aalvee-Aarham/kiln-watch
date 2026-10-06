@@ -28,6 +28,8 @@ def main(argv=None) -> int:
     sub.add_parser("metrics", help="per-unit calendars and season metrics")
     s = sub.add_parser("validate", help="validation layers")
     s.add_argument("--only", choices=["shape", "s2chips", "s2score", "tropomi", "pm25", "closure"])
+    s = sub.add_parser("activity", help="kiln activity from night lights / radar (Amendment 1)")
+    s.add_argument("--extract", choices=["ntl", "s1", "all"], help="pull the Earth Engine cache first (slow, resumable)")
     s = sub.add_parser("export", help="public / regulator / fixtures / checks / publish")
     s.add_argument("--regulator", action="store_true")
     s.add_argument("--fixtures", action="store_true")
@@ -68,6 +70,9 @@ def main(argv=None) -> int:
     elif a.stage == "validate":
         from . import validate
         validate.run(a.only)
+    elif a.stage == "activity":
+        from . import activity
+        activity.run(a.extract)
     elif a.stage == "export":
         from . import export
         export.run(a.regulator, a.fixtures, a.check_public, a.publish, a.downscale)
@@ -78,7 +83,7 @@ def main(argv=None) -> int:
         if not (C.RAW / "gee" / "clear" / "admin").exists():
             print("ERROR GeeCacheMissing: data/raw/gee/clear/admin is missing. Run `python -m kilnwatch gee` first.", file=sys.stderr)
             return 2
-        from . import classify, export, gates, ingest, kilns, pipeline, validate
+        from . import activity, classify, export, gates, ingest, kilns, pipeline, validate
         ingest.run()
         pipeline.grid_stage()
         kilns.run()
@@ -87,6 +92,7 @@ def main(argv=None) -> int:
         classify.run()
         pipeline.metrics_stage()
         validate.run(None)
+        activity.run()  # uses its Earth Engine cache only; skipped with a warning when absent
         export.write_public()
     return 0
 

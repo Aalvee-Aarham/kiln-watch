@@ -3,17 +3,25 @@ import { NavLink, useSearchParams } from 'react-router'
 import { echarts, type EOption } from '../lib/echarts'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
-import type { CI, Meta } from '../lib/types'
+import type { CI, KilnActivity, Meta } from '../lib/types'
 
 export function useMeta() { return useJson<Meta>('meta.json') }
+/** Optional kiln-activity layer (Amendment 1); a missing file means "no layer". */
+export function useKilnActivity() { return useJson<KilnActivity>('kiln_activity.json') }
+/** Kiln pages show when the FIRMS gates unlocked kiln layers, or when the night-light/radar layer shipped. */
+export function useKilnsVisible() {
+  const meta = useMeta().data
+  const ka = useKilnActivity().data
+  return !!ka?.layer || (!!meta && meta.gate_branch !== 'partial' && meta.gate_branch !== 'nokiln')
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
   const t = useT()
   const meta = useMeta().data
   const [sp] = useSearchParams()
   const q = sp.get('lang') === 'bn' ? '?lang=bn' : ''
-  const hideKilns = meta && (meta.gate_branch === 'partial' || meta.gate_branch === 'nokiln')
-  const tabs: [string, Parameters<typeof t>[0]][] = [['/', 'story'], ['/explore', 'explore'], ...(hideKilns ? [] : [['/kilns', 'kilns'] as [string, 'kilns']]),
+  const showKilns = useKilnsVisible()
+  const tabs: [string, Parameters<typeof t>[0]][] = [['/', 'story'], ['/explore', 'explore'], ...(showKilns ? [['/kilns', 'kilns'] as [string, 'kilns']] : []),
     ['/season', 'season'], ['/evidence', 'evidence'], ['/method', 'method']]
   return (
     <div className="min-h-screen">

@@ -1,4 +1,4 @@
-import { ChartCard, fmt, Loading, ProvisionalBadge, StatusMessage, useMeta } from '../components/ui'
+import { ChartCard, fmt, Loading, ProvisionalBadge, StatusMessage, useKilnActivity, useMeta } from '../components/ui'
 import { SeasonToDateChart } from '../components/charts'
 import { useJson } from '../lib/data'
 import { useLang } from '../lib/i18n'
@@ -29,6 +29,7 @@ export function ThisSeasonPage() {
 
 export function MethodPage() {
   const meta = useMeta()
+  const ka = useKilnActivity()
   const lang = useLang()
   return (
     <Loading state={meta}>{(m) => (
@@ -39,11 +40,15 @@ export function MethodPage() {
           <li><b>One grid.</b> Detections become “fire cell-days” on a 0.01° grid (≈1 km), so a 375 m sensor and a 1 km sensor count the same way.</li>
           <li><b>Honest denominators.</b> Google Earth Engine daily fire masks give the share of each area the satellite actually saw as clear land. Cloudy days are “not observed”, never zero.</li>
           <li><b>Harmonization.</b> On days both satellites saw the same area, we estimate how many Aqua-MODIS detections one VIIRS detection is worth — by division, month, day/night and kiln vs other land — pooling only when data are thin, and never across day and night. Uncertainty comes from resampling whole seasons; the method is validated by leaving each season out in turn.</li>
-          <li><b>Source separation.</b> A classifier trained on detections at mapped kilns versus matched control sites, using heat and persistence but never location or date, labels each VIIRS detection kiln-like, vegetation-like or unknown.</li>
-          <li><b>Pre-registration.</b> The kiln-detectability test and every threshold were committed before any data were analysed (prereg {m.prereg_sha}). This build’s branch: <code>{m.gate_branch}</code>.</li>
+          {m.gate_branch === 'nokiln'
+            ? <li><b>Kilns vs fires.</b> A pre-registered test asked whether 3,600+ mapped brick-kiln clusters produce more fire detections than matched farmland. They do not, so kiln heat is not inside the fire calendar, which is split instead by the Aman and Boro rice-harvest windows.</li>
+            : <li><b>Source separation.</b> A classifier trained on detections at mapped kilns versus matched control sites, using heat and persistence but never location or date, labels each VIIRS detection kiln-like, vegetation-like or unknown.</li>}
+          {ka.data?.layer && <li><b>Kiln season.</b> Kilns are tracked with a different satellite product: {ka.data.layer === 'ntl' ? 'NASA Black Marble night lights (VNP46A2), every half-month since 2012' : 'Sentinel-1 radar, monthly since 2015'}.
+            Each kiln is compared with its three matched control sites and with its own monsoon level. The rules were written down before the confirmatory test, which ran on kiln clusters and a season the pilot never used (pre-registration amendment 1).</li>}
+          <li><b>Pre-registration.</b> The kiln-detectability test and every threshold were committed before any data were analysed (prereg {m.prereg_sha}). This build’s branch: <code>{m.gate_branch}</code>. Later additions are dated amendments, never edits.</li>
         </ol>
         <section><h2 className="text-lg font-semibold">What we do not claim</h2>
-          <ol className="list-decimal space-y-1 pl-5">{m.non_claims.map((c, i) => <li key={i}>{lang === 'bn' ? c.bn : c.en}</li>)}</ol></section>
+          <ol className="list-decimal space-y-1 pl-5">{[...m.non_claims, ...(ka.data?.layer ? ka.data.non_claims ?? [] : [])].map((c, i) => <li key={i}>{lang === 'bn' ? c.bn : c.en}</li>)}</ol></section>
         <section><h2 className="text-lg font-semibold">Release policy</h2>
           <p>Public: area-level calendars and statistics only. Kiln locations, cluster identifiers and candidate unmapped kilns are never published; they exist only in an offline export for the Department of Environment. Two automated checks (field names and values) block any leak before publication.</p></section>
         <section><h2 className="text-lg font-semibold">Credits and licences</h2>

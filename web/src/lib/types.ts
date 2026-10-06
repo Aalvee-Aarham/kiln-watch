@@ -79,4 +79,22 @@ export interface NrtSeason {
 
 export interface GridTile { tile: string; day0: string; rows: [cell: number, day: number, sensorPass: number][] }
 
+// kiln_activity.json (Amendment 1): kiln activity from night lights / radar. Optional file; area-level only.
+export type Series = (number | null)[]
+export interface KilnSeasonRow { season: string; onset: CI | null; end: CI | null; duration: CI | null; peak: CI | null; peak_value: CI | null }
+export interface KilnArea { n_clusters: number; e?: Series; lo?: Series; hi?: Series; seasons: KilnSeasonRow[] }  // upazilas: seasons only
+export interface KilnActivity {
+  layer: 'ntl' | 's1' | null
+  pilots: { channel: string; measure: string; kiln: string; control: string; reading: string }[]
+  tests: { test: 'GL' | 'GS'; criterion: string; value: number | null; threshold: string; p?: number | null; pass: boolean }[]
+  pass: Partial<Record<'GL' | 'GS', boolean>>
+  non_claims?: { en: string; bn: string }[]
+  contamination?: { detections: number; kiln_share: number; control_share: number; period: string }  // fire detections on kiln vs control footprints
+  cadence?: 'half-month' | 'month'
+  periods?: string[]                       // period start dates, aligned with every e/lo/hi
+  national?: KilnArea
+  areas?: Record<string, KilnArea>
+  national_check?: { channel: 's1'; periods: string[]; e: Series; lo: Series; hi: Series }
+}
+
 export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }

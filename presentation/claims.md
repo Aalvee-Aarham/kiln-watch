@@ -12,3 +12,10 @@
 | Kiln inventory | 4,760 kilns (APAD, CC BY 4.0) | `reports/inventory_report.md` | Bangladesh |
 | Detections analysed | 1,221,809 | `reports/ingest_counts.md` | BBOX 88–92.8°E, 20.5–26.7°N, 2003-01 → 2026-10 |
 | LOSO coverage | 0.985 [0.982–0.987] — FAIL (conservative) | `reports/harmonization_report.md` | 9 calibration seasons |
+| Kiln clusters ever detected at night by VIIRS | 37 of 3,653 (controls: 47 of 10,959) | `PREREGISTRATION_AMENDMENTS.md` P1 | Bangladesh, S-NPP + NOAA-20 + NOAA-21, all confidences, 2012–2026 |
+| Kiln heat inside the fire calendar | 351 of 234,693 VIIRS detections (0.15%) on kiln footprints vs 0.14% on matched farmland | `reports/kiln_activity_report.md` | Bangladesh, Nov–May, nominal+high, 2012–2026 |
+| Night-light test GL: share of held-out clusters with seasonal excess > 0 | 0.72 (pass ≥ 0.60) | `reports/kiln_activity_report.md` | 3,253 clusters (pilot excluded), season 2022-23 |
+| GL replication | 13 of 13 seasons with median excess > 0 | same | 2012-13 … 2024-25 |
+| GL placebo | median 0.004, Wilcoxon p = 0.58 (pass p > 0.05) | same | 2022-23 |
+| Radar test GS (Sentinel-1 VV yard − ring) | median +0.30 dB, 62% of clusters > 0, 9/10 seasons, placebo p = 0.12: PASS | `reports/kiln_activity_report.md` | 3,253 held-out clusters, 2022-23; seasons 2015-16 … 2024-25 |
+| Kiln season (national, night lights) | onset mid-Nov, end mid-Apr, peak Feb (recent seasons); length ≈ 90 d (2012-13) → ≈ 150 d (2022-25) | same, season table | Bangladesh, all 3,653 clusters |

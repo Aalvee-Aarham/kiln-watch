@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateBox, dense, resolveSplit, seriesFor } from './calendar'
+import { aggregateBox, dense, resolveSplit, seasonMean, seriesFor } from './calendar'
 import type { Calendar, GridTile, Meta } from './types'
 import cases from '../../../tests/fixtures/grid_cases.json'
 
@@ -12,6 +12,13 @@ describe('calendar', () => {
   it('densifies sparse arrays and marks nodata as NaN', () => {
     const d = dense(cal, cal.h)
     expect(d[5]).toBe(2); expect(d[2]).toBe(0); expect(Number.isNaN(d[3])).toBe(true)
+  })
+  it('seasonMean places each day at its day of season and skips not-observed days', () => {
+    // day 1 = 2003-01-02, which is day 185 of season 2002-03 (from 1 July 2002); days 3–4 are not observed
+    const m = seasonMean(cal)
+    expect(m).toHaveLength(366)
+    expect(m[185]).toBe(1); expect(m[189]).toBe(2); expect(m[193]).toBe(3)
+    expect(m[187]).toBe(0); expect(m[184]).toBe(0)
   })
   it('unknown split key falls back to all', () => {
     expect(resolveSplit(meta, 'aman')).toBe('all')

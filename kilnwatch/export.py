@@ -16,7 +16,8 @@ from . import config as C
 
 log = logging.getLogger("kilnwatch.export")
 BUDGET = {"meta.json": 50_000, "events.json": 50_000, "harmonization.json": 200_000, "validation.json": 500_000,
-          "aoi/districts.geojson": 400_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000}
+          "aoi/districts.geojson": 400_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000,
+          "kiln_activity.json": 1_500_000}
 BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000}
 SPLITS = {
     "kiln": [("kiln", "Kiln-like heat", "ভাটা-সদৃশ তাপ"), ("vegetation", "Vegetation fires", "উদ্ভিদ আগুন"), ("unknown", "Unknown", "অজানা")],
@@ -245,6 +246,33 @@ def _fixture_set(branch: str, d: Path) -> None:
            "districts": {u[0]: {"h": [round(float(x), 3) for x in rng.gamma(2, 0.5, days)], "above_p90_days": int(rng.integers(0, 6))} for u in units if u[1] == "district"}},
           d / "nrt" / "current_season.json")
     _dump({"tile": "90_23", "day0": "2003-01-01", "rows": [[int(1136241 + i), int(4000 + i % 300), int(i % 6)] for i in range(500)]}, d / "grid" / "90_23.json")
+    _dump(_fixture_kiln_activity(rng), d / "kiln_activity.json")
+
+
+def _fixture_kiln_activity(rng):
+    """Synthetic kiln_activity.json: half-monthly excess that is high Dec–Apr, ~0 Jul–Oct."""
+    from .activity import NON_CLAIMS, P_ROWS
+
+    per = [pd.Timestamp(y, m, dd) for y in range(2012, 2026) for m in range(1, 13) for dd in (1, 16)]
+    shape = lambda t: 1.0 if t.month in (12, 1, 2, 3, 4) else 0.5 if t.month in (11, 5) else 0.0
+    ci = lambda v, w: {"p50": v, "lo": v - w, "hi": v + w}
+
+    def area(n, level):
+        e = [round(shape(t) * 0.8 + float(rng.normal(0, 0.05)), 3) for t in per]
+        seasons = [{"season": f"{y}-{(y + 1) % 100:02d}", "onset": ci(138 + int(rng.integers(-8, 9)), 8), "end": ci(305 + int(rng.integers(-8, 9)), 8),
+                    "duration": ci(167, 12), "peak": ci(214, 15), "peak_value": ci(0.8, 0.1)} for y in range(2012, 2025)]
+        a = {"n_clusters": n, "seasons": seasons}
+        if level != "upazila":
+            a |= {"e": e, "lo": [round(v - 0.1, 3) for v in e], "hi": [round(v + 0.1, 3) for v in e]}
+        return a
+    tests = [{"test": "GL", "criterion": c, "value": v, "threshold": th, "p": p, "pass": True} for c, v, th, p in (
+        ("Contrast: median A, 2022-23 (n = 3100)", 0.31, "> 0, Wilcoxon p < 0.01", 1e-40), ("Prevalence: share of clusters with A > 0", 0.74, "≥ 0.60", None),
+        ("Replication: seasons with median A > 0 (13 evaluable)", 1.0, "≥ 0.75", None), ("Placebo: first control as pseudo-kiln (n = 3000)", 0.0, "Wilcoxon p > 0.05", 0.4))]
+    return {"pilots": P_ROWS, "layer": "ntl", "tests": tests, "pass": {"GL": True}, "cadence": "half-month",
+            "non_claims": [{"en": e, "bn": b} for e, b in NON_CLAIMS],
+            "contamination": {"detections": 200000, "kiln_share": 0.0015, "control_share": 0.0014, "period": "2012–2026"},
+            "periods": [t.strftime("%Y-%m-%d") for t in per], "national": area(3653, "national"),
+            "areas": {"BD3026": area(120, "district"), "BD302614": area(30, "upazila")}}
 
 
 def _fixture_calendar(uid, kind, is_district, keys, rng, branch):

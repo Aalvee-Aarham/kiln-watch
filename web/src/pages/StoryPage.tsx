@@ -1,8 +1,9 @@
 import { Link, useSearchParams } from 'react-router'
-import { ChartCard, Loading, useMeta } from '../components/ui'
-import { JumpChart, PlateauSpikeChart } from '../components/charts'
+import { ChartCard, Loading, useKilnActivity, useMeta } from '../components/ui'
+import { JumpChart, KilnSeasonShapeChart, PlateauSpikeChart } from '../components/charts'
 import { useJson } from '../lib/data'
-import type { Harmonization, Validation } from '../lib/types'
+import { seasonDayLabel } from '../lib/days'
+import type { Harmonization, KilnActivity, Validation } from '../lib/types'
 import moneyJump from '../assets/money_jump.png'
 import moneyPlateau from '../assets/money_plateau.png'
 
@@ -10,8 +11,13 @@ export default function StoryPage() {
   const meta = useMeta()
   const harm = useJson<Harmonization>('harmonization.json')
   const val = useJson<Validation>('validation.json')
+  const ka = useKilnActivity()
   const [sp] = useSearchParams()
   const q = sp.toString() ? `?${sp}` : ''
+  const nokiln = meta.data?.gate_branch === 'nokiln'
+  const separate = !nokiln ? 'Each detection is labelled kiln-like, vegetation-like or unknown, using heat signature and persistence, tested on held-out places, years and satellites.'
+    : ka.data?.layer ? 'Brick kilns turned out to be invisible to fire satellites, so the fire calendar is crop and forest burning. We track the kiln season separately, with NASA night lights.'
+      : 'Brick kilns turned out to be invisible to fire satellites (a pre-registered test), so the fire calendar is crop and forest burning, split by rice-harvest windows.'
   return (
     <div className="space-y-6">
       <section className="rounded-2xl bg-gradient-to-br from-orange-700 to-amber-600 p-6 text-white shadow">
@@ -26,7 +32,7 @@ export default function StoryPage() {
 
       <ol className="grid gap-3 sm:grid-cols-3">
         {[['1', 'Harmonize', 'MODIS (1 km, 2003–) and VIIRS (375 m, 2012–) see fire differently. We convert every sensor to one unit — Aqua-MODIS-equivalent — with uncertainty.'],
-          ['2', 'Separate', 'Each detection is labelled kiln-like, vegetation-like or unknown, using heat signature and persistence, tested on held-out places, years and satellites.'],
+          ['2', 'Separate', separate],
           ['3', 'Show', 'For any district, upazila or drawn box: history, the normal range, unusual days, critical periods and the current season.']].map(([n, t, d]) => (
           <li key={n} className="card"><span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-orange-600 text-sm font-bold text-white">{n}</span>
             <b>{t}</b><p className="note">{d}</p></li>
@@ -41,8 +47,8 @@ export default function StoryPage() {
         </ChartCard>)}
       </Loading>
 
-      <Loading state={val}>{(v) => meta.data?.gate_branch === 'nokiln'
-        ? <NegativeResult v={v} />
+      <Loading state={val}>{(v) => nokiln
+        ? (ka.data?.layer && ka.data.national?.e ? <KilnTwist v={v} ka={ka.data} q={q} /> : <NegativeResult v={v} />)
         : (
           <ChartCard title="Kilns burn for months; crop fires burn for days"
             summary="Weekly share of cloud-free days with a fire detection at brick-kiln clusters (brown) versus matched control sites with the same land cover (blue), through the pre-registered gate season. A steady plateau at kilns, short spikes at controls: the signature the classifier learns.">
@@ -66,6 +72,36 @@ function NegativeResult({ v }: { v: Validation }) {
         <div className="rounded-lg bg-stone-100 p-3"><div className="text-3xl font-bold text-orange-700">0</div>
           <div className="text-sm text-stone-600">kiln clusters bright enough for a site-level calendar, VIIRS 375 m or MODIS 1 km</div></div>
       </div>
+    </ChartCard>
+  )
+}
+
+/** The twist: the pre-registered fire test fails, and a different NASA product sees the kiln season. */
+function KilnTwist({ v, ka, q }: { v: Validation; ka: KilnActivity; q: string }) {
+  const c = v.gates.find((g) => g.gate === 'G1' && g.criterion.startsWith('Contrast'))
+  const t = ka.layer === 'ntl' ? 'GL' : 'GS'
+  const prev = ka.tests.find((r) => r.test === t && r.criterion.startsWith('Prevalence'))
+  const seasons = (ka.national?.seasons ?? []).filter((s) => s.onset && s.end)
+  const med = (xs: number[]) => xs.slice().sort((a, b) => a - b)[Math.floor(xs.length / 2)]
+  const on = seasons.length ? med(seasons.map((s) => s.onset!.p50)) : null
+  const end = seasons.length ? med(seasons.map((s) => s.end!.p50)) : null
+  const latest = seasons.at(-1)?.season
+  const src = ka.layer === 'ntl' ? 'NASA Black Marble night lights' : 'Sentinel-1 radar'
+  const tile = (big: string, small: string) => (
+    <div className="rounded-lg bg-stone-100 p-3"><div className="text-2xl font-bold text-orange-700 sm:text-3xl">{big}</div><div className="text-sm text-stone-600">{small}</div></div>)
+  return (
+    <ChartCard title="Fire satellites can’t see Bangladesh’s brick kilns. Night lights can."
+      actions={<Link className="btn" to={'/kilns' + q}>Kiln seasons by district →</Link>}
+      summary={<>We wrote the fire test down before looking at the data, and it failed: kiln sites have no more fire detections than matched farmland.
+        {ka.contamination && <> Of {ka.contamination.detections.toLocaleString('en')} dry-season fire detections in Bangladesh, {(ka.contamination.kiln_share * 100).toFixed(2)}% fall on kiln sites, against {(ka.contamination.control_share * 100).toFixed(2)}% on matched farmland.</>} So kiln heat is not hiding in the fire calendar.
+        Kilns do run day and night from late autumn to spring with workers on site, and {src} picks that up. The brown curve is the extra light at mapped kilns over matched control sites in a typical season.
+        The test was confirmed on kiln clusters and a season the pilot never touched (pre-registration amendment 1).</>}>
+      <div className="mb-3 grid gap-3 sm:grid-cols-3">
+        {tile(c ? `${c.value.toFixed(2)}×` : '–', 'fire-detection rate at 3,600+ mapped kiln clusters vs matched farmland (pre-registered pass: ≥ 3×). Kilns are invisible to fire satellites.')}
+        {tile(prev?.value != null ? `${Math.round(prev.value * 100)}%` : '–', `of held-out kiln clusters are brighter in the working season than their matched controls (${src}).`)}
+        {tile(on != null && end != null ? `${seasonDayLabel(on)} → ${seasonDayLabel(end)}` : '–', 'the typical kiln season (median onset and end, 50% of peak). It is a different calendar from the crop fires.')}
+      </div>
+      <KilnSeasonShapeChart ka={ka} area={ka.national!} season={latest} />
     </ChartCard>
   )
 }

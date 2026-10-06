@@ -1,11 +1,11 @@
 import { lazy, Suspense, useMemo, useState } from 'react'
-import { useNavigate } from 'react-router'
-import { ChartCard, CIText, DownloadButtons, EChart, Loading, SegmentedToggle, StatusMessage, useMeta } from '../components/ui'
-import { CalendarHeatmap, NormalBandChart, SourceStackChart } from '../components/charts'
+import { Link, useNavigate } from 'react-router'
+import { ChartCard, CIText, DownloadButtons, EChart, Loading, SegmentedToggle, StatusMessage, useKilnActivity, useMeta } from '../components/ui'
+import { CalendarHeatmap, KilnSeasonShapeChart, NormalBandChart, SourceStackChart } from '../components/charts'
 import { fetchJson, useJson } from '../lib/data'
 import { useUrlState } from '../lib/url'
 import { useT } from '../lib/i18n'
-import { aggregateBox, calendarToCsv, resolveSplit } from '../lib/calendar'
+import { aggregateBox, calendarToCsv, resolveSplit, seasonMean } from '../lib/calendar'
 import { formatBox, tilesForBox, type Box } from '../lib/box'
 import { dayIso, seasonOf } from '../lib/days'
 import type { Calendar, FC, GridTile, Harmonization, Meta } from '../lib/types'
@@ -52,18 +52,20 @@ export default function ExplorerPage() {
       <section className="min-w-0 space-y-4">
         {u.boxError && <StatusMessage kind="error">{u.boxError}</StatusMessage>}
         {u.box && meta.data && districts.data && <BoxView box={u.box} meta={meta.data} districts={districts.data} />}
-        {!u.box && !u.unitId && !u.boxError && <Welcome units={units.slice(0, 6)} onPick={(id) => go(`/explore/${level}/${id}`)} />}
+        {!u.box && !u.unitId && !u.boxError && <Welcome units={units.slice(0, 6)} onPick={(id) => go(`/explore/${level}/${id}`)} nokiln={meta.data?.gate_branch === 'nokiln'} />}
         {u.unitId && !u.box && meta.data && <UnitView unitId={u.unitId} name={sel ? `${sel.name_en} · ${sel.name_bn}` : u.unitId} meta={meta.data} u={u} setQ={setQ} kilnCount={sel?.kiln_count} />}
       </section>
     </div>
   )
 }
 
-function Welcome({ units, onPick }: { units: { unit_id: string; name_en: string }[]; onPick: (id: string) => void }) {
+function Welcome({ units, onPick, nokiln }: { units: { unit_id: string; name_en: string }[]; onPick: (id: string) => void; nokiln?: boolean }) {
   return (
     <div className="card">
       <h2 className="text-lg font-semibold">Pick an area to see its burning calendar</h2>
-      <p className="note">You will see every day since 2003 on one harmonized scale, how this season compares with normal, and how much of the heat looks like brick kilns versus crop fires.</p>
+      <p className="note">You will see every day since 2003 on one harmonized scale, how this season compares with normal, {nokiln
+        ? 'unusual days and critical periods, and, where there are brick kilns, when the kiln season runs compared with the fires.'
+        : 'and how much of the heat looks like brick kilns versus crop fires.'}</p>
       <div className="mt-3 flex flex-wrap gap-2">{units.map((x) => <button key={x.unit_id} className="btn" onClick={() => onPick(x.unit_id)}>{x.name_en}</button>)}</div>
     </div>
   )
@@ -71,6 +73,8 @@ function Welcome({ units, onPick }: { units: { unit_id: string; name_en: string 
 
 function UnitView({ unitId, name, meta, u, setQ, kilnCount }: { unitId: string; name: string; meta: Meta; u: ReturnType<typeof useUrlState>[0]; setQ: ReturnType<typeof useUrlState>[1]; kilnCount?: number | null }) {
   const cal = useJson<Calendar>(`calendar/${unitId}.json`)
+  const ka = useKilnActivity().data
+  const kilnArea = ka?.layer ? ka.areas?.[unitId] : undefined
   const t = useT()
   const split = resolveSplit(meta, u.split)
   return (
@@ -103,6 +107,12 @@ function UnitView({ unitId, name, meta, u, setQ, kilnCount }: { unitId: string; 
             summary="Shaded band: the middle 80% of all seasons 2003–2025 for each day. Dots: unusual days above the 90th percentile. Light-red shading: critical periods when activity is normally at its yearly high.">
             <NormalBandChart cal={c} season={season} mode={u.mode} split={split} />
           </ChartCard>
+          {kilnArea?.e && ka && <ChartCard title="Two burning seasons: fires and kilns"
+            actions={<Link className="btn" to={`/kilns?${new URLSearchParams(window.location.hash.split('?')[1] ?? '')}`}>Kiln seasons →</Link>}
+            summary={<>Green: this area’s average fire activity through the season (FIRMS, harmonized, 2003 to today). Brown: the kiln season, from {ka.layer === 'ntl' ? 'night lights' : 'radar'} at {kilnArea.n_clusters} mapped kiln clusters against matched control sites (band = middle half of seasons).
+              Kiln heat does not show up in fire detections, so the two are measured with different satellites, and they follow different calendars.</>}>
+            <KilnSeasonShapeChart ka={ka} area={kilnArea} burning={seasonMean(c)} />
+          </ChartCard>}
           <ChartCard title="Where the heat comes from" summary={`Season totals split into ${meta.split_labels.map((s) => label(s.key).toLowerCase()).join(', ')}.`}>
             <SourceStackChart cal={c} meta={meta} lang={u.lang} />
           </ChartCard>

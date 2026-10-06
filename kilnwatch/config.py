@@ -46,7 +46,7 @@ MAX_CLUSTER_DIAM_M = 5_000
 MAX_CLUSTER_SHARE = 0.02
 CONTROL_ATTEMPTS_MAX = 2_000
 SEED = 20261114
-SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6}
+SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7}
 FORBIDDEN_PUBLIC_KEYS = {"kiln_id", "cluster_id", "candidate", "kiln_lat", "kiln_lon"}
 TRANSFER_DISTRICT = "Faisalabad"
 
@@ -113,6 +113,9 @@ def rng(stage: str):
 CREDITS = [
     {"name": "NASA FIRMS (MODIS C6.1, VIIRS 375 m)", "url": "https://firms.modaps.eosdis.nasa.gov/", "licence": "NASA open data"},
     {"name": "Google Earth Engine: MOD14A1, MYD14A1, VNP14A1, ESA WorldCover, Sentinel-5P", "url": "https://earthengine.google.com/", "licence": "Per-dataset open terms"},
+    {"name": "NASA Black Marble VNP46A2 night lights (Román et al. 2018), via Earth Engine", "url": "https://blackmarble.gsfc.nasa.gov/", "licence": "NASA open data"},
+    {"name": "Copernicus Sentinel-1 SAR GRD (ESA), via Earth Engine", "url": "https://sentinels.copernicus.eu/", "licence": "Copernicus open licence"},
+    {"name": "NASA ECOSTRESS L2T LSTE v2 and USGS/NASA Landsat 8/9 C2 L2 (kiln pilots only)", "url": "https://ecostress.jpl.nasa.gov/", "licence": "NASA / USGS open data"},
     {"name": "APAD IGP Brick Kilns Bangladesh / Pakistan", "url": "https://registry.opendata.aws/asset-data-igp-brick-kilns-ban/", "licence": "CC BY 4.0"},
     {"name": "OCHA HDX COD-AB Bangladesh & Pakistan", "url": "https://data.humdata.org/dataset/cod-ab-bgd", "licence": "CC BY-IGO"},
     {"name": "OpenAQ v3", "url": "https://openaq.org/", "licence": "CC BY 4.0"},

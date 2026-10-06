@@ -25,6 +25,20 @@ export function seriesFor(cal: Calendar, mode: Mode, split: string): number[] {
   return cal.h
 }
 
+/** Mean activity per day of season (0 = 1 July, 366 slots) over all seasons; not-observed days are skipped. */
+export function seasonMean(cal: Calendar, values: number[] = cal.h): number[] {
+  const dz = dense(cal, values)
+  const sum = new Float64Array(366), n = new Float64Array(366)
+  for (let d = 0; d < dz.length; d++) {
+    if (Number.isNaN(dz[d])) continue
+    const date = dayToDate(d)
+    const y = Number(seasonOf(date).slice(0, 4))
+    const x = Math.min(365, Math.round((date.getTime() - Date.UTC(y, 6, 1)) / 86_400_000))
+    sum[x] += dz[d]; n[x] += 1
+  }
+  return Array.from(sum, (s, i) => (n[i] ? s / n[i] : 0))
+}
+
 /** Unknown split key → 'all' (links survive a rebuild under another branch). */
 export const resolveSplit = (meta: Meta, split: string) =>
   split === 'all' || meta.split_labels.some((s) => s.key === split) ? split : 'all'

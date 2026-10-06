@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test'
 
-for (const route of ['#/', '#/explore/district/BD3026', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']) {
+for (const route of ['#/', '#/explore/district/BD3026', '#/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']) {
   test(`renders ${route} with no console errors`, async ({ page }) => {
     const errors: string[] = []
     page.on('console', (m) => { if (m.type() === 'error' && !/tile|cartocdn|ERR_INTERNET|Failed to load resource/i.test(m.text())) errors.push(m.text()) })

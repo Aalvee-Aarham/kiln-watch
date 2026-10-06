@@ -7,8 +7,8 @@
 Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh into **one consistent burning calendar**:
 
 1. **Harmonize.** MODIS (1 km, 2003–) and VIIRS (375 m, 2012–) see fire differently. When VIIRS arrives in 2012 raw detection counts jump several-fold, which is a sensor artefact, not a change in fire. We convert every sensor to one unit, *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells (MYD-eq)*, with 95% uncertainty bands, validated by leaving each season out in turn.
-2. **Separate.** Each VIIRS detection is labelled *kiln-like*, *vegetation-like* or *unknown* by a weakly supervised classifier trained on detections at 4,760 mapped brick kilns versus matched control sites. It uses heat signature and persistence, never location or date, and is tested on unseen districts, later years and other satellites.
-3. **Show.** For any district, upazila or drawn box, the site shows the full daily history, the normal range, unusual days, critical periods and the current season (updated daily). All of it is downloadable as CSV or JSON.
+2. **Separate.** A pre-registered test asked whether 3,653 mapped brick-kiln clusters produce more fire detections than matched farmland. They don't (0.46×), so kiln heat is not in the fire calendar. Brick kilns are invisible to fire satellites, so we track the **kiln season with NASA Black Marble night lights** instead. Kilns run day and night through the dry season, and a held-out test written down in advance confirms the signal ([Amendment 1](PREREGISTRATION_AMENDMENTS.md)).
+3. **Show.** For any district, upazila or drawn box, the site shows the full daily history, the normal range, unusual days, critical periods and the current season (updated daily). Where there are kilns, the kiln season appears beside the fire calendar. All of it is downloadable as CSV or JSON.
 
 ## Results (real data, built 6 Oct 2026)
 
@@ -19,6 +19,10 @@ Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh i
 | **G1, kilns visible to VIIRS:** DR(kiln)/DR(control) ≥ 3, perm p < 0.01, plus shape and seasonality | **FAIL**: 0.46×, p = 0.96 across 3,653 clusters and 10,959 matched controls |
 | **G2, kilns visible to MODIS** | **FAIL**: 0.73× |
 | → Gate branch | **`nokiln`**: calendar ships in full; split = Aman / Boro harvest windows / other; index = HBI |
+| Kiln heat inside the fire calendar (upper bound) | 351 of 234,693 Bangladesh VIIRS detections, Nov–May 2012–2026 (**0.15%**), fall on kiln footprints, against 0.14% on matched farmland: no kiln contamination to remove |
+| *Amendment 1 (written before the confirmatory run):* **GL, kiln season in NASA Black Marble night lights**, held-out clusters, season 2022-23 | **PASS**: median seasonal excess +0.195 nW/cm²/sr (p < 10⁻³⁰⁰); 72% of 3,253 clusters > 0; 13/13 seasons replicate; placebo p = 0.58 |
+| Other kiln channels tried (pilot, all reported) | FIRMS night detections: 37 of 3,653 clusters in 14 years · ECOSTRESS night: no signal · Landsat day: sees the kiln structure, not firing · TROPOMI SO₂/NO₂: no signal |
+| *Amendment 1:* **GS, independent check with Sentinel-1 radar** (brick stacks in kiln yards) | **PASS**: median +0.30 dB (p = 3×10⁻⁵⁸); 62% of clusters > 0; 9/10 seasons; placebo p = 0.12 |
 
 Data: 1,221,809 FIRMS detections (2003 → today) · 13M Earth Engine daily clear-land fractions · 4,760 APAD kilns · 560 district and upazila calendars.
 Full reports: [`reports/`](reports/) · Evidence page of the site · pitch materials in [`presentation/`](presentation/).
@@ -51,10 +55,11 @@ cd web; npm install; npm run dev          # http://localhost:5173/kiln-watch/
 | 8 | `python -m kilnwatch classify` | Source classifier, 4 holdouts, label-set comparison, persistence ablation, transfer test |
 | 9 | `python -m kilnwatch metrics` | ~570 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
 | 10 | `python -m kilnwatch validate` | Validation layers (shape across seasons, TROPOMI NO₂ DiD, Dhaka PM2.5 lags) |
-| 11 | `python -m kilnwatch export` | Public tier → `web/public/data/`, with name + value safety checks and size budgets |
-| 12 | `cd web; $env:DATA_SRC="real"; npm run build` | Static site in `web/dist/` |
+| 11 | `python -m kilnwatch activity --extract all` | Amendment 1: Black Marble night lights (half-monthly, 2012–) and Sentinel-1 radar (monthly, 2015–) at every kiln cluster and its 3 matched controls; tests GL/GS on the held-out clusters; kiln-season calendars per area (slow, resumable) |
+| 12 | `python -m kilnwatch export` | Public tier → `web/public/data/`, with name + value safety checks and size budgets |
+| 13 | `cd web; $env:DATA_SRC="real"; npm run build` | Static site in `web/dist/` |
 
-`python -m kilnwatch all` runs steps 1, 3, 4 and 6–11 in order, and fails fast if the Earth Engine cache is missing.
+`python -m kilnwatch all` runs steps 1, 3, 4, 6–10, 11 (from its cache, without `--extract`) and 12 in order, and fails fast if the Earth Engine cache is missing.
 
 ## Tests
 
@@ -70,7 +75,7 @@ npm run e2e                    # Playwright smoke test of every route from the b
 - **Site:** React 19 + TypeScript + Vite + Tailwind CSS v4 + ECharts + Leaflet (`web/`). Static, no server; deep links via `HashRouter`.
 - **Contract:** `web/src/lib/types.ts` (Python writes it, TypeScript reads it). It is tested under all five gate branches.
 - **Daily updates:** `.github/workflows/deploy.yml` fetches FIRMS near-real-time data, labels it with the frozen model and redeploys.
-- **Pre-registration:** [`PREREGISTRATION.md`](PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited.
+- **Pre-registration:** [`PREREGISTRATION.md`](PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited. Later additions are dated amendments in [`PREREGISTRATION_AMENDMENTS.md`](PREREGISTRATION_AMENDMENTS.md), each written before the data it governs were analysed.
 - **Knowledge graph:** `graphify-out/` holds a graph of the design docs (`graphify query "<question>"`).
 
 ## Responsible release
@@ -84,6 +89,7 @@ Public files contain area-level statistics only. Kiln ids, cluster ids, candidat
 Code: MIT. Data:
 - NASA FIRMS (MODIS C6.1, VIIRS 375 m)
 - Google Earth Engine datasets: MOD14A1/MYD14A1/VNP14A1, ESA WorldCover, Sentinel-5P, ERA5-Land
+- NASA Black Marble VNP46A2 night lights (Román et al. 2018); Copernicus Sentinel-1 SAR (ESA); NASA ECOSTRESS L2T LSTE v2 and Landsat 8/9 Collection 2 (kiln pilots only)
 - **APAD IGP Brick Kilns Bangladesh / Pakistan** (CC BY 4.0). *IGP Brick Kilns Bangladesh was accessed on 2026-10-06 from https://registry.opendata.aws/asset-data-igp-brick-kilns-ban*
 - OCHA HDX COD-AB Bangladesh / Pakistan (CC BY-IGO)
 - OpenAQ (CC BY 4.0)
@@ -91,4 +97,4 @@ Code: MIT. Data:
 
 ## Prior-work disclosure
 
-Planning documents (`project_proposal.md`, `architecture.md`, `implementation_plan.md`, `file_structure.md`) predate the build. All code, data processing and results in this repository were produced during the event; the git history is public evidence.
+Everything in this repository as of 6 October 2026 was produced **before** the NASA Space Apps 2026 hackathon (14–15 November 2026), on 5–6 October 2026, after the challenge summary was published. That includes the planning documents (`project_proposal.md`, `architecture.md`, `implementation_plan.md`, `file_structure.md`), the pipeline code, the data processing and the results. The public git history records the dates. The Space Apps FAQ states that teams may not begin working on challenges before the hackathon, so this prior work is being declared to our Local Lead, and we follow their ruling on what may be judged. Work done during the event starts at the `hackathon-start` tag.
