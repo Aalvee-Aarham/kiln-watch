@@ -61,7 +61,7 @@ export default function ExplorerPage() {
 
   return (
     <div className="grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-      <aside className="space-y-3 lg:sticky lg:top-20 lg:self-start">
+      <aside className="space-y-3 lg:sticky lg:top-[calc(var(--header-h,53px)+1.5rem)] lg:self-start">
         <div className="panel space-y-3">
           <label className="flex items-baseline justify-between text-sm font-semibold" htmlFor="unit-search">{t('pick')}
             <kbd className="rounded-[3px] border border-line px-1.5 text-xs font-normal text-muted" title="Press / to search">/</kbd></label>
@@ -304,11 +304,11 @@ function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit
           <div ref={sentinel} aria-hidden />
           {/* Compact bar: fixed, so showing it never moves the page (the in-flow header keeps its height). */}
           {sm && (
-            <div inert={!stuck} aria-hidden={!stuck} className="compact-bar pointer-events-none fixed inset-x-0 top-[48px] z-30" data-on={stuck || undefined}>
+            <div inert={!stuck} aria-hidden={!stuck} className="compact-bar pointer-events-none fixed inset-x-0 top-[var(--header-h,53px)] z-30" data-on={stuck || undefined}>
               {/* Spans the content column only, so the sticky sidebar stays uncovered. */}
               <div className="mx-auto max-w-[1200px] px-4">
                 <div className="pointer-events-auto flex items-center gap-x-4 border-b border-line bg-bg/95 py-1.5 backdrop-blur-md lg:ml-[calc(320px+1.5rem)]">
-                  <span className="h-display shrink-0 text-xl">{name}</span>
+                  <span className="h-display max-w-[40%] min-w-0 shrink-0 truncate text-xl" title={name}>{name}</span>
                   <div className="min-w-0 flex-1">{sectionNav}</div>
                 </div>
               </div>

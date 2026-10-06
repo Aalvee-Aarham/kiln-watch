@@ -14,6 +14,7 @@ export interface Meta {
   split_labels: { key: string; label_en: string; label_bn: string }[]
   activity_index: { key: 'HKFI' | 'HBI'; label_en: string; label_bn: string }
   grid: { origin_lat: number; origin_lon: number; step: number; rows: number; cols: number }
+  demo?: { mode: 'real-offline-copy'; source_sha: string | null; nrt_updated_at: string | null; note_en: string; note_bn: string } // fixtures only
 }
 
 export interface UnitProps {

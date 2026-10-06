@@ -158,6 +158,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       if (drawing || !e.isPrimary || e.button !== 0 || e.target !== el) return // features handle their own clicks
       el.setPointerCapture(e.isPrimary ? e.pointerId : 0)
       panFrom = { cx: e.clientX, cy: e.clientY, view: viewRef.current }
+      document.documentElement.classList.add('is-panning')
     }
     const move = (e: PointerEvent) => {
       if (!panFrom) return
@@ -165,7 +166,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       const v = panFrom.view
       setView(clampView({ ...v, x: v.x - (b[0] - a[0]), y: v.y - (b[1] - a[1]) }, fit))
     }
-    const up = () => { panFrom = null }
+    const up = () => { panFrom = null; document.documentElement.classList.remove('is-panning') }
     el.addEventListener('wheel', wheel, { passive: false })
     el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
@@ -175,6 +176,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up)
       clearTimeout(hintT)
+      document.documentElement.classList.remove('is-panning')
     }
   }, [drawing, fit]) // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -203,11 +205,9 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       start = null; setDrawBox(null)
       if (boxAreaKm2(bx) >= MIN_KM2) onBox(bx)
     }
-    el.style.cursor = 'crosshair'; el.style.touchAction = 'none'
     el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
     return () => {
-      el.style.cursor = ''; el.style.touchAction = ''
       el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up)
     }
@@ -222,7 +222,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   const labelSize = Math.max(10, view.w * 0.013)
 
   return (
-    <div ref={wrapRef} className="bd-map relative h-[440px] w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none">
+    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative h-[440px] w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none`}>
       <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="h-full w-full touch-none"
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
         {feats.map((f) => {

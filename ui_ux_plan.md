@@ -413,16 +413,19 @@ Cursors carry meaning. They are native or SVG only, with no JS followers.
 | Surface | Cursor | Why |
 |---|---|---|
 | Every `button`, `[role=button]`, `[role=option]`, `[role=radio]`, `summary`, `label[for]`, `select` | `pointer` | Restores affordance that Tailwind v4 preflight removed (B7) |
-| Heatmap cells and the Ledger | **Reticle** (below) | You are pointing at a measured value |
-| Map, idle | `grab`, then `grabbing` while panning | Leaflet sets this; keep it |
-| Map, a district under the cursor | Reticle | Clicking selects it |
-| Map, draw mode | `crosshair` plus the live km² label | Precision drawing |
+| Heatmap cells, the Ledger, the kiln calendar | **Reticle** (below) | You are pointing at a measured value |
+| Map (`BdMap`), empty ground | `grab`, then `grabbing` on `<html>` while panning | Dragging there pans |
+| Map, a district under the cursor | **Pick** reticle (reticle with a centre dot) | Clicking selects it |
+| Map, draw mode | **Box** cursor (crosshair with a small square) plus the live km² label | Dragging draws a rectangle |
+| Forced colours (Windows high contrast) | System `crosshair` in place of every SVG cursor | OS colours win |
 | Line, bar and area charts | Default arrow; ECharts `axisPointer` draws a vertical rule and the tooltip | The rule is the cursor; a second reticle would double it |
 | Glossary terms (MYD-eq, p90, LOSO, Chow) | `help`, dotted underline, popover definition | Teaches the vocabulary in place |
 | Disabled | `not-allowed` | |
 | Data fetch > 300 ms after a user action | `progress` on `<html>` | Honest feedback for the slow first calendar load |
 
-**Reticle** (24×24, hotspot at the centre, ink stroke with a paper halo so it reads on both themes and on any cell colour):
+**Superseded by `bg_cursor_plan.md` §3 (built 6 Oct 2026):** the reticle, pick and box cursors are files in `web/src/assets/cursors/`, with day and night variants, and they ship at 1× and 2× through `image-set()`. The ring has an open centre, and its ticks stop 2.5px short of it so 1–2px heatmap cells stay visible. The original single reticle is kept below for the record.
+
+**Reticle, v1** (24×24, hotspot at the centre, ink stroke with a paper halo so it reads on both themes and on any cell colour):
 
 ```css
 @media (pointer: fine) {

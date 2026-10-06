@@ -86,6 +86,7 @@ def run(days=5) -> dict:
     b2 = draws[draws.chain_step == "N<-J1"].groupby(["division", "month", "pass", "loc"]).beta.median()
     nat = {"h": np.zeros(n_days), **{k: np.zeros(n_days) for k in keys}}
     dist_h: dict[str, np.ndarray] = {}
+    imputed = 0.0
     if len(df):
         df = df[df.conf_class.isin(C.CONF_KEEP)].copy()
         from .grid import cell_id
@@ -111,6 +112,7 @@ def run(days=5) -> dict:
         e = df[df.sensor == era].drop_duplicates(["cell_id", "date_local", "pass"])
         key = pd.MultiIndex.from_arrays([e.division, pd.to_datetime(e.date_local).dt.month, e["pass"], e["loc"]])
         w = b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
+        imputed = float(np.mean(~np.isfinite(w)))  # fraction of detections whose β weight fell back to the median
         e = e.assign(w=np.nan_to_num(w, nan=np.nanmedian(b1)), d=(pd.to_datetime(e.date_local) - day0).dt.days)
         doy = (day0 + pd.to_timedelta(np.arange(n_days), "D")).dayofyear
         tot = cells.groupby("district").size()
@@ -135,6 +137,7 @@ def run(days=5) -> dict:
             above = int(np.sum(h > p90[np.arange(n_days) % 366]))
         districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above}
     out = {"updated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "provisional": True, "season": season, "day0": day0.strftime("%Y-%m-%d"),
+           "beta_imputed_frac": round(imputed, 4),
            "national": {"h": np.round(nat["h"], 3).tolist(), "split": [{"key": k, "values": np.round(nat[k], 3).tolist()} for k in keys]},
            "districts": districts}
     _dump(out, C.WEB_DATA / "nrt" / "current_season.json")

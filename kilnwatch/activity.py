@@ -272,7 +272,8 @@ def unit_summary(e: pd.DataFrame, members, periods: pd.DatetimeIndex, rng, n_boo
             v = bm[k][np.isfinite(bm[k])]
             d = 3 if k == "peak_value" else 0
             ok = np.isfinite(pm[k][0]) and len(v) >= n_boot // 2
-            row[k] = {"p50": round(float(pm[k][0]), d), "lo": round(float(np.percentile(v, 2.5)), d), "hi": round(float(np.percentile(v, 97.5)), d)} if ok else None
+            # p50 is the bootstrap median of the same distribution as lo/hi, so the CI brackets it by construction
+            row[k] = {"p50": round(float(np.percentile(v, 50)), d), "lo": round(float(np.percentile(v, 2.5)), d), "hi": round(float(np.percentile(v, 97.5)), d)} if ok else None
         out.append(row)
     r = lambda a: [None if not np.isfinite(x) else round(float(x), 3) for x in a]
     return {"n_clusters": n, "e": r(point), "lo": r(lo), "hi": r(hi), "seasons": out}

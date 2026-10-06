@@ -4,8 +4,9 @@ import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
 // DATA_SRC=fixtures serves web/fixtures/<FIXTURE_BRANCH>/; DATA_SRC=real serves web/public/. Nothing is copied.
+// Default branch is nokiln: the real run's gate branch, whose fixture set is a verbatim offline copy of the real export.
 const src = process.env.DATA_SRC ?? 'fixtures'
-const branch = process.env.FIXTURE_BRANCH ?? 'full'
+const branch = process.env.FIXTURE_BRANCH ?? 'nokiln'
 
 export default defineConfig({
   base: process.env.BASE_PATH ?? '/kiln-watch/',

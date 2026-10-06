@@ -64,6 +64,11 @@
   --radius-control: 4px;
   --radius-panel: 10px;
 
+  /* page ground: survey-sheet neatline + the satellite pass behind the Story hero (bg_cursor_plan.md §2) */
+  --color-ground-rule: color-mix(in oklch, var(--color-ink) 6%, transparent);
+  --color-swath: color-mix(in oklch, var(--color-orbit) 5%, var(--color-bg));
+  --color-swath-edge: color-mix(in oklch, var(--color-ink) 8%, transparent);
+
   --animate-shimmer: shimmer 1.2s linear infinite;
   @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 }
@@ -100,6 +105,10 @@
   --color-warn-soft: oklch(0.31 0.05 80);
   --color-err: oklch(0.7 0.16 25);
   --color-err-soft: oklch(0.31 0.06 25);
+
+  --color-ground-rule: color-mix(in oklch, var(--color-ink) 9%, transparent);
+  --color-swath: color-mix(in oklch, var(--color-orbit) 9%, var(--color-bg));
+  --color-swath-edge: color-mix(in oklch, var(--color-ink) 10%, transparent);
 }
 
 :root {
@@ -111,6 +120,10 @@
   color-scheme: light;
 }
 :root[data-theme="night"] { color-scheme: dark; }
+
+/* S-NPP ground track over 23.7°N: the 13:30 ascending pass heads N13°W, the 01:30 descending pass mirrors it. */
+:root { --swath-tilt: -13deg; }
+:root[data-theme="night"] { --swath-tilt: 13deg; }
 
 @layer base {
   html { font-feature-settings: "tnum" 1; -webkit-text-size-adjust: 100%; }
@@ -203,7 +216,40 @@
 
   /* Measurable surfaces get the reticle (pointer: fine only). */
   @media (pointer: fine) {
-    .measure, .measure canvas { cursor: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24'%3E%3Cg fill='none' stroke-linecap='round'%3E%3Cg stroke='%23fbfeff' stroke-width='3.5'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v5M12 18v5M1 12h5M18 12h5'/%3E%3C/g%3E%3Cg stroke='%23182233' stroke-width='1.5'%3E%3Ccircle cx='12' cy='12' r='5'/%3E%3Cpath d='M12 1v5M12 18v5M1 12h5M18 12h5'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E") 12 12, crosshair !important; }
+    /* Cursors carry meaning (bg_cursor_plan.md §3): reticle = point at a measured value, pick = click selects this
+       place, box = drag draws an area, grab = drag pans. Plain url() first: browsers that reject image-set() in
+       cursor keep it. */
+    .measure, .measure canvas {
+      cursor: url("./assets/cursors/reticle-day.svg") 12 12, crosshair !important; /* ECharts writes an inline cursor on its canvas */
+      cursor: image-set(url("./assets/cursors/reticle-day.svg") 1x, url("./assets/cursors/reticle-day@2x.svg") 2x) 12 12, crosshair !important;
+    }
+    :root[data-theme="night"] :is(.measure, .measure canvas) {
+      cursor: url("./assets/cursors/reticle-night.svg") 12 12, crosshair !important;
+      cursor: image-set(url("./assets/cursors/reticle-night.svg") 1x, url("./assets/cursors/reticle-night@2x.svg") 2x) 12 12, crosshair !important;
+    }
+    .bd-map svg { cursor: grab; }
+    .bd-map .bd-feat {
+      cursor: url("./assets/cursors/pick-day.svg") 12 12, pointer;
+      cursor: image-set(url("./assets/cursors/pick-day.svg") 1x, url("./assets/cursors/pick-day@2x.svg") 2x) 12 12, pointer;
+    }
+    :root[data-theme="night"] .bd-map .bd-feat {
+      cursor: url("./assets/cursors/pick-night.svg") 12 12, pointer;
+      cursor: image-set(url("./assets/cursors/pick-night.svg") 1x, url("./assets/cursors/pick-night@2x.svg") 2x) 12 12, pointer;
+    }
+    .bd-map.is-drawing svg {
+      cursor: url("./assets/cursors/box-day.svg") 12 12, crosshair;
+      cursor: image-set(url("./assets/cursors/box-day.svg") 1x, url("./assets/cursors/box-day@2x.svg") 2x) 12 12, crosshair;
+    }
+    :root[data-theme="night"] .bd-map.is-drawing svg {
+      cursor: url("./assets/cursors/box-night.svg") 12 12, crosshair;
+      cursor: image-set(url("./assets/cursors/box-night.svg") 1x, url("./assets/cursors/box-night@2x.svg") 2x) 12 12, crosshair;
+    }
+    /* On <html>: pointer capture can carry a pan over the header. */
+    html.is-panning, html.is-panning * { cursor: grabbing !important; }
+    @media (forced-colors: active) {
+      .measure, .measure canvas, :root[data-theme] :is(.measure, .measure canvas), .bd-map .bd-feat, :root[data-theme] .bd-map .bd-feat,
+      .bd-map.is-drawing svg, :root[data-theme] .bd-map.is-drawing svg { cursor: crosshair !important; }
+    }
   }
 
   .term { text-decoration: underline dotted color-mix(in oklch, var(--color-muted) 70%, transparent); text-underline-offset: 3px; cursor: help; }
@@ -212,7 +258,14 @@
   .nav-scroll { scrollbar-width: none; scroll-snap-type: x proximity; }
   .nav-scroll::-webkit-scrollbar { display: none; }
   .nav-scroll > * { scroll-snap-align: start; }
-  @media (max-width: 639px) { .nav-scroll { mask-image: linear-gradient(to right, #000 82%, transparent); } }
+  /* Fade the trailing edge only while the row actually scrolls (scroll-driven; no timeline = no mask), clear at the end. */
+  @supports (animation-timeline: scroll()) {
+    .nav-scroll { animation: nav-fade linear both; animation-timeline: scroll(self inline); }
+    @keyframes nav-fade { 0%, 96% { mask-image: linear-gradient(to right, #000 85%, transparent); } 100% { mask-image: none; } }
+  }
+  @supports not (animation-timeline: scroll()) {
+    @media (max-width: 639px) { .nav-scroll { mask-image: linear-gradient(to right, #000 82%, transparent); } }
+  }
 }
 
 @utility route-in { animation: route-in var(--dur-quick) var(--ease-out) both; }
@@ -220,7 +273,7 @@
 
 /* BdMap: self-contained SVG choropleth (no tiles, no library). Fill comes from the
    path attribute (ramp/surface) — never set `fill` here: CSS overrides attributes. */
-.bd-feat { stroke: var(--color-line); stroke-width: 1; cursor: pointer; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
+.bd-feat { stroke: var(--color-line); stroke-width: 1; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
 .bd-feat:hover, .bd-feat:focus-visible { stroke: var(--color-ink); stroke-width: 1.8; outline: none; }
 .bd-sel { stroke: var(--color-orbit); stroke-width: 2.6; }
 .bd-label { fill: var(--color-ink); font-weight: 600; paint-order: stroke; stroke: var(--color-bg); stroke-width: 3px; pointer-events: none; }
@@ -237,6 +290,35 @@
 @media print, (forced-colors: active) {
   .panel { border: 1px solid CanvasText; }
 }
+
+/* Page ground (bg_cursor_plan.md §2). Static, never behind data, cool hues only: heat is data, not decoration. */
+/* Neatline: survey-sheet frame in the gutters, 1px rules with a 6px tick every 48px, outward. One fixed layer. */
+@media (min-width: 1360px) {
+  body::before {
+    content: ""; position: fixed; inset-block: 0; left: 50%; z-index: -1; pointer-events: none;
+    width: calc(1200px + 2 * 24px + 2 * 6px); transform: translateX(-50%);
+    background:
+      linear-gradient(var(--color-ground-rule), var(--color-ground-rule)) left 6px top 0 / 1px 100% no-repeat,
+      linear-gradient(var(--color-ground-rule), var(--color-ground-rule)) right 6px top 0 / 1px 100% no-repeat,
+      repeating-linear-gradient(var(--color-ground-rule) 0 1px, transparent 1px 48px) left 0 top 0 / 6px 100% no-repeat,
+      repeating-linear-gradient(var(--color-ground-rule) 0 1px, transparent 1px 48px) right 0 top 0 / 6px 100% no-repeat;
+  }
+}
+/* The pass: one band of cooler ground behind the Story headline, at the real ground-track angle (--swath-tilt). */
+@media (min-width: 768px) {
+  .hero-ground { position: relative; isolation: isolate; }
+  .hero-ground::before {
+    content: ""; position: absolute; z-index: -1; pointer-events: none;
+    top: -24px; bottom: 0; left: 22%; width: min(34vw, 420px);
+    background: var(--color-swath);
+    border-inline: 1px dashed var(--color-swath-edge);
+    transform: rotate(var(--swath-tilt)); transform-origin: 50% 0;
+    /* a swath has no end: it fades in from the page top and out before the Ledger, so it never reaches the header
+       or the demo banner (the isolated hero paints above unpositioned blocks) */
+    mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 48%, transparent 92%);
+  }
+}
+@media print, (forced-colors: active) { body::before, .hero-ground::before { display: none; } }
 
 /* Explore compact bar: fixed (no layout shift), fades in once the full header has scrolled away. */
 .compact-bar { opacity: 0; transform: translateY(-6px); visibility: hidden; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s 160ms; }
