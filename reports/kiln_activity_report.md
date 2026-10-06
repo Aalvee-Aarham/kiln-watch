@@ -48,7 +48,7 @@ National kiln season (half-month resolution; 95% bootstrap interval over cluster
 | 2012-13 | 16 Jan [16 Dec – 16 Jan] | 16 Apr [16 Mar – 16 Apr] | 90 [59–121] | 16 Feb [16 Feb – 16 Feb] |
 | 2013-14 | 16 Jan [16 Dec – 16 Jan] | 16 Apr [01 Apr – 16 Apr] | 90 [75–121] | 16 Feb [16 Feb – 16 Mar] |
 | 2014-15 | 01 Jan [01 Dec – 01 Jan] | 16 Apr [01 Apr – 01 May] | 105 [90–136] | 01 Mar [01 Feb – 01 Mar] |
-| 2015-16 | 01 Dec [01 Dec – 16 Dec] | 16 Apr [16 Apr – 16 Apr] | 137 [122–137] | 16 Feb [16 Feb – 16 Feb] |
+| 2015-16 | 16 Dec [01 Dec – 16 Dec] | 16 Apr [16 Apr – 16 Apr] | 122 [122–137] | 16 Feb [16 Feb – 16 Feb] |
 | 2016-17 | 01 Dec [01 Dec – 01 Dec] | 01 Apr [01 Apr – 01 Apr] | 121 [121–121] | 01 Feb [01 Feb – 01 Mar] |
 | 2017-18 | 01 Dec [01 Dec – 01 Dec] | 16 Apr [16 Apr – 16 Apr] | 136 [136–136] | 16 Feb [01 Feb – 01 Mar] |
 | 2018-19 | 16 Nov [16 Nov – 16 Nov] | 16 Mar [16 Mar – 01 Apr] | 120 [120–136] | 16 Jan [16 Jan – 16 Jan] |
