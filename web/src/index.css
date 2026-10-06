@@ -218,10 +218,11 @@
 @utility route-in { animation: route-in var(--dur-quick) var(--ease-out) both; }
 @keyframes route-in { from { opacity: 0; } to { opacity: 1; } }
 
-/* BdMap: self-contained SVG choropleth (no tiles, no library). */
-.bd-feat { fill: var(--color-surface); stroke: var(--color-line); stroke-width: 0.8; cursor: pointer; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
-.bd-feat:hover, .bd-feat:focus-visible { stroke: var(--color-ink); stroke-width: 1.6; outline: none; }
-.bd-sel { stroke: var(--color-orbit); stroke-width: 2.4; }
+/* BdMap: self-contained SVG choropleth (no tiles, no library). Fill comes from the
+   path attribute (ramp/surface) — never set `fill` here: CSS overrides attributes. */
+.bd-feat { stroke: var(--color-line); stroke-width: 1; cursor: pointer; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
+.bd-feat:hover, .bd-feat:focus-visible { stroke: var(--color-ink); stroke-width: 1.8; outline: none; }
+.bd-sel { stroke: var(--color-orbit); stroke-width: 2.6; }
 .bd-label { fill: var(--color-ink); font-weight: 600; paint-order: stroke; stroke: var(--color-bg); stroke-width: 3px; pointer-events: none; }
 .bd-boxrect { fill: var(--color-orbit); fill-opacity: 0.08; stroke: var(--color-orbit); stroke-width: 2; }
 
