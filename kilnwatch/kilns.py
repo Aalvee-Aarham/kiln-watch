@@ -238,8 +238,19 @@ def run() -> None:
         j.loc[miss, ["name_en", "division"]] = near[["name_en", "division"]].values
     clusters["district"] = j["name_en"].values
     clusters["division"] = j["division"].values
-    ctrl = sample_controls(clusters, kilns, dist, divs)
+    from .gee import wc_lookup_fn
+
+    look = wc_lookup_fn()
+    kl = kilns.assign(wc=look(kilns.lat.to_numpy(), kilns.lon.to_numpy()))
+    clusters["wc_class"] = clusters.cluster_id.map(kl.groupby("cluster_id").wc.agg(lambda x: x.mode().iloc[0]))
+    ctrl = sample_controls(clusters, kilns, dist, divs, wc_lookup=look)
+    if len(ctrl):
+        ctrl["wc_class"] = look(ctrl.lat.to_numpy(), ctrl.lon.to_numpy())
+        m = ctrl.merge(clusters[["cluster_id", "wc_class"]], on="cluster_id", suffixes=("", "_cl"))
+        strict = m.rung_used < 3
+        assert (m.wc_class[strict] == m.wc_class_cl[strict]).all(), "A4c: WorldCover match below 100% on rungs 0-2"
     rep = control_report(clusters, ctrl)
+    rep["wc_classes"] = {str(k): int(v) for k, v in clusters.wc_class.value_counts().items()}
     sens = {e: int(cluster(kilns.drop(columns="cluster_id"), e)[1].shape[0]) for e in (300, 550, 800)}
     lines = ["# Inventory report (A4)", "", "## Source agreement within 150 m", agree.to_markdown(), "",
              f"Primary inventory: APAD (CC BY 4.0), {len(kilns)} kilns in Bangladesh. DoE register: about 7,000–7,500 kilns.",

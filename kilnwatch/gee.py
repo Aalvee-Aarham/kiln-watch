@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import logging
+import os
 from concurrent.futures import ThreadPoolExecutor
 
+import numpy as np
 import pandas as pd
 
 from . import config as C
@@ -62,7 +64,7 @@ def _months(sensor, first=None, last=None):
     return [str(p) for p in pd.period_range(lo, hi, freq="M")]
 
 
-def run_clear(unit_set: str, units, sensors=("A", "T", "N"), first=None, last=None, id_col="unit_id", reducer="mean", workers=4) -> pd.DataFrame:
+def run_clear(unit_set: str, units, sensors=("A", "N", "T"), first=None, last=None, id_col="unit_id", reducer="mean", workers=int(os.environ.get("GEE_WORKERS", 4))) -> pd.DataFrame:
     """Cached, resumable: one parquet per (unit_set, sensor, month)."""
     fc = _fc(units, id_col) if reducer == "mean" else ee().FeatureCollection(units.__geo_interface__)
     jobs = [(s, m) for s in sensors for m in _months(s, first, last)]
@@ -219,3 +221,34 @@ def write_admin_clear() -> pd.DataFrame:
     _parquet(cl.drop(columns="month"), C.INTERIM / "clear.parquet")
     log.info("clear: %d rows; monsoon %.3f < dry %.3f", len(cl), mons, dry)
     return cl
+
+
+def worldcover_grid(step=0.0025):
+    """ESA WorldCover class (sampled at cell centres) on a regular lat/lon grid over the BBOX (one computePixels call), cached as .npz."""
+    p = CACHE / "worldcover_grid.npz"
+    if p.exists():
+        z = np.load(p)
+        return z["cls"], float(z["w"]), float(z["n"]), float(z["step"])
+    E = ee()
+    w, s, e, n = C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N
+    wc = E.ImageCollection("ESA/WorldCover/v200").first().select("Map")
+    img = wc  # nearest-pixel class at each grid centre (a mode reduction from 10 m exceeds the 2^31 pixel limit)
+    cols, rows = round((e - w) / step), round((n - s) / step)
+    arr = E.data.computePixels({"expression": img.unmask(0).toByte(), "fileFormat": "NUMPY_NDARRAY",
+                                "grid": {"dimensions": {"width": cols, "height": rows},
+                                         "affineTransform": {"scaleX": step, "shearX": 0, "translateX": w, "shearY": 0, "scaleY": -step, "translateY": n},
+                                         "crsCode": "EPSG:4326"}})
+    cls = np.asarray(arr["Map"], dtype=np.uint8)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    np.savez_compressed(p, cls=cls, w=w, n=n, step=step)
+    return cls, w, n, step
+
+
+def wc_lookup_fn():
+    cls, w, n, step = worldcover_grid()
+
+    def look(lat, lon):
+        r = np.clip(((n - np.asarray(lat)) / step).astype(int), 0, cls.shape[0] - 1)
+        c = np.clip(((np.asarray(lon) - w) / step).astype(int), 0, cls.shape[1] - 1)
+        return cls[r, c]
+    return look

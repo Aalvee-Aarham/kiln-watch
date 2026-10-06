@@ -18,5 +18,18 @@
     "value": 318.2,
     "source": "median VIIRS S-NPP pixel half-diagonal over Bangladesh (A4a)",
     "date": "2026-10-06"
+  },
+  "WATER_CHECK_UNIT": {
+    "value": {
+      "unit_id": "BD10090065",
+      "water_fraction": 0.7064
+    },
+    "source": "ESA WorldCover v200 class 80 mean (A3a)",
+    "date": "2026-10-06"
+  },
+  "GATE_BRANCH": {
+    "value": "nokiln",
+    "source": "A5 gates on 2023-24: G1=False G2=False eligible=False GN=skipped",
+    "date": "2026-10-06"
   }
 }

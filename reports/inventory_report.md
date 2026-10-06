@@ -15,5 +15,7 @@ Clustering uses a constant eps while linking uses per-detection radii: cluster m
 
 ## Controls
 ```
-{'dropped_frac': 0.0, 'by_division': {'Barishal': 0.0, 'Dhaka': 0.0, 'Khulna': 0.0, 'Mymensingh': 0.0, 'Rajshahi': 0.0, 'Rangpur': 0.0}, 'rung_counts': {'0': 10954, '1': 5}}
+{'dropped_frac': 0.0, 'by_division': {'Barishal': 0.0, 'Dhaka': 0.0, 'Khulna': 0.0, 'Mymensingh': 0.0, 'Rajshahi': 0.0, 'Rangpur': 0.0}, 'rung_counts': {'0': 9975, '1': 650, '2': 257, '3': 77}, 'wc_classes': {'40': 1986, '10': 1085, '30': 253, '80': 179, '50': 76, '60': 70, '95': 3, '90': 1}}
 ```
+
+Interpretation: '>=5 km from other controls' is applied among a cluster's own three controls. Applied across all ~11,000 controls it would require disjoint 5 km discs covering more than Bangladesh's land area.
