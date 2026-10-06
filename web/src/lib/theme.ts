@@ -26,7 +26,20 @@ const FALLBACK: Record<string, string> = {
 
 export function cssVar(name: string): string {
   const v = typeof window === 'undefined' ? '' : getComputedStyle(document.documentElement).getPropertyValue(name).trim()
-  return v || FALLBACK[name] || '#888888'
+  return v ? toHex(v) : FALLBACK[name] || '#888888'
+}
+
+let px: CanvasRenderingContext2D | null | undefined
+/** Tokens are oklch(); zrender cannot parse it, and on hover derives emphasis colours from the parsed value, so lines vanish. Resolve to sRGB hex once, here. */
+function toHex(c: string): string {
+  if (c.startsWith('#')) return c
+  try { px ??= document.createElement('canvas').getContext('2d', { willReadFrequently: true }) } catch { px = null }
+  if (!px) return c
+  px.clearRect(0, 0, 1, 1)
+  px.fillStyle = c
+  px.fillRect(0, 0, 1, 1)
+  const [r, g, b] = px.getImageData(0, 0, 1, 1).data
+  return '#' + [r, g, b].map((x) => x.toString(16).padStart(2, '0')).join('')
 }
 
 export const palette = () => ({

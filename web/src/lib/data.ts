@@ -18,7 +18,9 @@ export function fetchJson<T>(path: string): Promise<T> {
   if (!p) {
     busy(1)
     p = fetch(dataUrl(path)).then((r) => {
-      if (!r.ok) throw new Error(`${path}: HTTP ${r.status}`)
+      if (!r.ok) throw new Error(r.status === 404 ? `${path} was not found` : `${path}: HTTP ${r.status}`)
+      // Static hosts answer a missing file with the HTML app shell: report that as missing, not as a JSON parse error.
+      if (r.headers.get('content-type')?.includes('text/html')) throw new Error(`${path} was not found`)
       return r.json()
     })
     p.catch(() => cache.delete(path)).finally(() => busy(-1))

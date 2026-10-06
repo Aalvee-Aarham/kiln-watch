@@ -1,6 +1,6 @@
 import { lazy, Suspense } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { CountUp, Icon, Loading, Section, Skeleton, VerdictStrip, fmt, useKilnActivity, useMeta } from '../components/ui'
+import { CountUp, Icon, Loading, Section, Skeleton, VerdictStrip, fmt, useKilnActivity, useMeta, useTitle } from '../components/ui'
 import Ledger from '../components/Ledger'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
@@ -16,6 +16,7 @@ const KilnSeasonShapeChart = lazy(() => import('../components/charts').then((m) 
 const chartFallback = <Skeleton className="h-[330px] w-full" />
 
 export default function StoryPage() {
+  useTitle()
   const t = useT()
   const lang = useLang()
   const meta = useMeta()
@@ -83,14 +84,26 @@ export default function StoryPage() {
           </Section>)}
       </Loading>
 
-      <section className="border-t border-line pt-10">
-        <h2 className="h-display text-[clamp(2rem,4vw,2.75rem)]">Your district</h2>
-        <p className="mt-3 prose-measure text-muted">A calendar for each of Bangladesh’s 64 districts and 500+ upazilas: the normal range, unusual days, critical periods and this season so far. Draw any area on the map. Download everything.</p>
-        {hot.length > 0 && <div className="mt-5 flex flex-wrap items-center gap-2">
-          <span className="text-sm text-muted">{t('aboveNow')}:</span>
-          {hot.map(([id, d]) => <Link key={id} to={`/explore/district/${id}${q}`} className="btn">{name(id)}<span className="num text-muted">{d.above_p90_days} d</span></Link>)}
-        </div>}
-        <Link to={'/explore' + q} className="btn btn-primary mt-5 min-h-11 px-5 text-base">{t('openDistrict')}</Link>
+      <section className="grid gap-8 border-t border-line pt-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+        <div>
+          <h2 className="h-display text-[clamp(2rem,4vw,2.75rem)]">Your district</h2>
+          <p className="mt-3 prose-measure text-muted">A calendar for each of Bangladesh’s 64 districts and 500+ upazilas: the normal range, unusual days, critical periods and this season so far. Draw any area on the map. Download everything.</p>
+          <Link to={'/explore' + q} className="btn btn-primary mt-5 min-h-11 px-5 text-base">{t('openDistrict')}</Link>
+        </div>
+        {hot.length > 0 && (
+          <div className="panel">
+            <h3 className="h-section mb-1">{t('aboveNow')}</h3>
+            <p className="mb-2 text-sm text-muted">Days this season above the district’s 90th-percentile normal.</p>
+            <ol className="divide-y divide-line">
+              {hot.map(([id, d]) => (
+                <li key={id}><Link to={`/explore/district/${id}${q}`} className="grid grid-cols-[minmax(0,8rem)_1fr_3rem_1rem] items-center gap-3 rounded-[4px] px-1 py-2.5 hover:bg-surface-2">
+                  <span className="truncate font-medium">{name(id)}</span>
+                  <span className="h-1.5 rounded-full bg-surface-2"><span className="block h-1.5 rounded-full bg-heat" style={{ width: `${(d.above_p90_days / hot[0][1].above_p90_days) * 100}%` }} /></span>
+                  <span className="num text-right text-sm">{d.above_p90_days} d</span>
+                  <Icon name="chevron" className="text-muted" />
+                </Link></li>))}
+            </ol>
+          </div>)}
       </section>
     </div>
   )

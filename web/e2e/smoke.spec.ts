@@ -72,3 +72,31 @@ test('evidence shows every pre-registered test as a verdict', async ({ page }) =
   await expect(page.getByText(/^(Pass|Fail)$/).first()).toBeVisible()
   await expect(page.locator('[role="img"][aria-label^="observed"]').first()).toBeVisible()
 })
+
+test('hovering a chart keeps its series drawn', async ({ page }) => {
+  await page.goto('#/')
+  const canvas = page.locator('section', { has: page.getByRole('heading', { name: /record lies/ }) }).locator('canvas').first()
+  await canvas.scrollIntoViewIfNeeded()
+  await page.waitForTimeout(1200)
+  // Orange pixels on screen in the plot area (end labels excluded) = the harmonized line; hovering must not erase it.
+  // Counted from a screenshot, not getImageData: the canvas buffer can hold strokes the compositor never shows.
+  const heat = async () => {
+    const png = (await canvas.screenshot()).toString('base64')
+    return page.evaluate(async (src) => {
+      const img = new Image(); img.src = 'data:image/png;base64,' + src; await img.decode()
+      const c = document.createElement('canvas'); c.width = img.width; c.height = img.height
+      const x = c.getContext('2d')!; x.drawImage(img, 0, 0)
+      const d = x.getImageData(0, 0, Math.floor(c.width * 0.85), c.height).data
+      let n = 0
+      for (let i = 0; i < d.length; i += 4) if (d[i] > 190 && d[i + 1] < 130 && d[i + 2] < 90) n++
+      return n
+    }, png)
+  }
+  const before = await heat()
+  const b = (await canvas.boundingBox())!
+  await page.mouse.move(b.x + b.width * 0.5, b.y + b.height * 0.5, { steps: 5 })
+  await page.waitForTimeout(600)
+  expect(before).toBeGreaterThan(150)
+  // The tooltip covers part of the line; a vanished line keeps about a quarter (its end-label dot and tooltip swatch).
+  expect(await heat()).toBeGreaterThan(before * 0.6)
+})

@@ -105,7 +105,7 @@ export default function Ledger({ cal, events, caption }: { cal: Calendar; events
       <div ref={host} className="relative">
         <div className="flex">
           <div className="num shrink-0 text-right text-[11px] leading-none text-muted" style={{ width: LABEL_W - 8, marginRight: 8 }} aria-hidden>
-            {data.years.map((y, i) => <div key={y} style={{ height: cellH }} className={`flex items-center justify-end ${i % (cellH < 10 ? 4 : 2) && i !== seam ? 'invisible' : ''} ${i === seam ? 'font-semibold text-ink' : ''}`}>{y}</div>)}
+            {data.years.map((y, i) => <div key={y} style={{ height: cellH }} className={`flex items-center justify-end ${i === seam || (i % (cellH < 10 ? 4 : 2) === 0 && (seam < 0 || Math.abs(i - seam) >= 2)) ? '' : 'invisible'} ${i === seam ? 'font-semibold text-ink' : ''}`}>{y}</div>)}
           </div>
           <div className="measure relative min-w-0 flex-1" onMouseMove={hover} onMouseLeave={() => setTip(null)}
             role="img" aria-label={`${caption}. ${mode === 'raw' ? 'Raw view: rows from 2012 glow brighter because the VIIRS sensor sees smaller fires.' : 'Harmonized view: rows before and after 2012 share one scale.'}`}>

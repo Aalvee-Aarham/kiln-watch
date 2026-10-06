@@ -28,8 +28,9 @@ export function EChart({ option, height = 320, label, exportName, measure, onCli
     return () => { ro.disconnect(); if (exportName && charts.get(exportName) === c) charts.delete(exportName); if (chart.current === c) chart.current = null; c.dispose() }
   }, [themeId, exportName])
   useEffect(() => {
-    chart.current?.setOption({ aria: { enabled: true, decal: { show: decals } }, animation: !reduced, ...option }, true)
-  }, [option, themeId, reduced, decals])
+    // ARIA on but with our sentence: the auto-description ("This is a chart…") would replace the label.
+    chart.current?.setOption({ aria: { enabled: true, label: { description: label }, decal: { show: decals } }, animation: !reduced, ...option }, true)
+  }, [option, themeId, reduced, decals, label])
   return <div ref={el} role="img" aria-label={label} style={{ height }} className={`w-full ${measure ? 'measure' : ''}`} />
 }
 

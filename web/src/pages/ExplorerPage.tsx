@@ -1,11 +1,11 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { Breadcrumbs, CIText, Icon, Term, Loading, Section, SegmentedToggle, Skeleton, SkeletonCard, StatusMessage, useKilnActivity, useMeta } from '../components/ui'
+import { Breadcrumbs, CIText, Icon, Term, Loading, Section, SegmentedToggle, Skeleton, SkeletonCard, StatusMessage, useKilnActivity, useMeta, useTitle } from '../components/ui'
 import { CalendarHeatmap, KilnSeasonShapeChart, NormalBandChart, SourceStackChart } from '../components/charts'
 import { EChart } from '../components/EChart'
 import { fetchJson, useJson } from '../lib/data'
 import { useUrlState } from '../lib/url'
-import { useT } from '../lib/i18n'
+import { divisionName, useLang, useT } from '../lib/i18n'
 import { palette, rampColor, useTheme } from '../lib/theme'
 import { aggregateBox, calendarToCsv, resolveSplit, seasonMean, seasonVerdict } from '../lib/calendar'
 import { formatBox, parseBox, tilesForBox, type Box } from '../lib/box'
@@ -40,6 +40,7 @@ export default function ExplorerPage() {
   const units = useMemo(() => fc.data?.features.map((f) => f.properties) ?? [], [fc.data])
   const sel = units.find((x) => x.unit_id === u.unitId)
   const selected = !!(u.unitId || u.box)
+  useTitle(sel ? `${sel.name_en} · Explore` : u.box ? `${t('yourArea')} · Explore` : 'Explore')
 
   useEffect(() => {
     const key = (e: KeyboardEvent) => {
@@ -86,15 +87,17 @@ export default function ExplorerPage() {
           </Loading>
           {metric ? <MapLegend label={metric.label} max={Math.max(0, ...Object.values(metric.values))} />
             : <p className="text-xs text-muted">Upazila colours need a data build with season totals; outlines only.</p>}
-          <p className="text-xs text-muted">{t('mapNote')} Hold Ctrl and scroll to zoom.</p>
+          <p className="text-xs text-muted">{t('mapNote')} {t('ctrlScroll')}</p>
         </>}
       </aside>
 
       <section className="min-w-0 space-y-8">
         {u.boxError && <StatusMessage kind="error">{u.boxError} Draw a new area on the map, or enter coordinates.</StatusMessage>}
         {u.box && meta.data && districts.data && <BoxView box={u.box} meta={meta.data} districts={districts.data} />}
-        {!u.box && !u.unitId && !u.boxError && <Landing nrt={nrt.data} districts={districts.data} onPick={(id, lvl = 'district') => go(`/explore/${lvl}/${id}`)} onDraw={() => { setDrawing(true); setMapOpen(true) }} />}
-        {u.unitId && !u.box && meta.data && (
+        {!u.box && !u.unitId && !u.boxError && <Landing nrt={nrt.data} districts={districts.data} onPick={(id, lvl = 'district') => go(`/explore/${lvl}/${id}`)} />}
+        {u.unitId && !u.box && fc.data && !sel && (
+          <StatusMessage kind="error">No {level} has the code <span className="code">{u.unitId}</span>. Search for an area by name, or <Link className="text-orbit underline" to="/explore">start again from the map</Link>.</StatusMessage>)}
+        {u.unitId && !u.box && meta.data && (!fc.data || sel) && (
           <UnitView key={u.unitId} unitId={u.unitId} unit={sel} level={level} meta={meta.data} u={u} setQ={setQ} />
         )}
       </section>
@@ -195,7 +198,7 @@ function MapLegend({ label, max }: { label: string; max: number }) {
   )
 }
 
-function Landing({ nrt, districts, onPick, onDraw }: { nrt?: NrtSeason; districts?: FC; onPick: (id: string, level?: string) => void; onDraw: () => void }) {
+function Landing({ nrt, districts, onPick }: { nrt?: NrtSeason; districts?: FC; onPick: (id: string, level?: string) => void }) {
   const t = useT()
   const name = (id: string) => districts?.features.find((f) => f.properties.unit_id === id)?.properties.name_en ?? id
   const hot = Object.entries(nrt?.districts ?? {}).filter(([, d]) => d.above_p90_days > 0).sort((a, b) => b[1].above_p90_days - a[1].above_p90_days).slice(0, 5)
@@ -217,15 +220,14 @@ function Landing({ nrt, districts, onPick, onDraw }: { nrt?: NrtSeason; district
       {recent.length > 0 && (
         <div>
           <h2 className="h-section mb-2">{t('recent')}</h2>
-          <div className="flex flex-wrap gap-2">{recent.map((r) => <button key={r.id} className="btn btn-quiet" onClick={() => onPick(r.id, r.level)}>{r.name}</button>)}</div>
+          <div className="flex flex-wrap gap-2">{recent.map((r) => <button key={r.id} className="btn" onClick={() => onPick(r.id, r.level)}><Icon name="replay" className="text-muted" />{r.name}</button>)}</div>
         </div>
       )}
-      <button className="btn" onClick={onDraw}><Icon name="area" />{t('draw')}</button>
     </div>
   )
 }
 
-const SECTIONS = [['calendar', 'calendar'], ['season', 'vsNormal'], ['kiln', 'kilns'], ['sources', 'sources'], ['metrics', 'data']] as const
+const SECTIONS = [['calendar', 'calendar'], ['season', 'vsNormal'], ['kiln', 'twoSeasons'], ['sources', 'sources'], ['metrics', 'data']] as const
 
 function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit?: UnitProps; level: string; meta: Meta; u: ReturnType<typeof useUrlState>[0]; setQ: ReturnType<typeof useUrlState>[1] }) {
   const cal = useJson<Calendar>(`calendar/${unitId}.json`)
@@ -238,13 +240,13 @@ function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit
   const [active, setActive] = useState('calendar')
   const [scrolled, setScrolled] = useState(false)
   const sm = useMedia('(min-width: 640px)')
-  const stuck = scrolled && sm // the header is only sticky from sm up
+  const stuck = scrolled && sm // the compact bar is sm-up only
   const sentinel = useRef<HTMLDivElement>(null)
   useEffect(() => { if (unit) pushRecent({ id: unit.unit_id, level, name: unit.name_en }) }, [unit, level])
   useEffect(() => {
     const el = sentinel.current
     if (!el) return
-    const io = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting), { rootMargin: '-80px 0px 0px 0px' })
+    const io = new IntersectionObserver(([e]) => setScrolled(!e.isIntersecting && e.boundingClientRect.top < 100), { rootMargin: '-48px 0px 0px 0px' })
     io.observe(el)
     return () => io.disconnect()
   }, [cal.data])
@@ -256,46 +258,61 @@ function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit
   }, [cal.data])
   const jump = (id: string) => document.getElementById(id)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' })
   const name = unit ? unit.name_en : unitId
+  const bnName = unit && <span className="ml-3 font-sans text-[0.55em] font-normal tracking-normal text-muted" lang="bn">{unit.name_bn}</span>
   return (
     <Loading state={cal} skeleton={<div className="space-y-8"><Skeleton className="h-24 w-full" /><SkeletonCard label="Loading burning calendar" shape="grid" /><SkeletonCard label="Loading seasonal range" /></div>}>{(c) => {
       const seasons = c.seasons.map((s) => s.season)
       const complete = seasons.filter((s) => s !== seasonOf(new Date()))
       const season = u.season && seasons.includes(u.season) ? u.season : complete.at(-1) ?? seasons.at(-1) ?? seasonOf(new Date())
       const label = (k: string) => meta.split_labels.find((s) => s.key === k)?.[u.lang === 'bn' ? 'label_bn' : 'label_en'] ?? k
-      const verdict = seasonVerdict(c, season)
+      const verdict = seasonVerdict(c, season, u.lang)
       const pickDay = (d: number) => {
         const s = seasonOf(new Date(dayIso(d) + 'T00:00:00Z'))
         if (!seasons.includes(s)) return
         setQ({ season: s }); setMarkDay(d - seasonStart(s)); jump('season')
       }
+      const controls = (
+        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
+          <SegmentedToggle label="Raw or harmonized" value={u.mode} options={[['harm', t('harm')], ['raw', t('raw')]]} onChange={(v) => setQ({ mode: v === 'harm' ? undefined : v })} />
+          <SegmentedToggle label="Year layout" value={u.layout} options={[['cal', t('cal')], ['season', t('seasonLayout')]]} onChange={(v) => setQ({ layout: v === 'cal' ? undefined : v })} />
+          <select aria-label="Source" className="btn" value={split} onChange={(e) => setQ({ split: e.target.value === 'all' ? undefined : e.target.value })}>
+            <option value="all">{t('all')}</option>
+            {meta.split_labels.map((s) => <option key={s.key} value={s.key}>{label(s.key)}</option>)}
+          </select>
+        </div>)
+      const sectionNav = (
+        <nav aria-label="Sections" className="nav-scroll mt-2 flex gap-1 overflow-x-auto first:mt-0">
+          {SECTIONS.filter(([id]) => id !== 'kiln' || kilnArea?.e).map(([id, k]) => (
+            <button key={id} onClick={() => jump(id)} aria-current={active === id ? 'true' : undefined}
+              className={`shrink-0 rounded-[4px] px-2 py-1 text-sm transition-colors duration-150 ${active === id ? 'bg-surface-2 font-semibold text-ink' : 'text-muted hover:text-ink'}`}>{t(k)}</button>
+          ))}
+        </nav>)
       return (
         <div className="space-y-8">
-          <div ref={sentinel} className="space-y-3">
-            <Breadcrumbs items={[['Bangladesh', '/explore'], ...(unit ? [[`${unit.division} division`] as [string]] : []), [unit ? name : level === 'district' ? t('district') : t('upazila')]]} />
-          </div>
-          <div className="z-30 -mx-4 border-b border-line bg-bg px-4 pb-3 sm:sticky sm:top-[48px] lg:mx-0 lg:px-0">
-            <div className="flex flex-wrap items-end gap-x-6 gap-y-2 pt-2">
+          <Breadcrumbs items={[[t('bangladesh'), '/explore'], ...(unit ? [[divisionName(unit.division, u.lang)] as [string]] : []), [unit ? (u.lang === 'bn' ? unit.name_bn : name) : level === 'district' ? t('district') : t('upazila')]]} />
+          <div className="border-b border-line pb-3">
+            <div className="flex flex-wrap items-end gap-x-6 gap-y-2">
               <div className="min-w-0">
-                <h1 className={`h-display ${stuck ? 'text-2xl' : 'text-[clamp(2.25rem,5vw,3.25rem)]'}`}>{name}{unit && <span className="ml-3 font-sans text-[0.55em] font-normal tracking-normal text-muted" lang="bn">{unit.name_bn}</span>}</h1>
-                {!stuck && unit?.kiln_count != null && unit.kiln_count > 0 && <p className="mt-1 text-sm text-muted"><span className="num">{unit.kiln_count.toLocaleString('en-US')}</span> mapped kilns (APAD inventory)</p>}
+                <h1 className="h-display text-[clamp(2.25rem,5vw,3.25rem)]">{name}{bnName}</h1>
+                {unit?.kiln_count != null && unit.kiln_count > 0 && <p className="mt-1 text-sm text-muted"><span className="num">{unit.kiln_count.toLocaleString(u.lang === 'bn' ? 'bn-BD' : 'en-US')}</span> {t('mappedKilns')}</p>}
               </div>
-              <div className="ml-auto flex flex-wrap items-center gap-2">
-                <SegmentedToggle label="Raw or harmonized" value={u.mode} options={[['harm', t('harm')], ['raw', t('raw')]]} onChange={(v) => setQ({ mode: v === 'harm' ? undefined : v })} />
-                <SegmentedToggle label="Year layout" value={u.layout} options={[['cal', t('cal')], ['season', t('seasonLayout')]]} onChange={(v) => setQ({ layout: v === 'cal' ? undefined : v })} />
-                <select aria-label="Source" className="btn" value={split} onChange={(e) => setQ({ split: e.target.value === 'all' ? undefined : e.target.value })}>
-                  <option value="all">{t('all')}</option>
-                  {meta.split_labels.map((s) => <option key={s.key} value={s.key}>{label(s.key)}</option>)}
-                </select>
-              </div>
+              {controls}
             </div>
-            <p aria-live="polite" className={`prose-measure mt-2 text-[15px] ${stuck ? 'sr-only' : ''}`}>{verdict.text}</p>
-            <nav aria-label="Sections" className="nav-scroll mt-2 flex gap-1 overflow-x-auto">
-              {SECTIONS.filter(([id]) => id !== 'kiln' || kilnArea?.e).map(([id, k]) => (
-                <button key={id} onClick={() => jump(id)} aria-current={active === id ? 'true' : undefined}
-                  className={`shrink-0 rounded-[4px] px-2 py-1 text-sm transition-colors duration-150 ${active === id ? 'bg-surface-2 font-semibold text-ink' : 'text-muted hover:text-ink'}`}>{t(k)}</button>
-              ))}
-            </nav>
+            <p aria-live="polite" className="prose-measure mt-2 text-[15px]">{verdict.text}</p>
+            {sectionNav}
           </div>
+          <div ref={sentinel} aria-hidden />
+          {/* Compact bar: fixed, so showing it never moves the page (the in-flow header keeps its height). */}
+          {sm && (
+            <div inert={!stuck} aria-hidden={!stuck} className="compact-bar pointer-events-none fixed inset-x-0 top-[48px] z-30" data-on={stuck || undefined}>
+              {/* Spans the content column only, so the sticky sidebar stays uncovered. */}
+              <div className="mx-auto max-w-[1200px] px-4">
+                <div className="pointer-events-auto flex items-center gap-x-4 border-b border-line bg-bg/95 py-1.5 backdrop-blur-md lg:ml-[calc(320px+1.5rem)]">
+                  <span className="h-display shrink-0 text-xl">{name}</span>
+                  <div className="min-w-0 flex-1">{sectionNav}</div>
+                </div>
+              </div>
+            </div>)}
 
           {u.split !== split && <StatusMessage>Source “{u.split}” does not exist in this data build, so all sources are shown.</StatusMessage>}
           <Section id="calendar" title={t('everyDay')} download={{ name: `kilnwatch_${unitId}`, csv: () => calendarToCsv(c, meta.split_labels.map((s) => s.key)), json: c, png: true }}
@@ -307,14 +324,14 @@ function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit
             summary={<>Shaded band: the middle 80% of all seasons for each day. Dots: unusual days above the <Term k="p90">90th percentile</Term>. Labelled shading: critical periods, when activity is normally at its yearly high.</>}>
             <NormalBandChart cal={c} season={season} mode={u.mode} split={split} events={events.data} markDay={markDay} />
           </Section>
-          {kilnArea?.e && ka && <Section id="kiln" title="Two burning seasons: fires and kilns" download={{ name: `kilnwatch_${unitId}_kiln`, png: true }}
-            actions={<Link className="btn" to={`/kilns${u.lang === 'bn' ? '?lang=bn' : ''}`}>Kiln seasons</Link>}
+          {kilnArea?.e && ka && <Section id="kiln" title={t('twoSeasonsTitle')} download={{ name: `kilnwatch_${unitId}_kiln`, png: true }}
+            actions={<Link className="btn" to={`/kilns${u.lang === 'bn' ? '?lang=bn' : ''}`}>{t('kilns')}</Link>}
             summary={<>Top: the kiln season, from {ka.layer === 'ntl' ? 'night lights' : 'radar'} at {kilnArea.n_clusters} mapped kiln clusters against matched control sites (band = middle half of seasons). Bottom: this area’s average fire activity through the season (FIRMS, harmonized, 2003 to today).
               Kiln heat does not show up in fire detections, so the two are measured with different satellites, and they follow different calendars.</>}>
             <KilnSeasonShapeChart ka={ka} area={kilnArea} burning={seasonMean(c)} />
           </Section>}
           <Section id="sources" title={t('whereHeat')} download={{ name: `kilnwatch_${unitId}_sources`, png: true }}
-            summary={`Season totals split into ${meta.split_labels.map((s) => label(s.key).toLowerCase()).join(', ')}.`}>
+            summary={`Season totals split into ${meta.split_labels.map((s) => label(s.key).toLowerCase()).join(', ')}. Seasons the record covers only in part are left out.`}>
             <SourceStackChart cal={c} meta={meta} lang={u.lang} />
           </Section>
           <Section id="metrics" title={t('metrics')} plate={false}
@@ -330,7 +347,7 @@ function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit
                 </div>))}
             </dl>
             <div className="hidden overflow-x-auto sm:block"><table className="w-full text-sm">
-              <thead><tr><th>Season</th><th className="n">Midpoint (day)</th><th className="n">Duration (days)</th><th className="n">Peak</th><th>First*</th><th>Last*</th></tr></thead>
+              <thead><tr><th>{t('colSeason')}</th><th className="n">{t('colMid')}</th><th className="n">{t('colDur')}</th><th className="n">{t('colPeak')}</th><th>{t('colFirst')}</th><th>{t('colLast')}</th></tr></thead>
               <tbody>{c.seasons.slice().reverse().map((s) => <tr key={s.season} className={`border-t border-line ${s.season === season ? 'bg-surface-2' : ''}`}><td className="num">{s.season}</td><td className="n"><CIText ci={s.midpoint} d={0} /></td><td className="n"><CIText ci={s.duration} d={0} /></td><td className="n"><CIText ci={s.peak} /></td><td className="num">{s.first}</td><td className="num">{s.last}</td></tr>)}</tbody>
             </table></div>
           </Section>
@@ -355,6 +372,8 @@ function inPoly(lon: number, lat: number, g: GeoJSON.Geometry): boolean {
 
 function BoxView({ box, meta, districts }: { box: Box; meta: Meta; districts: FC }) {
   const theme = useTheme()
+  const t = useT()
+  const lang = useLang()
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const p = useMemo(() => palette(), [theme])
   const [cx, cy] = [(box[0] + box[2]) / 2, (box[1] + box[3]) / 2]
@@ -381,9 +400,9 @@ function BoxView({ box, meta, districts }: { box: Box; meta: Meta; districts: FC
   const copy = () => navigator.clipboard?.writeText(location.href).then(() => { setCopied(true); setTimeout(() => setCopied(false), 1600) })
   return (
     <div className="space-y-6">
-      <Breadcrumbs items={[['Bangladesh', '/explore'], [`${host.division} division`], ['Your area']]} />
+      <Breadcrumbs items={[[t('bangladesh'), '/explore'], [divisionName(host.division, lang)], [t('yourArea')]]} />
       <div>
-        <h1 className="h-display text-[clamp(2rem,4.5vw,3rem)]">Your area</h1>
+        <h1 className="h-display text-[clamp(2rem,4.5vw,3rem)]">{t('yourArea')}</h1>
         <p className="code mt-2 text-muted">{formatBox(box)}</p>
       </div>
       <Section title="Season totals inside your area" download={{ name: `kilnwatch_box_${formatBox(box)}`, png: true }}

@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { CIText, Loading, Section, SkeletonCard, useKilnActivity } from '../components/ui'
+import { CIText, Loading, Section, SkeletonCard, useKilnActivity, useTitle } from '../components/ui'
 import { KilnCalendarHeatmap, KilnSeasonShapeChart, KilnTimingChart, RadarCheckChart, SeasonDurationChart } from '../components/charts'
 import { useJson } from '../lib/data'
 import { seasonDayLabel } from '../lib/days'
 import type { Calendar, CI, Events, FC, KilnActivity, KilnArea } from '../lib/types'
 
 export default function KilnSeasonsPage() {
+  useTitle('Kiln seasons')
   const ka = useKilnActivity()
   if (ka.loading) return <SkeletonCard label="Loading kiln seasons" />
   return ka.data?.layer ? <ActivityView ka={ka.data} /> : <FirmsView />
@@ -41,12 +42,12 @@ function ActivityView({ ka }: { ka: KilnActivity }) {
             <optgroup label="Districts">{areas.filter((x) => x.p?.level === 'district').map((x) => <option key={x.id} value={x.id}>{x.p?.name_en} ({x.a.n_clusters})</option>)}</optgroup>
             <optgroup label="Upazilas (season dates only)">{areas.filter((x) => x.p?.level === 'upazila').map((x) => <option key={x.id} value={x.id}>{x.p?.name_en} ({x.a.n_clusters})</option>)}</optgroup>
           </select>
-          {area?.e && <select aria-label="Season" className="btn" value={season ?? latest} onChange={(e) => setSeason(e.target.value)}>
-            {seasons.map((s) => <option key={s.season}>{s.season}</option>)}</select>}
         </div>
       </header>
       {area?.e && <>
         <Section title={`${label}: the kiln season`} download={{ name: `kilnwatch_kiln_shape_${id}`, json: area, png: true }}
+          actions={<select aria-label="Season to compare" className="btn" value={season ?? latest} onChange={(e) => setSeason(e.target.value)}>
+            {seasons.map((s) => <option key={s.season}>{s.season}</option>)}</select>}
           summary={<>Brick line: kiln excess in a typical season (median of all seasons; band = middle half). Dashed: {season ?? latest}. Kilns light up from late autumn and go dark before the monsoon.</>}>
           <KilnSeasonShapeChart ka={ka} area={area} season={season ?? latest} />
         </Section>

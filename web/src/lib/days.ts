@@ -23,5 +23,5 @@ export function seasonDay(d: Date): number {
 export const seasonStart = (season: string) => dateToDay(`${season.slice(0, 4)}-07-01`)
 /** Day of season (days since 1 July) as a short date, e.g. 153 → "1 Dec". Pass the season so leap years land right. */
 export const seasonDayLabel = (d: number, season?: string) =>
-  new Date(Date.UTC(season ? +season.slice(0, 4) : 2001, 6, 1 + Math.round(d))).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+  new Date(Date.UTC(season ? +season.slice(0, 4) : 2001, 6, 1 + Math.round(d))).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }).replace('Sept', 'Sep')
 export const doy = (d: Date) => Math.round((d.getTime() - Date.UTC(d.getUTCFullYear(), 0, 1)) / MS) + 1

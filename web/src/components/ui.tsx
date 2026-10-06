@@ -8,6 +8,11 @@ import { harvestSpans, rituSpans, type Layout } from '../lib/ritu'
 import type { CI, Events, KilnActivity, Meta } from '../lib/types'
 
 export function useMeta() { return useJson<Meta>('meta.json') }
+
+/** Per-page browser title, so tabs, history and bookmarks say where they lead. */
+export function useTitle(title?: string) {
+  useEffect(() => { document.title = title ? `${title} · Kiln Watch` : 'Kiln Watch — Bangladesh burning calendar' }, [title])
+}
 /** Optional kiln-activity layer (Amendment 1); a missing file means "no layer". */
 export function useKilnActivity() { return useJson<KilnActivity>('kiln_activity.json') }
 /** Kiln pages show when the FIRMS gates unlocked kiln layers, or when the night-light/radar layer shipped. */
@@ -59,6 +64,7 @@ const ICONS = {
   area: 'M2.5 2.5h3M10.5 2.5h3v3M13.5 10.5v3h-3M5.5 13.5h-3v-3M2.5 5.5v0M7 2.5h2M13.5 7v2M7 13.5h2M2.5 7v2',
   chevron: 'M6 3.5 10.5 8 6 12.5',
   check: 'M3 8.5 6.5 12 13 4.5',
+  texture: 'M2.5 2.5h11v11h-11zM2.5 8 8 2.5M2.5 13.5 13.5 2.5M8 13.5 13.5 8',
   cross: 'M4 4l8 8M12 4l-8 8',
   info: 'M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM8 7v4.5M8 4.75v.5',
   half: 'M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13zM8 1.5v13',
@@ -83,8 +89,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const q = lang === 'bn' ? '?lang=bn' : ''
   const navRef = useRef<HTMLElement>(null)
   const showKilns = useKilnsVisible()
-  const tabs: [string, Key][] = [['/', 'story'], ['/explore', 'explore'], ['/season', 'season'],
-    ...(showKilns ? [['/kilns', 'kilns'] as [string, Key]] : []), ['/evidence', 'evidence'], ['/method', 'method']]
+  const tabs: [string, Key, Key?][] = [['/', 'story'], ['/explore', 'explore'], ['/season', 'season', 'seasonShort'],
+    ...(showKilns ? [['/kilns', 'kilns', 'kilnsShort'] as [string, Key, Key]] : []), ['/evidence', 'evidence'], ['/method', 'method']]
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // keep the active tab visible in the scrolling pill row (no animation: it follows a navigation)
   useEffect(() => { navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [loc.pathname])
@@ -98,15 +104,16 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="h-display text-[19px]">Kiln Watch</span>
           </NavLink>
           <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-1 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
-            {tabs.map(([to, k]) => (
+            {tabs.map(([to, k, short]) => (
               <NavLink key={to} to={to + q} end={to === '/'}
-                className={({ isActive }) => `relative shrink-0 rounded-[4px] px-2.5 py-1.5 text-[15px] transition-colors duration-150 ${isActive ? 'font-semibold text-ink after:absolute after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
-                {t(k)}
+                className={({ isActive }) => `relative shrink-0 rounded-[4px] px-2 py-1.5 text-[15px] sm:px-2.5 transition-colors duration-150 ${isActive ? 'font-semibold text-ink after:absolute after:inset-x-2 sm:after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
+                {short ? <><span className="sm:hidden">{t(short)}</span><span className="max-sm:hidden">{t(k)}</span></> : t(k)}
               </NavLink>
             ))}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:ml-0">
             <LangToggle />
+            <PatternsToggle />
             <button className="btn btn-icon" aria-label={theme === 'day' ? t('themeNight') : t('themeDay')} title={theme === 'day' ? t('themeNight') : t('themeDay')}
               onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); toggleTheme({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) }}>
               <Icon name={theme === 'day' ? 'moon' : 'sun'} />
@@ -121,19 +128,19 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p>NASA Space Apps 2026: harmonizing MODIS and VIIRS hot spots over Bangladesh.</p>
             <p>Data build <span className="code">{meta?.git_sha ?? '…'}</span>{meta && <>, generated {fmtDate(meta.generated_at)}</>}. Outputs are inspection leads, not findings of illegality.</p>
           </div>
-          <PatternsToggle />
         </div>
       </footer>
     </div>
   )
 }
 
-export const fmtDate = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })
+export const fmtDate = (iso: string) => new Date(iso.slice(0, 10) + 'T00:00:00Z').toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' }).replace('Sept', 'Sep')
 
 function PatternsToggle() {
   const t = useT()
   const on = usePatterns()
-  return <button className="btn btn-quiet ml-auto" aria-pressed={on} onClick={togglePatterns} title="Draw chart series with textures as well as colour">{t('patterns')}: {on ? 'on' : 'off'}</button>
+  const label = `${t('patterns')}: ${on ? 'on' : 'off'}. Draws chart series with textures as well as colour, for colour-blind reading and print.`
+  return <button className="btn btn-icon aria-pressed:bg-surface-2 aria-pressed:text-orbit" aria-pressed={on} onClick={togglePatterns} aria-label={label} title={label}><Icon name="texture" /></button>
 }
 
 function LangToggle() {
@@ -154,7 +161,7 @@ export function Section({ id, title, summary, actions, download, table, children
 }) {
   const [showTable, setShowTable] = useState(false)
   return (
-    <section id={id} className="scroll-mt-24 sm:scroll-mt-56" aria-label={typeof title === 'string' ? title : undefined}>
+    <section id={id} className="scroll-mt-24 sm:scroll-mt-28" aria-label={typeof title === 'string' ? title : undefined}>
       <div className="section-head">
         <h2 className="h-section">{title}</h2>
         <div className="ml-auto flex flex-wrap items-center gap-2">
@@ -191,9 +198,9 @@ export function DownloadMenu({ name, csv, json, png, onTable, tableOn }: { name?
     <details ref={ref} className="menu">
       <summary className="btn" aria-haspopup="menu"><Icon name="download" />{t('download')}</summary>
       <div className="menu-list" role="menu">
-        {csv && <button role="menuitem" onClick={() => blob(csv(), 'csv', 'text/csv')}>CSV <span className="ml-auto text-xs text-muted">spreadsheet</span></button>}
-        {json !== undefined && <button role="menuitem" onClick={() => blob(JSON.stringify(json), 'json', 'application/json')}>JSON <span className="ml-auto text-xs text-muted">full data</span></button>}
-        {png && name && <button role="menuitem" onClick={() => { const u = chartPng(name); if (u) save(u, 'png') }}>PNG <span className="ml-auto text-xs text-muted">chart image</span></button>}
+        {csv && <button role="menuitem" onClick={() => blob(csv(), 'csv', 'text/csv')}>CSV <span className="ml-auto text-xs text-muted">{t('dlCsv')}</span></button>}
+        {json !== undefined && <button role="menuitem" onClick={() => blob(JSON.stringify(json), 'json', 'application/json')}>JSON <span className="ml-auto text-xs text-muted">{t('dlJson')}</span></button>}
+        {png && name && <button role="menuitem" onClick={() => { const u = chartPng(name); if (u) save(u, 'png') }}>PNG <span className="ml-auto text-xs text-muted">{t('dlPng')}</span></button>}
         {onTable && <button role="menuitemcheckbox" aria-checked={!!tableOn} onClick={() => { onTable(); ref.current?.removeAttribute('open') }}><Icon name="table" />{t('viewTable')}</button>}
       </div>
     </details>
@@ -382,25 +389,28 @@ export function VerdictStrip({ label, value, ci, pass, domain, log, verdict, for
 /** Bengali seasons + harvest windows aligned to a chart's 366-day x-axis. `left`/`right` = the chart grid's insets in px. */
 export function RituBand({ layout, events, left, right }: { layout: Layout; events?: Events; left: number; right: number }) {
   const lang = useLang()
+  const t = useT()
   const spans = rituSpans(layout)
   const harvest = harvestSpans(events, layout)
   const pct = (x: number) => `${(x / 366) * 100}%`
+  const crop = (c: string) => (c === 'aman' ? t('aman') : c === 'boro' ? t('boro') : c[0].toUpperCase() + c.slice(1))
   return (
-    <div className="ritu relative mb-1 h-9 text-[11px]" style={{ marginLeft: left, marginRight: right }} aria-hidden>
+    // Narrow (container query): ritu row hidden with its ticks, harvest windows move up.
+    <div className="@container mb-1 text-[11px]" style={{ marginLeft: left, marginRight: right }} aria-hidden><div className="relative h-9 @max-[460px]:h-4">
       {spans.map((s, i) => (
-        <div key={i} className="absolute top-0 flex h-4 items-center overflow-hidden border-l border-line pl-1 whitespace-nowrap text-muted"
+        <div key={i} className="absolute top-0 flex h-4 @max-[460px]:hidden items-center overflow-hidden border-l border-line pl-1 whitespace-nowrap text-muted"
           style={{ left: pct(s.x0), width: pct(s.x1 - s.x0) }} title={`${s.ritu.en} (${s.ritu.bn}), ${s.ritu.span}`}>
-          {s.x1 - s.x0 > 25 && <span className="ritu-name">{lang === 'bn' ? s.ritu.bn : s.ritu.en}</span>}
+          {s.x1 - s.x0 > 25 && <span>{lang === 'bn' ? s.ritu.bn : s.ritu.en}</span>}
         </div>
       ))}
       {harvest.map((h, i) => (
-        <div key={i} className="absolute top-5 flex h-3.5 items-center overflow-hidden rounded-[2px] px-1 font-medium whitespace-nowrap text-[10px]"
+        <div key={i} className="absolute top-5 flex h-3.5 @max-[460px]:top-0 items-center overflow-hidden rounded-[2px] px-1 font-medium whitespace-nowrap text-[10px]"
           style={{ left: pct(h.x0), width: pct(h.x1 - h.x0), background: `color-mix(in oklch, var(--color-${h.crop === 'aman' ? 'paddy' : 'jute'}) 22%, transparent)`, color: 'var(--color-ink)' }}
           title={`${h.crop === 'aman' ? 'Aman' : h.crop === 'boro' ? 'Boro' : h.crop} rice harvest window`}>
-          {h.x1 - h.x0 > 20 && <>{h.crop[0].toUpperCase()}{h.crop.slice(1)}<span className="ritu-name">{'\u00a0'}harvest</span></>}
+          {h.x1 - h.x0 > 20 && <>{crop(h.crop)}<span className="@max-[460px]:hidden">{'\u00a0'}{t('harvest')}</span></>}
         </div>
       ))}
-    </div>
+    </div></div>
   )
 }
 
