@@ -58,7 +58,7 @@ test('clicking a heatmap day opens that season', async ({ page }) => {
 test('a box under 100 km² is refused at draw time', async ({ page }) => {
   await page.goto('#/explore')
   await page.locator('aside button[aria-pressed]').click()
-  const m = (await page.locator('.leaflet-container').boundingBox())!
+  const m = (await page.locator('.bd-map').boundingBox())!
   await page.mouse.move(m.x + 150, m.y + 150)
   await page.mouse.down()
   await page.mouse.move(m.x + 155, m.y + 155, { steps: 3 })

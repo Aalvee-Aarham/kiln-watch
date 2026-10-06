@@ -218,16 +218,12 @@
 @utility route-in { animation: route-in var(--dur-quick) var(--ease-out) both; }
 @keyframes route-in { from { opacity: 0; } to { opacity: 1; } }
 
-.leaflet-container { font: inherit; background: var(--color-bg) !important; }
-.leaflet-tooltip { background: var(--color-surface); color: var(--color-ink); border: 1px solid var(--color-line); border-radius: var(--radius-control); box-shadow: 0 4px 12px -4px color-mix(in oklch, var(--color-ink) 25%, transparent); font-size: var(--text-sm); }
-.leaflet-tooltip-top::before, .leaflet-tooltip-bottom::before, .leaflet-tooltip-left::before, .leaflet-tooltip-right::before { display: none; }
-.leaflet-bar a { background: var(--color-surface) !important; color: var(--color-ink) !important; border-color: var(--color-line) !important; }
-.leaflet-control-attribution { background: color-mix(in oklch, var(--color-surface) 80%, transparent) !important; color: var(--color-muted) !important; }
-.leaflet-control-attribution a { color: var(--color-muted) !important; }
-.map-label { display: none; background: transparent; border: 0; box-shadow: none; color: var(--color-muted); font-size: 11px; padding: 0; }
-
-.map-z8 .map-label { display: block; }
-.leaflet-tooltip.map-label::before { display: none; }
+/* BdMap: self-contained SVG choropleth (no tiles, no library). */
+.bd-feat { fill: var(--color-surface); stroke: var(--color-line); stroke-width: 0.8; cursor: pointer; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
+.bd-feat:hover, .bd-feat:focus-visible { stroke: var(--color-ink); stroke-width: 1.6; outline: none; }
+.bd-sel { stroke: var(--color-orbit); stroke-width: 2.4; }
+.bd-label { fill: var(--color-ink); font-weight: 600; paint-order: stroke; stroke: var(--color-bg); stroke-width: 3px; pointer-events: none; }
+.bd-boxrect { fill: var(--color-orbit); fill-opacity: 0.08; stroke: var(--color-orbit); stroke-width: 2; }
 
 @keyframes sel-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.35; } }
 .map-sel { animation: sel-pulse 0.9s ease-out 2; }
