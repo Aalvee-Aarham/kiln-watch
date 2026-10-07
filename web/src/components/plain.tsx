@@ -109,3 +109,21 @@ export function windowLevels(onset: number, end: number, peak: number | null): n
   const a = seasonMonthOf(onset), b = seasonMonthOf(end), p = peak == null ? -1 : seasonMonthOf(peak)
   return Array.from({ length: 12 }, (_, i) => (i === p ? 2 : i >= a && i <= b ? 1 : 0))
 }
+
+/** The approach as a chain: satellite → … → benefit. Wraps on phones; arrows are decoration only. */
+export function Flow({ items, active, onPick }: { items: [title: string, text?: string][]; active?: number; onPick?: (i: number) => void }) {
+  return (
+    <ol className="flex flex-wrap items-stretch gap-x-1 gap-y-2" aria-label="How it works, step by step">
+      {items.map(([title, text], i) => {
+        const body = <><span className="num text-xs text-muted">{i + 1}</span><b className="block leading-tight">{title}</b>{text && <span className="block text-xs text-muted">{text}</span>}</>
+        return (
+          <li key={title} className="flex min-w-0 flex-1 basis-[9rem] items-center gap-1">
+            {onPick
+              ? <button type="button" aria-pressed={active === i} onClick={() => onPick(i)} className="panel h-full w-full text-left transition-colors hover:bg-surface-2 aria-pressed:border-ink aria-pressed:bg-surface-2">{body}</button>
+              : <div className="panel h-full w-full">{body}</div>}
+            {i < items.length - 1 && <Icon name="chevron" className="hidden h-4 w-4 text-muted sm:block" />}
+          </li>)
+      })}
+    </ol>
+  )
+}

@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/experts',
+const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts',
   '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
@@ -245,4 +245,23 @@ test('glossary words explain themselves on tap', async ({ page }) => {
   await page.getByRole('button', { name: 'No, something else changed' }).click()
   await page.getByRole('button', { name: /^VIIRS: what does this mean/ }).first().click()
   await expect(page.getByText(/375 m by 375 m/).first()).toBeVisible()
+})
+
+// --- v2: approach, playbooks, trust (redesign_plan.md §9) ---
+test('who benefits: picking a person and a district rewrites the plan and its address', async ({ page }) => {
+  await page.goto('#/impact')
+  await page.getByRole('button', { name: /^Environment inspectors/ }).click()
+  await expect(page).toHaveURL(/#\/impact\/inspector\/BD3026/)
+  await page.getByLabel('District').selectOption({ label: 'Rajshahi' })
+  await expect(page).toHaveURL(/#\/impact\/inspector\/BD\d{4}$/)
+  await expect(page.getByRole('heading', { level: 2, name: 'Environment inspectors in Rajshahi' })).toBeVisible()
+})
+
+test('how it works: Next walks the six steps in order', async ({ page }) => {
+  await page.goto('#/how')
+  for (const s of ['They spot heat', 'One scale', 'Find the kilns', 'A calendar', 'People act']) {
+    await page.getByRole('button', { name: `Next: ${s}` }).click()
+    await expect(page.getByRole('heading', { level: 2, name: new RegExp(s) })).toBeVisible()
+  }
+  await expect(page.getByRole('button', { name: /^Next/ })).toBeDisabled()
 })

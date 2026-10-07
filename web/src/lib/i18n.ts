@@ -27,6 +27,7 @@ const S = {
   area: ['My area', 'আমার এলাকা'], areaShort: ['Area', 'এলাকা'], planner: ['Kiln planner', 'ভাটা পরিকল্পনা'],
   sensors: ['Sensor switch', 'সেন্সর বদল'], sensorsShort: ['Sensors', 'সেন্সর'], timeline: ['Timeline', 'সময়রেখা'], timelineShort: ['Events', 'ঘটনা'],
   impact: ['Who benefits', 'কারা উপকৃত'], impactShort: ['Uses', 'ব্যবহার'], experts: ['For experts', 'বিশেষজ্ঞদের জন্য'], expertsShort: ['Experts', 'বিশেষজ্ঞ'],
+  how: ['How it works', 'কীভাবে কাজ করে'], howShort: ['How', 'কীভাবে'], trust: ['Can you trust it?', 'বিশ্বাস করা যায়?'], trustShort: ['Trust', 'আস্থা'],
   ctrlScroll: ['Hold Ctrl and scroll to zoom.', 'জুম করতে Ctrl চেপে স্ক্রল করুন।'],
   bangladesh: ['Bangladesh', 'বাংলাদেশ'], division: ['division', 'বিভাগ'], yourArea: ['Your area', 'আপনার এলাকা'],
   mappedKilns: ['mapped kilns (APAD inventory)', 'তালিকাভুক্ত ভাটা (APAD)'],

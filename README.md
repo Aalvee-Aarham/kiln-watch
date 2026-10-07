@@ -52,17 +52,20 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 
 ## The website
 
-Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`redesign_plan.md`](redesign_plan.md)).
+Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`redesign_plan.md`](redesign_plan.md), §9 for this version).
 
-| Page | What a visitor does |
-|---|---|
-| **Home** | Three findings in plain words, today's NASA fire data, who benefits |
-| **My area** | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, when kilns work, a typical year month by month; compare two areas |
-| **Kiln planner** | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
-| **Sensor switch** | A guided puzzle: the 2012 "fire explosion", the same-camera check, why sharper pixels see more fire, switching satellites on and off, applying the correction |
-| **Timeline** | 2002 → 2027 by season: fire activity, kiln-season length, laws and satellite milestones, each with its source |
-| **Who benefits** | Six uses (inspectors, families, farm officers, policy makers, scientists, other brick-belt countries), each pairing our finding with a labelled, linked fact from other studies |
-| **For experts** | The original science story, Evidence (every pre-registered test), Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, data and pre-registration |
+The pages are organised around the four things Space Apps judges score.
+
+| Page | Judging question | What a visitor does |
+|---|---|---|
+| **Home** | All four | Three findings, the six steps from satellite to decision, real questions turned into actions, today's NASA fire data, and a four-card guide for judges |
+| **How it works** | Creativity, Relevance | Steps through the whole approach on real data (satellites, hot pixels, one scale, finding kilns, calendars, who acts), then a checklist of everything the challenge asks for and where it is on the site |
+| **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, when kilns work, a typical year month by month; compare two areas |
+| **Kiln planner** | Impact | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
+| **Who benefits** | Impact | Picks a person (inspector, farm officer, family, journalist, policy maker, scientist) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
+| **Can you trust it?** | Validity | Every pre-registered test in plain words, marked passed, failed or no link found; how we kept ourselves honest; what we never claim |
+| **Sensor switch**, **Timeline** | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 by season with laws and satellite milestones (linked from the pages above) |
+| **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, data and pre-registration |
 
 Everything is computed in the browser from the public, area-level export. "Use my location" is matched to an area on the device and never sent anywhere.
 
@@ -85,17 +88,103 @@ Full reports: [`reports/`](reports/) · Evidence page of the site · pitch mater
 
 ---
 
-## Quick start
+## Getting started
+
+### 1. Run the website (about 3 minutes, no keys, no Python)
+
+You need **Git** and **Node.js 20.19 or newer** (check with `node --version`; get it from https://nodejs.org).
+
+```bash
+git clone https://github.com/Aalvee-Aarham/kiln-watch.git
+cd kiln-watch/web
+npm install
+npm run dev
+```
+
+Open **http://localhost:5173/kiln-watch/** (the `/kiln-watch/` part matters: a bare `localhost:5173` shows a blank page).
+
+The site runs on `web/fixtures/nokiln/`, a verbatim offline copy of the real pipeline output that ships with the repo, so every page shows real satellite data. The grey banner at the top says so. Edits under `web/src/` reload in the browser instantly. Stop the server with `Ctrl+C`.
+
+Good first pages:
+
+| Page | Address |
+|---|---|
+| Home | http://localhost:5173/kiln-watch/#/ |
+| How it works (six steps, real data) | http://localhost:5173/kiln-watch/#/how |
+| Who benefits (a plan for one person and district) | http://localhost:5173/kiln-watch/#/impact/inspector/BD3026 |
+| Can you trust it? (every test, failures included) | http://localhost:5173/kiln-watch/#/trust |
+| My area | http://localhost:5173/kiln-watch/#/area |
+
+**Production build** (what GitHub Pages serves):
+
+```bash
+npm run build      # writes web/dist/
+npm run preview    # http://localhost:4173/kiln-watch/
+```
+
+**Other data sets.** `FIXTURE_BRANCH=full|from2012|partial|nightfire|nokiln` switches to the synthetic fixture for another gate outcome. `DATA_SRC=real` serves `web/public/data/`, which only exists after you run the pipeline yourself (step 2). In PowerShell, set them first: `$env:DATA_SRC="real"; npm run dev`.
+
+### 2. Run the Python pipeline (optional, hours, needs free accounts)
+
+You need **Python 3.11 or newer** and about 1 GB of free disk space for the downloaded satellite data.
 
 ```powershell
-# Python pipeline (Windows; use python3 / source .venv/bin/activate elsewhere)
-py -m venv .venv; .venv\Scripts\Activate.ps1; pip install -r requirements.txt
-copy .env.example .env      # add FIRMS_MAP_KEY, OPENAQ_API_KEY, EE_PROJECT
-earthengine authenticate    # once
-
-# Web app on synthetic fixtures (no data needed)
-cd web; npm install; npm run dev          # http://localhost:5173/kiln-watch/
+# Windows PowerShell, from the repo root
+py -m venv .venv
+.venv\Scripts\Activate.ps1          # if blocked: Set-ExecutionPolicy -Scope Process Bypass
+pip install -r requirements.txt
+copy .env.example .env
 ```
+
+```bash
+# macOS / Linux
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+cp .env.example .env
+```
+
+Fill in `.env` (it is gitignored; never commit it):
+
+| Key | Used for | Where to get it (free) |
+|---|---|---|
+| `FIRMS_MAP_KEY` | NASA FIRMS fire archive and the daily near-real-time update | https://firms.modaps.eosdis.nasa.gov/api/map_key/ |
+| `OPENAQ_API_KEY` | Dhaka PM2.5 readings (validation only) | https://explore.openaq.org/register |
+| `EE_PROJECT` | Google Earth Engine: clear-land fractions, night lights, radar | A Google Cloud project registered at https://code.earthengine.google.com/register |
+| `EE_API_KEY`, `EOG_USER`, `EOG_PASSWORD` | Not needed by the current pipeline | Leave empty |
+
+Then sign in to Earth Engine once and run everything:
+
+```bash
+earthengine authenticate
+python -m kilnwatch gee --units admin        # slow and resumable; must run before `all`
+python -m kilnwatch gee --units footprints
+python -m kilnwatch all                      # every other stage, then the public export
+cd web && DATA_SRC=real npm run dev          # PowerShell: $env:DATA_SRC="real"; npm run dev
+```
+
+Each stage can also be run on its own (next section). Every stage writes a report to `reports/`.
+
+### 3. Run the tests
+
+```bash
+pytest -q                     # Python, from the repo root (synthetic data only)
+cd web
+npm test -- --run             # unit tests (Vitest)
+npm run build && npm run e2e  # every page in day, night and phone layouts (Playwright)
+```
+
+The first `npm run e2e` may ask you to run `npx playwright install chromium`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| Blank page at `localhost:5173` | Add `/kiln-watch/` to the address |
+| `Port 5173 is in use` | `npm run dev -- --port 5174`, or stop the other server |
+| The map has no background | The basemap tiles come from the internet; the data still works offline |
+| `npm run e2e` cannot find a browser | `npx playwright install chromium` |
+| `python -m kilnwatch all` stops at once | Run the two `gee` commands first: `all` fails fast without their cache |
+| Earth Engine `not registered` error | Register the Cloud project for Earth Engine and set `EE_PROJECT` |
 
 ## Reproduce the analysis
 
@@ -116,14 +205,6 @@ cd web; npm install; npm run dev          # http://localhost:5173/kiln-watch/
 | 13 | `cd web; $env:DATA_SRC="real"; npm run build` | Static site in `web/dist/` |
 
 `python -m kilnwatch all` runs steps 1, 3, 4, 6–10, 11 (from its cache, without `--extract`) and 12 in order, and fails fast if the Earth Engine cache is missing.
-
-## Tests
-
-```powershell
-pytest -q                      # Python: synthetic data only (tests may never read data/)
-cd web; npm test -- --run      # Vitest: days, grid parity with Python, theme, calendar/box aggregation
-npm run e2e                    # Playwright smoke test of every route from the built site
-```
 
 ## How it is built
 

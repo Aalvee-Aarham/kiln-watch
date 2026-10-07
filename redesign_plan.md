@@ -158,3 +158,16 @@ Sources (to cite on the page):
 - **Overclaiming.** Main pages must never say kilns *cause* a given day's pollution, that a policy *caused* a change, or that an area's kilns are illegal. The guardrail lines above are part of the spec.
 - **Merge conflicts with Ahnaf.** Ask him to pause changes to `pages/` while the `redesign` branch is open, or to build on top of it.
 - **Upazila "this season" status.** Near-real-time data exists for districts only; upazila pages say so and show the district's status.
+
+## 9. v2 (branch `redesign-v2`, 2026-10-07): structured around the judging rubric
+
+Judges score **Impact, Creativity, Validity, Relevance**. Each now has a home, and benefits are shown as real applications rather than descriptions.
+
+| Criterion | Where | What changed |
+|---|---|---|
+| Creativity + whole approach | `#/how` (new) | Six-step stepper on real data: satellites → hot pixels (to-scale illustration) → one scale (raw vs harmonized) → the six instruments tested for kilns → calendars → people act |
+| Relevance | `#/how`, last section | Table: each challenge requirement → what Kiln Watch does → link to it working |
+| Impact | `#/impact/:who?/:unitId?` (rewritten) | Person × district playbook: their question → what the data shows for that district (live) → dated actions → benefit, a labelled outside fact, and the limit. Printable, shareable URL |
+| Validity | `#/trust` (new) | Every pre-registered test in plain words with Passed / Failed / No link found, how we stayed honest, and `meta.non_claims` |
+
+Home adds the six-step chain, "What people do with it" (question → live answer → action cards linking to playbooks), and "Four questions judges ask". Nav: `How it works · My area · Kiln planner · Who benefits · Can you trust it? · For experts`; Sensor switch and Timeline are linked from the pages.
