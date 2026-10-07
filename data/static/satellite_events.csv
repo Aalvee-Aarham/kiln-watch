@@ -1,0 +1,7 @@
+date,label_en,label_bn,source_url
+2002-05-04,Aqua launched (MODIS),অ্যাকুয়া উৎক্ষেপণ (MODIS),https://aqua.nasa.gov/
+2011-10-28,Suomi NPP launched (first VIIRS),সুওমি এনপিপি উৎক্ষেপণ (প্রথম VIIRS),https://www.noaasis.noaa.gov/POLAR/JPSS/jpss.html
+2017-11-18,NOAA-20 launched (VIIRS),NOAA-20 উৎক্ষেপণ (VIIRS),https://www.noaasis.noaa.gov/POLAR/JPSS/jpss.html
+2022-11-10,NOAA-21 launched (VIIRS),NOAA-21 উৎক্ষেপণ (VIIRS),https://www.noaasis.noaa.gov/POLAR/JPSS/jpss.html
+2027-01-01,Terra MODIS planned end of data collection (Jan 2027),টেরা MODIS-এর তথ্য সংগ্রহ বন্ধের পরিকল্পনা (জানুয়ারি ২০২৭),https://www.earthdata.nasa.gov/data/alerts-outages/transition-from-modis-viirs
+2027-09-01,Aqua MODIS planned end of data collection (about Sep 2027),অ্যাকুয়া MODIS-এর তথ্য সংগ্রহ বন্ধের পরিকল্পনা (প্রায় সেপ্টেম্বর ২০২৭),https://www.earthdata.nasa.gov/data/alerts-outages/transition-from-modis-viirs
