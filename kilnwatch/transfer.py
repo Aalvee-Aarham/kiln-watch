@@ -40,6 +40,16 @@ PROFILE_SEASONS = ("2012-13", "2024-25")
 LAST_YEAR = 2025                   # last calendar year extracted: every evaluated season ends by June 2025
 CACHE = C.RAW / "gee" / "transfer"
 TESTS = {"TL": ("ntl", "strict"), "LL": ("ntl", "local"), "TS": ("s1", "strict"), "LS": ("s1", "local")}
+# Amendment 4: in Pakistan, farmland 3-6 km from kilns brightened with the kiln season (light spill), and the nearest-rung
+# control was rarely the placebo's first. Retest on fresh clusters with controls >= 6 km from every mapped kiln
+# (APAD + SentinelKilnDB), searched out to 40 km, and each cluster's controls in random order.
+RINGS_FAR = [(6, 15, True), (6, 25, True), (6, 40, True), (6, 40, False)]
+DESIGNS = {
+    "A2": {"rings": RINGS, "seed_add": 0, "skdb": False, "shuffle": False, "exclude": None, "pad": 0.2, "wc": "worldcover_grid.npz",
+           "cache": "activity", "kinds": ("ntl", "s1")},
+    "A4": {"rings": RINGS_FAR, "seed_add": 30, "skdb": True, "shuffle": True, "exclude": "A2", "pad": 0.5, "wc": "worldcover_grid_A4.npz",
+           "cache": "activity_A4", "kinds": ("ntl",)},
+}
 
 
 # --- sample, sites and controls (inventory, WorldCover and borders only) ------------------
@@ -100,7 +110,7 @@ def representatives(kilns: pd.DataFrame, clusters: pd.DataFrame) -> pd.DataFrame
     return k.sort_values(["cluster_id", "d2", "kiln_id"]).drop_duplicates("cluster_id")[["cluster_id", "lat", "lon"]].reset_index(drop=True)
 
 
-def ring_controls(reps: pd.DataFrame, wc_class: dict, kiln_lat, kiln_lon, inside, wc_lookup, rng, n=3, attempts=C.CONTROL_ATTEMPTS_MAX) -> pd.DataFrame:
+def ring_controls(reps: pd.DataFrame, wc_class: dict, kiln_lat, kiln_lon, inside, wc_lookup, rng, n=3, attempts=C.CONTROL_ATTEMPTS_MAX, rings=RINGS) -> pd.DataFrame:
     """Seeded rejection sampling around each cluster's representative kiln, rung by rung (RINGS).
 
     A control lies min..max km from that kiln and >= min km from every mapped kiln (all inventories), inside the
@@ -112,7 +122,7 @@ def ring_controls(reps: pd.DataFrame, wc_class: dict, kiln_lat, kiln_lon, inside
     rows, dropped = [], []
     for c in reps.itertuples():
         got: list[tuple[float, float, int]] = []
-        for rung, (kmin, kmax, same) in enumerate(RINGS):
+        for rung, (kmin, kmax, same) in enumerate(rings):
             budget = attempts * (n - len(got))
             while len(got) < n and budget > 0:
                 k = min(512, budget)
@@ -142,6 +152,19 @@ def ring_controls(reps: pd.DataFrame, wc_class: dict, kiln_lat, kiln_lon, inside
     ctrl = pd.DataFrame(rows, columns=["control_id", "cluster_id", "dlat", "dlon", "rung_used"])
     ctrl.attrs["dropped"] = dropped
     return ctrl
+
+
+def shuffle_controls(ctrl: pd.DataFrame, rng) -> pd.DataFrame:
+    """Each cluster's controls in a seeded random order, renumbered 0..n-1, so the placebo's 'first control' is not the
+    one found on the nearest rung (Amendment 4)."""
+    out = []
+    for cid, g in ctrl.groupby("cluster_id", sort=True):
+        g = g.iloc[rng.permutation(len(g))].copy()
+        g["control_id"] = [f"{cid}_{j}" for j in range(len(g))]
+        out.append(g)
+    res = pd.concat(out, ignore_index=True) if out else ctrl.copy()
+    res.attrs = dict(ctrl.attrs)
+    return res
 
 
 def _km(lat1, lon1, lat2, lon2):
@@ -198,27 +221,48 @@ def evaluate(e, e_placebo, cal, conf, window, seasons) -> dict:
 
 
 # --- stage ---------------------------------------------------------------------------
-def prepare(cc: str) -> dict:
-    """Clusters, the seeded sample and its controls for one country (no Earth Engine outcome data)."""
+def _split(cc: str, ids, design: str):
+    spec, d = COUNTRIES[cc], DESIGNS[design]
+    rng = np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + d["seed_add"] + list(COUNTRIES).index(cc))
+    n = min(N_SAMPLE, len(ids))
+    return (*split(ids, rng, n, int(spec["cal_share"] * n) if "cal_share" in spec else N_CAL), rng)
+
+
+def prepare(cc: str, design: str = "A2") -> dict:
+    """Clusters, the seeded sample and its controls for one country (no Earth Engine outcome data).
+    Amendment 4 draws a fresh sample: clusters never sampled under Amendment 2."""
     import shapely
 
     from .gee import wc_lookup_fn
 
-    spec = COUNTRIES[cc]
+    spec, d = COUNTRIES[cc], DESIGNS[design]
     kilns, clusters = cluster(country_kilns(cc), C.DBSCAN_EPS_M)
-    rng = np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + list(COUNTRIES).index(cc))
-    n = min(N_SAMPLE, len(clusters))
-    cal, conf = split(clusters.cluster_id, rng, n, int(spec["cal_share"] * n) if "cal_share" in spec else N_CAL)
+    ids = clusters.cluster_id
+    if d["exclude"]:
+        c0, f0, _ = _split(cc, ids, d["exclude"])
+        ids = ids[~ids.isin(np.concatenate([c0, f0]))]
+    cal, conf, rng = _split(cc, ids, design)
     sampled = np.concatenate([cal, conf])
     reps = representatives(kilns, clusters[clusters.cluster_id.isin(sampled)])
-    pad = 0.2  # degrees: room for 15 km rings
+    pad = d["pad"]  # degrees: room for the widest ring
     w, s, e, n = reps.lon.min() - pad, reps.lat.min() - pad, reps.lon.max() + pad, reps.lat.max() + pad
-    look = wc_lookup_fn(bbox=(round(w, 2), round(s, 2), round(e, 2), round(n, 2)), path=CACHE / cc / "worldcover_grid.npz")
+    look = wc_lookup_fn(bbox=(round(w, 2), round(s, 2), round(e, 2), round(n, 2)), path=CACHE / cc / d["wc"])
     km = kilns.assign(wc=look(kilns.lat.to_numpy(), kilns.lon.to_numpy()))
     wc_class = km.groupby("cluster_id").wc.agg(lambda x: x.mode().iloc[0]).to_dict()
     poly = _adm0(cc)
-    every = pd.concat([load_kilns(f) for f in ALL_INVENTORIES] + ([sentinelkilndb()] if spec.get("avoid_skdb") else []), ignore_index=True)
-    ctrl = ring_controls(reps, wc_class, every.lat, every.lon, lambda lat, lon: shapely.contains_xy(poly, lon, lat), look, rng)
+    skdb = d["skdb"] or spec.get("avoid_skdb")
+    every = pd.concat([load_kilns(f) for f in ALL_INVENTORIES] + ([sentinelkilndb()] if skdb else []), ignore_index=True)
+    cached = CACHE / cc / f"controls_{design}.parquet"
+    if design != "A2" and cached.exists():  # rejection sampling far from every kiln is slow; the result is seeded, so reuse it
+        ctrl = pd.read_parquet(cached)
+        ctrl.attrs["dropped"] = json.loads(cached.with_suffix(".json").read_text(encoding="utf-8"))["dropped"]
+    else:
+        ctrl = ring_controls(reps, wc_class, every.lat, every.lon, lambda lat, lon: shapely.contains_xy(poly, lon, lat), look, rng, rings=d["rings"])
+        if d["shuffle"]:
+            ctrl = shuffle_controls(ctrl, rng)
+        if design != "A2":
+            ctrl.to_parquet(cached, index=False)
+            cached.with_suffix(".json").write_text(json.dumps({"dropped": [int(x) for x in ctrl.attrs["dropped"]]}), encoding="utf-8")
     dropped = set(ctrl.attrs["dropped"])
     return {"kilns": kilns, "clusters": clusters, "reps": reps, "ctrl": ctrl, "wc_class": wc_class,
             "cal": np.array([c for c in cal if c not in dropped]), "conf": np.array([c for c in conf if c not in dropped]),
@@ -232,17 +276,18 @@ def sites_for(prep: dict) -> pd.DataFrame:
     return s.sort_values(["cluster_id", "site"]).reset_index(drop=True)
 
 
-def country_result(cc: str, prep: dict, kinds=("ntl", "s1"), extract=True) -> dict:
+def country_result(cc: str, prep: dict, kinds=("ntl", "s1"), extract=True, design: str = "A2") -> dict:
     s = sites_for(prep)
-    rng = np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + 10 + list(COUNTRIES).index(cc))
-    cache = CACHE / cc / "activity"
-    out = {"code": cc, "name": COUNTRIES[cc]["name"], "n_kilns": int(len(prep["kilns"])), "n_clusters": int(len(prep["clusters"])),
+    d = DESIGNS[design]
+    rng = np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + 10 + d["seed_add"] + list(COUNTRIES).index(cc))
+    cache = CACHE / cc / d["cache"]
+    out = {"code": cc, "name": COUNTRIES[cc]["name"], "design": design, "n_kilns": int(len(prep["kilns"])), "n_clusters": int(len(prep["clusters"])),
            "n_sampled": prep["n_sampled"], "n_dropped": prep["dropped"], "control_rungs": {str(k): int(v) for k, v in prep["ctrl"].rung_used.value_counts().sort_index().items()},
            "evaluable": prep["dropped"] <= C.CONTROL_DROP_MAX * prep["n_sampled"], "channels": {}}
     if not out["evaluable"]:
         log.warning("%s: %d of %d sampled clusters lack controls: not evaluable (A4c rule)", cc, prep["dropped"], prep["n_sampled"])
         return out
-    for kind in (k for k in kinds if k in COUNTRIES[cc].get("kinds", ("ntl", "s1"))):
+    for kind in (k for k in kinds if k in COUNTRIES[cc].get("kinds", ("ntl", "s1")) and k in d["kinds"]):
         cal, conf = (prep["cal"], prep["conf"]) if kind == "ntl" else (prep["cal"][:N_S1_CAL], prep["conf"][:N_S1_CONF])
         sk = s[s.cluster_id.isin(set(cal) | set(conf))]
         if extract:
@@ -285,28 +330,28 @@ def bangladesh_reference(rng) -> dict:
             "channels": {"ntl": {"learned": {"core": list(learned[0]), "off": list(learned[1])}, "profile": profile_ci(month_table(e, conf), rng)}}}
 
 
-def prepare_summary(countries=tuple(COUNTRIES)) -> dict:
+def prepare_summary(countries=tuple(COUNTRIES), design: str = "A2") -> dict:
     """Sample and controls only (inventory, WorldCover, borders): the feasibility numbers, no outcome data."""
     out = {}
     for cc in countries:
-        p = prepare(cc)
+        p = prepare(cc, design)
         out[cc] = {"kilns": len(p["kilns"]), "clusters": len(p["clusters"]), "sampled": p["n_sampled"], "dropped": p["dropped"],
                    "calibration": len(p["cal"]), "confirmation": len(p["conf"]), "rungs": p["ctrl"].rung_used.value_counts().sort_index().to_dict(),
                    "wc_classes": pd.Series([p["wc_class"][c] for c in np.concatenate([p["cal"], p["conf"]])]).value_counts().to_dict()}
         log.info("%s prepare: %s", cc, out[cc])
-    (C.INTERIM / "transfer_prep.json").write_text(json.dumps(out, default=A._num, indent=1), encoding="utf-8")
+    (C.INTERIM / f"transfer_prep_{design}_{'_'.join(countries)}.json").write_text(json.dumps(out, default=A._num, indent=1), encoding="utf-8")
     return out
 
 
-def run(countries=tuple(COUNTRIES), kinds=("ntl", "s1"), extract=True) -> dict:
-    """Countries run now replace their earlier results; the others are kept, so countries can run one at a time."""
+def run(countries=tuple(COUNTRIES), kinds=("ntl", "s1"), extract=True, design: str = "A2") -> dict:
+    """Countries run now replace their earlier results for that design; the others are kept, so runs can be split up."""
     path = C.INTERIM / "transfer_activity.json"
-    done = {c["code"]: c for c in (json.loads(path.read_text(encoding="utf-8"))["countries"] if path.exists() else [])}
+    done = {(c["code"], c.get("design", "A2")): c for c in (json.loads(path.read_text(encoding="utf-8"))["countries"] if path.exists() else [])}
     for cc in countries:
-        prep = prepare(cc)
-        log.info("%s: %d clusters, %d sampled, %d dropped (no controls)", cc, len(prep["clusters"]), prep["n_sampled"], prep["dropped"])
-        done[cc] = country_result(cc, prep, kinds, extract)
-    res = {"countries": [done[c] for c in COUNTRIES if c in done]}
+        prep = prepare(cc, design)
+        log.info("%s %s: %d clusters, %d sampled, %d dropped (no controls)", cc, design, len(prep["clusters"]), prep["n_sampled"], prep["dropped"])
+        done[(cc, design)] = country_result(cc, prep, kinds, extract, design)
+    res = {"countries": [done[(c, g)] for c in COUNTRIES for g in DESIGNS if (c, g) in done]}
     res["bangladesh"] = bangladesh_reference(np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + 20))
     tmp = path.with_suffix(".tmp")
     tmp.write_text(json.dumps(res, default=A._num, indent=0), encoding="utf-8")
@@ -318,16 +363,20 @@ def run(countries=tuple(COUNTRIES), kinds=("ntl", "s1"), extract=True) -> dict:
 
 def public_payload(res: dict) -> dict:
     """Country-level only. Test rows keep Amendment 1's shape so the site reads them like GL and GS."""
-    out = []
-    for c in [res["bangladesh"], *res["countries"]]:
-        row = {k: c[k] for k in ("code", "name", "n_kilns", "n_clusters", "n_sampled", "n_dropped", "evaluable") if k in c}
+    def pub(c):
+        row = {k: c[k] for k in ("code", "name", "design", "n_kilns", "n_clusters", "n_sampled", "n_dropped", "evaluable") if k in c}
+        row["source"] = "SentinelKilnDB" if COUNTRIES.get(c["code"], {}).get("inventory") == "sentinelkilndb" else "APAD"
         row["channels"] = {}
         for kind, ch in c.get("channels", {}).items():
             row["channels"][kind] = {"learned": ch["learned"], "profile": ch["profile"],
                                      **{k: ch[k] for k in ("n_calibration", "n_confirmation") if k in ch},
                                      "tests": [{"test": t, **r} for t, v in ch.get("tests", {}).items() for r in v["rows"]],
                                      "pass": {t: v["pass"] for t, v in ch.get("tests", {}).items()}}
-        out.append(row)
+        return row
+
+    first = [c for c in res["countries"] if c.get("design", "A2") == "A2"]
+    retest = {c["code"]: pub(c) for c in res["countries"] if c.get("design") == "A4"}
+    out = [pub(res["bangladesh"])] + [pub(c) | ({"retest": retest[c["code"]]} if c["code"] in retest else {}) for c in first]
     return {"countries": out}
 
 

@@ -6,6 +6,7 @@ from kilnwatch.export import assert_public_safe
 from kilnwatch.transfer import (
     LAST_YEAR,
     NOT_LAND,
+    RINGS_FAR,
     SEASON_ORDER,
     _km,
     evaluate,
@@ -15,8 +16,39 @@ from kilnwatch.transfer import (
     public_payload,
     ring_controls,
     sentinelkilndb,
+    shuffle_controls,
     split,
 )
+
+
+def test_shuffle_controls_is_seeded_keeps_points_and_breaks_rung_order():
+    one = pd.DataFrame({"control_id": ["0_0", "0_1", "0_2"], "cluster_id": 0, "dlat": [0.1, 0.2, 0.3], "dlon": 0.0, "rung_used": [0, 1, 1]})
+    many = pd.concat([one.assign(cluster_id=k, control_id=[f"{k}_{j}" for j in range(3)]) for k in range(300)], ignore_index=True)
+    a, b = shuffle_controls(many, np.random.default_rng(2)), shuffle_controls(many, np.random.default_rng(2))
+    pd.testing.assert_frame_equal(a, b)
+    for cid, g in a.groupby("cluster_id"):
+        assert g.control_id.tolist() == [f"{cid}_{j}" for j in range(3)] and sorted(g.dlat) == [0.1, 0.2, 0.3]
+    first = a[a.control_id.str.endswith("_0")]
+    assert 0.25 < (first.rung_used == 0).mean() < 0.42        # a random order puts the rung-0 control first 1/3 of the time
+
+
+def test_far_rings_keep_controls_away_from_kiln_light():
+    kl = pd.DataFrame({"lat": [30.0, 30.0, 30.05], "lon": [72.0, 72.04, 72.0]})
+    reps = pd.DataFrame({"cluster_id": [0], "lat": [30.0], "lon": [72.0]})
+    ctrl = ring_controls(reps, {0: 40}, kl.lat, kl.lon, lambda lat, lon: np.ones(len(lat), bool), lambda lat, lon: np.full(len(lat), 40),
+                         np.random.default_rng(4), rings=RINGS_FAR)
+    lat, lon = 30.0 + ctrl.dlat.to_numpy(), 72.0 + ctrl.dlon.to_numpy()
+    assert len(ctrl) == 3
+    assert min(_km(a, b, kl.lat.to_numpy(), kl.lon.to_numpy()).min() for a, b in zip(lat, lon)) >= 6
+    assert _km(30.0, 72.0, lat, lon).max() <= 40
+
+
+def test_fresh_sample_never_reuses_the_first():
+    ids = pd.Series(np.arange(7509))
+    c0, f0 = split(ids, np.random.default_rng(8))
+    rest = ids[~ids.isin(np.concatenate([c0, f0]))]
+    c1, f1 = split(rest, np.random.default_rng(38))
+    assert len(c1) == 400 and len(f1) == 1600 and not (set(c1) | set(f1)) & (set(c0) | set(f0))
 
 
 def test_sentinelkilndb_positions_and_tile_repeats(tmp_path):

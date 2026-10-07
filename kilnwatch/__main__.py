@@ -35,6 +35,7 @@ def main(argv=None) -> int:
     s.add_argument("--kinds", nargs="+", default=["ntl", "s1"], choices=["ntl", "s1"])
     s.add_argument("--no-extract", dest="extract", action="store_false", help="use the Earth Engine cache only")
     s.add_argument("--prepare-only", action="store_true", help="sample and controls only; no outcome data")
+    s.add_argument("--design", default="A2", choices=["A2", "A4"], help="A2: first test (Amendments 2-3); A4: retest on fresh clusters, far controls")
     s = sub.add_parser("export", help="public / regulator / fixtures / checks / publish")
     s.add_argument("--regulator", action="store_true")
     s.add_argument("--fixtures", action="store_true")
@@ -80,7 +81,7 @@ def main(argv=None) -> int:
         activity.run(a.extract)
     elif a.stage == "transfer":
         from . import transfer
-        transfer.prepare_summary(tuple(a.countries)) if a.prepare_only else transfer.run(tuple(a.countries), tuple(a.kinds), a.extract)
+        transfer.prepare_summary(tuple(a.countries), a.design) if a.prepare_only else transfer.run(tuple(a.countries), tuple(a.kinds), a.extract, a.design)
     elif a.stage == "export":
         from . import export
         export.run(a.regulator, a.fixtures, a.check_public, a.publish, a.downscale)

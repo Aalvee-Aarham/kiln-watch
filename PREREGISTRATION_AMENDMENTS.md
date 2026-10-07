@@ -156,3 +156,29 @@ LL is the primary test. Replication still needs at least 200 clusters with A for
 ### Non-claims added
 
 - The Afghanistan kiln positions come from a detector-built, hand-validated dataset, not a government register.
+
+---
+
+## Amendment 4: retest away from kiln light, on fresh clusters (7 Oct 2026)
+
+**Status when written.** Amendment 2's night-light tests in Pakistan had finished, and both **failed**, on the placebo criterion only. Contrast, prevalence and replication passed: median A in 2022-23 was 0.13 (TL) and 0.15 (LL) nW cm⁻² sr⁻¹, p < 10⁻⁵⁰; 69% and 70% of clusters had A > 0; 13 of 13 seasons were positive. The placebo medians were −0.027 and −0.029 (p = 8×10⁻⁶ and 1×10⁻⁷). Pakistan's radar tests then passed (TS and LS). Those verdicts stand. The design below was drafted from Pakistan's diagnosis while India was still running. Before this amendment was committed, India's results also arrived and were read: the same pattern (contrast, prevalence and replication pass; the placebo fails with a negative median), and radar passing. The 6 km rule below was fixed from Pakistan's diagnosis and feasibility alone. No Earth Engine value had been extracted for any cluster in the samples below, and Afghanistan had not run.
+
+### Diagnosis (exploratory, on Pakistan's Amendment 2 sample)
+
+A control's own seasonal amplitude (Dec–Apr minus Jul–Oct radiance, median over seasons) falls with its distance to the nearest mapped kiln: +0.064 at 3–5 km, +0.025 at 5–6 km, +0.011 at 6–8 km and −0.001 at 8–10 km. It rises with the number of kilns within 5 km: +0.019 with none, +0.10 with more than ten. Farmland near kilns therefore brightens in the kiln season, through light spill or kilns missing from the inventory. The control ladder found each cluster's first control on the 5–10 km rung in 80% of clusters but its third in only 49%, so "first control against the other two" compared far farmland with nearer farmland, which produces the negative placebo. The same spill makes the kiln contrast conservative. In Bangladesh, 91% of controls came from the 5–10 km rung (Pakistan 64%, India 63%), consistent with its placebo passing.
+
+### Change
+
+Everything not listed here is unchanged: measurement, excess, amplitude, the four criteria and their thresholds, and LL as the primary test.
+1. **Fresh sample.** From each country's clusters that were **not** in its Amendment 2 sample, a new seeded sample (`SEED + SEED_OFFSETS["transfer"] + 30 + i`, i = 0 Pakistan, 1 India): 2,000 clusters, 400 calibration, 1,600 confirmation.
+2. **Controls away from kiln light.** Rungs 6–15, 6–25 and 6–40 km on the cluster's WorldCover class, then 6–40 km on any class. Every control is at least 6 km from every kiln in the APAD inventories (Bangladesh, Pakistan, India) **and** in SentinelKilnDB (62,900 kilns). The other rules are Amendment 2's: inside the country, never water or no-data, at least 5 km apart, at most 2,000 candidates per missing control per rung, and more than 20% of the sample dropped means not evaluable.
+3. **Random control order.** Each cluster's three controls are put in a seeded random order before the placebo takes the first one. This alone removes the order effect behind the failed placebo.
+4. **Night lights only** (TL and LL).
+
+**Why 6 km.** At 6–8 km the measured spill (+0.011) is a sixth of that at 3–5 km. An 8 km minimum was tried first, on inventory, WorldCover and borders only: in a 40-cluster Pakistan trial it left about 20% of clusters without three controls (45% with a 25 km search radius), so a country would sit on the not-evaluable line. With 6 km, the same trial dropped 1 of 40. The threshold was chosen on Pakistan's first sample and feasibility alone, and is tested only on clusters that sample never touched.
+
+**Feasibility** (inventory, WorldCover and borders only). Pakistan: 2,000 sampled from 5,509 unused clusters, 7 dropped (controls on rungs 0/1/2/3: 3,361 / 1,611 / 806 / 201). India: 2,000 sampled from 16,665 unused clusters, 110 dropped (controls on rungs 0/1/2/3: 2,942 / 1,599 / 932 / 197).
+
+### Reporting
+
+Amendment 2's results are published unchanged as each country's **first test**, with this diagnosis. The retest is published beside them. A country's headline verdict is its retest LL where the retest ran.
