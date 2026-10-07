@@ -13,6 +13,7 @@ import warnings
 
 import numpy as np
 import pandas as pd
+from sklearn.cluster import DBSCAN
 from sklearn.neighbors import BallTree
 
 from . import activity as A
@@ -23,7 +24,11 @@ log = logging.getLogger("kilnwatch.transfer")
 COUNTRIES = {
     "PK": {"name": "Pakistan", "inventory": "apad_transfer/Brick_Kilns_PK-Main_coal.csv", "adm0": "PAK"},
     "IN": {"name": "India", "inventory": "apad_ind/Brick_Kilns_IND-Main_coal.csv", "adm0": "IND"},
+    # Amendment 3: SentinelKilnDB kilns, all clusters, 20% calibrate, night lights only, avoidance against every mapped kiln
+    "AF": {"name": "Afghanistan", "inventory": "sentinelkilndb", "adm0": "AFG", "cal_share": 0.2, "kinds": ("ntl",), "avoid_skdb": True},
 }
+SKDB = C.RAW / "inventories" / "sentinelkilndb" / "labels.parquet"
+SKDB_TILE_M, SKDB_MERGE_M = 1280.0, 100.0  # 128 px x 10 m Sentinel-2 tiles; overlapping tiles repeat a kiln
 ALL_INVENTORIES = ("apad_bd/Brick_kilns_BAN-Main_coal.csv", "apad_transfer/Brick_Kilns_PK-Main_coal.csv", "apad_ind/Brick_Kilns_IND-Main_coal.csv")
 N_SAMPLE, N_CAL = 2000, 400        # clusters per country; 400 calibration clusters, as Bangladesh's pilot
 N_S1_CAL, N_S1_CONF = 150, 600     # radar runs on a nested subsample (about 3x the Earth Engine cost per site)
@@ -41,6 +46,44 @@ TESTS = {"TL": ("ntl", "strict"), "LL": ("ntl", "local"), "TS": ("s1", "strict")
 def load_kilns(rel: str) -> pd.DataFrame:
     d = pd.read_csv(C.RAW / "inventories" / rel, encoding="utf-8-sig").dropna(subset=["lat", "lon"])
     return pd.DataFrame({"kiln_id": np.arange(len(d)), "lat": d.lat.to_numpy(float), "lon": d.lon.to_numpy(float)})
+
+
+def sentinelkilndb(path=SKDB) -> pd.DataFrame:
+    """Unique SentinelKilnDB kilns (lat, lon): the tile centre in the file name plus the oriented box's centre offset,
+    with repeats from overlapping tiles merged within 100 m (Amendment 3)."""
+    d = pd.read_parquet(path)
+    rows = []
+    for name, lab in zip(d.image_name, d.yolo_obb_label):
+        lat0, lon0 = map(float, name[:-4].split("_"))
+        for line in (lab or "").splitlines():
+            v = line.split()
+            if len(v) < 9:
+                continue
+            x, y = np.mean(np.asarray(v[1:9:2], float)), np.mean(np.asarray(v[2:9:2], float))
+            rows.append((lat0 + (0.5 - y) * SKDB_TILE_M / 111_320, lon0 + (x - 0.5) * SKDB_TILE_M / (111_320 * np.cos(np.radians(lat0)))))
+    k = pd.DataFrame(rows, columns=["lat", "lon"])
+    g = DBSCAN(eps=SKDB_MERGE_M / R_EARTH, min_samples=1, metric="haversine", algorithm="ball_tree").fit_predict(_rad(k.lat, k.lon))
+    return k.assign(g=g).groupby("g")[["lat", "lon"]].mean().reset_index(drop=True)
+
+
+def _adm0(cc: str):
+    import geopandas as gpd
+    import shapely
+
+    poly = gpd.read_file(C.RAW / "boundaries" / "adm0" / f"{COUNTRIES[cc]['adm0']}.geojson").union_all()
+    shapely.prepare(poly)
+    return poly
+
+
+def country_kilns(cc: str) -> pd.DataFrame:
+    spec = COUNTRIES[cc]
+    if spec["inventory"] != "sentinelkilndb":
+        return load_kilns(spec["inventory"])
+    import shapely
+
+    k = sentinelkilndb()
+    k = k[shapely.contains_xy(_adm0(cc), k.lon.to_numpy(), k.lat.to_numpy())]
+    return pd.DataFrame({"kiln_id": np.arange(len(k)), "lat": k.lat.to_numpy(float), "lon": k.lon.to_numpy(float)})
 
 
 def split(cluster_ids, rng, n=N_SAMPLE, n_cal=N_CAL) -> tuple[np.ndarray, np.ndarray]:
@@ -157,15 +200,15 @@ def evaluate(e, e_placebo, cal, conf, window, seasons) -> dict:
 # --- stage ---------------------------------------------------------------------------
 def prepare(cc: str) -> dict:
     """Clusters, the seeded sample and its controls for one country (no Earth Engine outcome data)."""
-    import geopandas as gpd
     import shapely
 
     from .gee import wc_lookup_fn
 
-    kilns = load_kilns(COUNTRIES[cc]["inventory"])
-    kilns, clusters = cluster(kilns, C.DBSCAN_EPS_M)
+    spec = COUNTRIES[cc]
+    kilns, clusters = cluster(country_kilns(cc), C.DBSCAN_EPS_M)
     rng = np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + list(COUNTRIES).index(cc))
-    cal, conf = split(clusters.cluster_id, rng)
+    n = min(N_SAMPLE, len(clusters))
+    cal, conf = split(clusters.cluster_id, rng, n, int(spec["cal_share"] * n) if "cal_share" in spec else N_CAL)
     sampled = np.concatenate([cal, conf])
     reps = representatives(kilns, clusters[clusters.cluster_id.isin(sampled)])
     pad = 0.2  # degrees: room for 15 km rings
@@ -173,9 +216,8 @@ def prepare(cc: str) -> dict:
     look = wc_lookup_fn(bbox=(round(w, 2), round(s, 2), round(e, 2), round(n, 2)), path=CACHE / cc / "worldcover_grid.npz")
     km = kilns.assign(wc=look(kilns.lat.to_numpy(), kilns.lon.to_numpy()))
     wc_class = km.groupby("cluster_id").wc.agg(lambda x: x.mode().iloc[0]).to_dict()
-    poly = gpd.read_file(C.RAW / "boundaries" / "adm0" / f"{COUNTRIES[cc]['adm0']}.geojson").union_all()
-    shapely.prepare(poly)
-    every = pd.concat([load_kilns(f) for f in ALL_INVENTORIES], ignore_index=True)
+    poly = _adm0(cc)
+    every = pd.concat([load_kilns(f) for f in ALL_INVENTORIES] + ([sentinelkilndb()] if spec.get("avoid_skdb") else []), ignore_index=True)
     ctrl = ring_controls(reps, wc_class, every.lat, every.lon, lambda lat, lon: shapely.contains_xy(poly, lon, lat), look, rng)
     dropped = set(ctrl.attrs["dropped"])
     return {"kilns": kilns, "clusters": clusters, "reps": reps, "ctrl": ctrl, "wc_class": wc_class,
@@ -200,11 +242,11 @@ def country_result(cc: str, prep: dict, kinds=("ntl", "s1"), extract=True) -> di
     if not out["evaluable"]:
         log.warning("%s: %d of %d sampled clusters lack controls: not evaluable (A4c rule)", cc, prep["dropped"], prep["n_sampled"])
         return out
-    for kind in kinds:
+    for kind in (k for k in kinds if k in COUNTRIES[cc].get("kinds", ("ntl", "s1"))):
         cal, conf = (prep["cal"], prep["conf"]) if kind == "ntl" else (prep["cal"][:N_S1_CAL], prep["conf"][:N_S1_CONF])
         sk = s[s.cluster_id.isin(set(cal) | set(conf))]
         if extract:
-            A.extract(kind, sk, last_year=LAST_YEAR, cache=cache)
+            A.extract(kind, sk, last_year=LAST_YEAR, cache=cache, refresh_last=False)
         missing = missing_chunks(kind, len(sk), cache)
         if missing:  # never test on a partial extraction: rerun to resume
             log.error("%s %s: %d Earth Engine chunks missing (e.g. %s); skipped", cc, kind, len(missing), missing[0])
@@ -257,13 +299,18 @@ def prepare_summary(countries=tuple(COUNTRIES)) -> dict:
 
 
 def run(countries=tuple(COUNTRIES), kinds=("ntl", "s1"), extract=True) -> dict:
-    res = {"countries": []}
+    """Countries run now replace their earlier results; the others are kept, so countries can run one at a time."""
+    path = C.INTERIM / "transfer_activity.json"
+    done = {c["code"]: c for c in (json.loads(path.read_text(encoding="utf-8"))["countries"] if path.exists() else [])}
     for cc in countries:
         prep = prepare(cc)
         log.info("%s: %d clusters, %d sampled, %d dropped (no controls)", cc, len(prep["clusters"]), prep["n_sampled"], prep["dropped"])
-        res["countries"].append(country_result(cc, prep, kinds, extract))
+        done[cc] = country_result(cc, prep, kinds, extract)
+    res = {"countries": [done[c] for c in COUNTRIES if c in done]}
     res["bangladesh"] = bangladesh_reference(np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + 20))
-    (C.INTERIM / "transfer_activity.json").write_text(json.dumps(res, default=A._num, indent=0), encoding="utf-8")
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(res, default=A._num, indent=0), encoding="utf-8")
+    tmp.replace(path)
     _write_public(res)
     _write_report(res)
     return res

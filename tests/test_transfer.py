@@ -3,7 +3,32 @@ import pandas as pd
 
 from kilnwatch import activity as A
 from kilnwatch.export import assert_public_safe
-from kilnwatch.transfer import LAST_YEAR, NOT_LAND, SEASON_ORDER, _km, evaluate, learn_window, missing_chunks, month_table, public_payload, ring_controls, split
+from kilnwatch.transfer import (
+    LAST_YEAR,
+    NOT_LAND,
+    SEASON_ORDER,
+    _km,
+    evaluate,
+    learn_window,
+    missing_chunks,
+    month_table,
+    public_payload,
+    ring_controls,
+    sentinelkilndb,
+    split,
+)
+
+
+def test_sentinelkilndb_positions_and_tile_repeats(tmp_path):
+    """Tile centre + box-centre offset at 10 m/px; a kiln repeated by an overlapping tile counts once."""
+    lat0, lon0 = 23.0, 90.0
+    east = 640 / (111_320 * np.cos(np.radians(lat0)))               # half a 1,280 m tile
+    box = lambda x, y, h=0.02: "1 " + " ".join(f"{a} {b}" for a, b in ((x - h, y - h), (x + h, y - h), (x + h, y + h), (x - h, y + h)))
+    pd.DataFrame({"image_name": [f"{lat0:.4f}_{lon0:.4f}.png", f"{lat0:.4f}_{lon0 + east:.4f}.png", "24.0000_91.0000.png"],
+                  "yolo_obb_label": [box(0.5, 0.5) + "\n" + box(1.0, 0.5), box(0.5, 0.5), ""]}).to_parquet(tmp_path / "l.parquet")
+    k = sentinelkilndb(tmp_path / "l.parquet")
+    assert len(k) == 2
+    assert _km(k.lat.to_numpy(), k.lon.to_numpy(), np.array([lat0, lat0]), np.array([lon0, lon0 + east])).max() < 0.01
 
 # season-month profiles, Jul..Jun
 BD = [0, 0, 0, 0, 0.5, 1, 1, 1, 1, 1, 0.5, 0.2]             # kilns Dec–Apr, quiet Jul–Oct

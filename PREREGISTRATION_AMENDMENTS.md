@@ -128,3 +128,31 @@ Country-level only: inventory and sample sizes, control drops, learned windows, 
 
 - A pass in one country says nothing about countries that were not tested.
 - A learned window describes when kilns there are most active, not their legal operating dates.
+
+---
+
+## Amendment 3: Afghanistan, a kiln calendar outside South Asia's winter (7 Oct 2026)
+
+**Status when written.** Amendment 2's extraction for Pakistan and India was running; none of its results had been looked at. No night-light or other outcome value had been extracted for any kiln in Afghanistan. Done before writing, without outcome data:
+- SentinelKilnDB ([Mondal et al., NeurIPS 2025](https://huggingface.co/datasets/SustainabilityLabIITGN/SentinelKilnDB), CC BY-NC 4.0): only the `image_name` and `yolo_obb_label` columns were read (HTTP range requests; no image bytes).
+- Kiln positions: the tile centre in the file name plus the oriented box's centre offset at 10 m per pixel (128 × 128 px tiles). The centre convention was checked against APAD Bangladesh: 29% of SentinelKilnDB kilns in the Bangladesh box fall within 150 m of an APAD kiln, against 1% for either corner convention. Repeats from overlapping tiles were merged within 100 m: 62,900 unique kilns (the paper reports 62,671).
+- Afghanistan (geoBoundaries ADM0, public domain): 672 kilns, 496 clusters by the A4 rule.
+- The sample and its controls (rules below), from the kilns, WorldCover and the border only: 496 sampled, 0 dropped (controls on rungs 0/1/2: 1,450 / 35 / 3).
+
+### Why
+
+Every Amendment 2 country keeps a dry-winter kiln season. Kilns near Kabul work a six-month season and stop when it is too cold ([The New Humanitarian, 2012](https://www.thenewhumanitarian.org/news/2012/05/16/bonded-labour-ensnares-entire-families)), so Afghanistan tests whether the method can find a kiln calendar that is not South Asia's.
+
+### Rules
+
+Amendment 2's rules apply unchanged except:
+1. **Kilns:** SentinelKilnDB kilns inside Afghanistan, positioned and de-duplicated as above. The licence is non-commercial; only country-level statistics are published.
+2. **Sample:** every cluster. The seeded permutation uses i = 2. The first 20% (rounded down: 99) calibrate; the other 397 confirm.
+3. **Controls:** as Amendment 2, but kept at least the rung's minimum distance from every kiln in the APAD inventories **and** in SentinelKilnDB (62,900), so border and unmapped-inventory kilns are avoided.
+4. **Channel:** night lights only (TL and LL). Radar is not run, to save Earth Engine quota.
+
+LL is the primary test. Replication still needs at least 200 clusters with A for a season to be evaluable; with 397 confirmation clusters, seasons with poor night-light coverage may not qualify, and a test with no evaluable season fails its replication criterion.
+
+### Non-claims added
+
+- The Afghanistan kiln positions come from a detector-built, hand-validated dataset, not a government register.

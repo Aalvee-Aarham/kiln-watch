@@ -201,6 +201,7 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 | 9 | `python -m kilnwatch metrics` | ~570 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
 | 10 | `python -m kilnwatch validate` | Validation layers (shape across seasons, TROPOMI NO₂ DiD, Dhaka PM2.5 lags) |
 | 11 | `python -m kilnwatch activity --extract all` | Amendment 1: Black Marble night lights (half-monthly, 2012–) and Sentinel-1 radar (monthly, 2015–) at every kiln cluster and its 3 matched controls; tests GL/GS on the held-out clusters; kiln-season calendars per area (slow, resumable) |
+| 11b | `python -m kilnwatch transfer` | Amendment 2: the kiln method in **Pakistan and India**. APAD kilns, a seeded 2,000-cluster sample per country, distance-ring controls, Black Marble night lights (and Sentinel-1 radar on a subsample), tested with Bangladesh's months and with months learned on 400 calibration clusters. `--prepare-only` builds samples and controls without any outcome data (slow, resumable) |
 | 12 | `python -m kilnwatch export` | Public tier → `web/public/data/`, with name + value safety checks and size budgets |
 | 13 | `cd web; $env:DATA_SRC="real"; npm run build` | Static site in `web/dist/` |
 
@@ -227,8 +228,9 @@ Code: MIT. Data:
 - NASA FIRMS (MODIS C6.1, VIIRS 375 m)
 - Google Earth Engine datasets: MOD14A1/MYD14A1/VNP14A1, ESA WorldCover, Sentinel-5P, ERA5-Land
 - NASA Black Marble VNP46A2 night lights (Román et al. 2018); Copernicus Sentinel-1 SAR (ESA); NASA ECOSTRESS L2T LSTE v2 and Landsat 8/9 Collection 2 (kiln pilots only)
-- **APAD IGP Brick Kilns Bangladesh / Pakistan** (CC BY 4.0). *IGP Brick Kilns Bangladesh was accessed on 2026-10-06 from https://registry.opendata.aws/asset-data-igp-brick-kilns-ban*
+- **APAD IGP Brick Kilns Bangladesh / Pakistan / India** (CC BY 4.0). *IGP Brick Kilns Bangladesh was accessed on 2026-10-06 from https://registry.opendata.aws/asset-data-igp-brick-kilns-ban*
 - OCHA HDX COD-AB Bangladesh / Pakistan (CC BY-IGO)
+- geoBoundaries ADM0 outlines of Pakistan (OpenStreetMap, ODbL 1.0) and India (CC0 1.0), for Amendment 2 controls
 - OpenAQ (CC BY 4.0)
 - CARTO / OpenStreetMap basemap
 

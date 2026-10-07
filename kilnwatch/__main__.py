@@ -31,7 +31,7 @@ def main(argv=None) -> int:
     s = sub.add_parser("activity", help="kiln activity from night lights / radar (Amendment 1)")
     s.add_argument("--extract", choices=["ntl", "s1", "all"], help="pull the Earth Engine cache first (slow, resumable)")
     s = sub.add_parser("transfer", help="kiln method in other countries (Amendment 2; slow, resumable)")
-    s.add_argument("--countries", nargs="+", default=["PK", "IN"], choices=["PK", "IN"])
+    s.add_argument("--countries", nargs="+", default=["PK", "IN", "AF"], choices=["PK", "IN", "AF"])
     s.add_argument("--kinds", nargs="+", default=["ntl", "s1"], choices=["ntl", "s1"])
     s.add_argument("--no-extract", dest="extract", action="store_false", help="use the Earth Engine cache only")
     s.add_argument("--prepare-only", action="store_true", help="sample and controls only; no outcome data")

@@ -110,7 +110,7 @@ def _extract_chunk(kind: str, year: int, chunk: pd.DataFrame, part: str):
     return df.drop(columns=["geo"], errors="ignore")
 
 
-def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=int(os.environ.get("GEE_WORKERS", 3)), cache=CACHE) -> None:
+def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=int(os.environ.get("GEE_WORKERS", 3)), cache=CACHE, refresh_last=True) -> None:
     last_year = last_year or pd.Timestamp.today().year
     parts = ["ntl"] if kind == "ntl" else ["in", "ring"]
     n = CHUNK[kind]
@@ -119,7 +119,7 @@ def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=in
     def job(j):
         y, i, part = j
         p = cache / kind / f"{y}_{i // n}_{part}.parquet"
-        if p.exists() and y < last_year:  # the current year is refreshed on every run
+        if p.exists() and (y < last_year or not refresh_last):  # the current year is refreshed on every run, unless the range is closed
             return p
         for attempt in range(4):
             try:
