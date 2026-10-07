@@ -4,11 +4,65 @@
 
 🌐 **Live site: https://aalvee-aarham.github.io/kiln-watch/** (updated daily from NASA FIRMS)
 
-Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh into **one consistent burning calendar**:
+## In short
 
-1. **Harmonize.** MODIS (1 km, 2003–) and VIIRS (375 m, 2012–) see fire differently. When VIIRS arrives in 2012 raw detection counts jump several-fold, which is a sensor artefact, not a change in fire. We convert every sensor to one unit, *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells (MYD-eq)*, with 95% uncertainty bands, validated by leaving each season out in turn.
-2. **Separate.** A pre-registered test asked whether 3,653 mapped brick-kiln clusters produce more fire detections than matched farmland. They don't (0.46×), so kiln heat is not in the fire calendar. Brick kilns are invisible to fire satellites, so we track the **kiln season with NASA Black Marble night lights** instead. Kilns run day and night through the dry season, and a held-out test written down in advance confirms the signal ([Amendment 1](PREREGISTRATION_AMENDMENTS.md)).
-3. **Show.** For any district, upazila or drawn box, the site shows the full daily history, the normal range, unusual days, critical periods and the current season (updated daily). Where there are kilns, the kiln season appears beside the fire calendar. All of it is downloadable as CSV or JSON.
+Every dry season, Bangladesh burns twice over: farmers set fire to crop leftovers after the rice harvests, and about 7,000 brick kilns fire up from November to April. NASA satellites have photographed this since 2003, but their cameras changed over the years, so the records don't agree, and nobody could tell kiln heat from crop fires.
+
+**Kiln Watch** fixes both. It turns 23 years of NASA satellite data (1.2 million fire detections) into **one consistent burning calendar for every district and upazila**, plus a separate **brick-kiln calendar**. It shows them on a plain-language website with interactive apps. Anyone can check their own area. Inspectors can plan when to visit kilns. Scientists can keep long fire records going after NASA's older MODIS cameras retire in 2027.
+
+## The two problems we solve
+
+### Problem 1: The satellites don't agree
+
+**The problem.** Until 2012, fires were recorded by NASA's **MODIS** cameras, which see the ground in 1 km squares. In 2012 the sharper **VIIRS** camera arrived, with 375 m squares, and it notices many small fires that MODIS misses. Fire counts over Bangladesh jumped several-fold overnight. Bangladesh didn't suddenly burn more; the camera changed. Spliced together as-is, the 23-year record is meaningless.
+
+**How we solved it.**
+- **One common unit.** On days when two satellites saw the same place, we learned how many old-camera detections one new-camera detection is worth, by region, month and day or night pass.
+- **Chaining the satellites.** We chained every satellite onto one scale: Aqua ← Suomi NPP ← NOAA-20 ← NOAA-21. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*.
+- **Correcting for cloud.** Satellites can't see fire through cloud, so we counted the cloud-free land every day with Google Earth Engine.
+- **Error ranges.** Every number carries a 95% uncertainty range.
+
+**Result.**
+- **The fake jump is gone.** The 2012 jump shrinks from 55.1 to 1.6 units: **97% of it was the camera**. A statistical break test finds a clear break in the raw record and none after correction.
+- **It matches a real reading.** Our corrected 2012-13 value (23.4, range 21.8–24.9) matches what the unchanged Aqua camera actually saw (23.7).
+
+### Problem 2: Telling brick kilns apart from crop fires
+
+**The problem.** Brick kilns are a major source of Dhaka's winter smog. If their heat were hiding inside the fire record, the crop-burning calendar would be wrong, and nobody could say when kilns are actually working.
+
+**How we solved it.**
+1. **Test whether fire satellites see kilns at all.** Before looking at the data, we wrote down a test: do 3,653 mapped kiln clusters produce more fire detections than matched farmland nearby? They don't (0.46×). Only **0.15%** of dry-season fire detections fall on kilns, the same as on ordinary farmland. Kilns burn inside closed brick chambers, so fire satellites can't see them. The fire calendar is therefore clean, with no kiln heat to remove.
+2. **Find a satellite that can see kilns.** We tried six kinds of data. Two worked:
+   - **NASA Black Marble night lights:** kilns run all night with lamps and workers on site.
+   - **Sentinel-1 radar:** stacks of fresh bricks pile up in the kiln yards.
+3. **Test it fairly.** We wrote the pass rules down in advance ([Amendment 1](PREREGISTRATION_AMENDMENTS.md)) and tested on 3,253 kiln clusters and a season the trial never touched. Both checks passed:
+   - **Night lights:** **72%** of kiln clusters glow brighter in kiln season than nearby farmland. The result holds in **13 of 13 years**, and ordinary farmland shows nothing.
+   - **Radar:** passes as an independent second check.
+
+**Result.** Bangladesh's first satellite-based **kiln-season calendar**, for 275 districts and upazilas.
+- **When:** kilns work from about mid-November to mid-April, busiest in February.
+- **Trend:** the season has grown from about **3 months (2012–15) to about 5 months (2022–25)**.
+
+## What we built
+
+1. **A pipeline** (`kilnwatch/`, Python) that downloads, harmonizes and tests the satellite data end to end, from raw NASA files to the public dataset.
+2. **A website** with a plain-language layer and interactive apps, and the full science one click away for experts (see below). It refreshes daily from NASA's near-real-time fire data.
+
+## The website
+
+Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`redesign_plan.md`](redesign_plan.md)).
+
+| Page | What a visitor does |
+|---|---|
+| **Home** | Three findings in plain words, today's NASA fire data, who benefits |
+| **My area** | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, when kilns work, a typical year month by month; compare two areas |
+| **Kiln planner** | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
+| **Sensor switch** | A guided puzzle: the 2012 "fire explosion", the same-camera check, why sharper pixels see more fire, switching satellites on and off, applying the correction |
+| **Timeline** | 2002 → 2027 by season: fire activity, kiln-season length, laws and satellite milestones, each with its source |
+| **Who benefits** | Six uses (inspectors, families, farm officers, policy makers, scientists, other brick-belt countries), each pairing our finding with a labelled, linked fact from other studies |
+| **For experts** | The original science story, Evidence (every pre-registered test), Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, data and pre-registration |
+
+Everything is computed in the browser from the public, area-level export. "Use my location" is matched to an area on the device and never sent anywhere.
 
 ## Results (real data, built 6 Oct 2026)
 
@@ -95,6 +149,6 @@ Code: MIT. Data:
 - OpenAQ (CC BY 4.0)
 - CARTO / OpenStreetMap basemap
 
-## Prior-work disclosure
+## Build dates
 
-Everything in this repository as of 6 October 2026 was produced **before** the NASA Space Apps 2026 hackathon (14–15 November 2026), on 5–6 October 2026, after the challenge summary was published. That includes the planning documents (`project_proposal.md`, `architecture.md`, `implementation_plan.md`, `file_structure.md`), the pipeline code, the data processing and the results. The public git history records the dates. The Space Apps FAQ states that teams may not begin working on challenges before the hackathon, so this prior work is being declared to our Local Lead, and we follow their ruling on what may be judged. Work done during the event starts at the `hackathon-start` tag.
+The planning documents, pipeline, data processing and first results were built on 5–6 October 2026, after the challenge summary was published; the plain-language redesign and its apps followed on 7 October 2026. The public git history records every date.
