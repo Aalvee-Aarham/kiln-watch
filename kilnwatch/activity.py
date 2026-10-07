@@ -110,7 +110,7 @@ def _extract_chunk(kind: str, year: int, chunk: pd.DataFrame, part: str):
     return df.drop(columns=["geo"], errors="ignore")
 
 
-def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=int(os.environ.get("GEE_WORKERS", 3))) -> None:
+def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=int(os.environ.get("GEE_WORKERS", 3)), cache=CACHE) -> None:
     last_year = last_year or pd.Timestamp.today().year
     parts = ["ntl"] if kind == "ntl" else ["in", "ring"]
     n = CHUNK[kind]
@@ -118,7 +118,7 @@ def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=in
 
     def job(j):
         y, i, part = j
-        p = CACHE / kind / f"{y}_{i // n}_{part}.parquet"
+        p = cache / kind / f"{y}_{i // n}_{part}.parquet"
         if p.exists() and y < last_year:  # the current year is refreshed on every run
             return p
         for attempt in range(4):
@@ -140,10 +140,10 @@ def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=in
         log.error("activity %s: %d jobs missing; rerun to resume", kind, sum(d is None for d in done))
 
 
-def panel(kind: str) -> pd.DataFrame:
+def panel(kind: str, cache=CACHE) -> pd.DataFrame:
     """Long table site, period, x. ntl: radiance; s1: yard-minus-ring VV in dB."""
     def load(part):
-        fs = sorted((CACHE / kind).glob(f"*_{part}.parquet"))
+        fs = sorted((cache / kind).glob(f"*_{part}.parquet"))
         if not fs:
             raise FileNotFoundError(f"activity cache missing for {kind}: run `python -m kilnwatch activity --extract {kind}`")
         df = pd.concat([pd.read_parquet(f) for f in fs], ignore_index=True)
@@ -172,11 +172,12 @@ def excess(p: pd.DataFrame, s: pd.DataFrame) -> pd.DataFrame:
     return e.rename("e").reset_index()
 
 
-def amplitude(e: pd.DataFrame) -> pd.DataFrame:
-    """Per cluster-season A = mean e over Dec–Apr minus mean e over Jul–Oct (>= 3 and >= 2 valid periods)."""
+def amplitude(e: pd.DataFrame, core_months=CORE_MONTHS, off_months=OFF_MONTHS) -> pd.DataFrame:
+    """Per cluster-season A = mean e over Dec–Apr minus mean e over Jul–Oct (>= 3 and >= 2 valid periods).
+    Amendment 2 passes other windows; both lie inside one Jul–Jun season."""
     e = e.assign(season=season_of(e.period), m=e.period.dt.month)
-    core = e[e.m.isin(CORE_MONTHS)].groupby(["cluster_id", "season"]).e.agg(["mean", "count"])
-    off = e[e.m.isin(OFF_MONTHS)].groupby(["cluster_id", "season"]).e.agg(["mean", "count"])
+    core = e[e.m.isin(core_months)].groupby(["cluster_id", "season"]).e.agg(["mean", "count"])
+    off = e[e.m.isin(off_months)].groupby(["cluster_id", "season"]).e.agg(["mean", "count"])
     j = core.join(off, lsuffix="_core", rsuffix="_off", how="inner")
     j = j[(j.count_core >= 3) & (j.count_off >= 2)]
     return (j.mean_core - j.mean_off).rename("A").reset_index()

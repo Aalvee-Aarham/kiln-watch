@@ -46,7 +46,7 @@ MAX_CLUSTER_DIAM_M = 5_000
 MAX_CLUSTER_SHARE = 0.02
 CONTROL_ATTEMPTS_MAX = 2_000
 SEED = 20261114
-SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7}
+SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7, "transfer": 8}
 FORBIDDEN_PUBLIC_KEYS = {"kiln_id", "cluster_id", "candidate", "kiln_lat", "kiln_lon"}
 TRANSFER_DISTRICT = "Faisalabad"
 

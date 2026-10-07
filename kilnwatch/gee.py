@@ -227,29 +227,35 @@ def write_admin_clear() -> pd.DataFrame:
     return cl
 
 
-def worldcover_grid(step=0.0025):
-    """ESA WorldCover class (sampled at cell centres) on a regular lat/lon grid over the BBOX (one computePixels call), cached as .npz."""
-    p = CACHE / "worldcover_grid.npz"
+def worldcover_grid(step=0.0025, bbox=None, path=None, band_rows=1000):
+    """ESA WorldCover class (sampled at cell centres) on a regular lat/lon grid over the BBOX, cached as .npz.
+    Pulled in bands of band_rows rows (one computePixels call each) so large areas stay under the request limit."""
+    p = path or CACHE / "worldcover_grid.npz"
     if p.exists():
         z = np.load(p)
         return z["cls"], float(z["w"]), float(z["n"]), float(z["step"])
     E = ee()
-    w, s, e, n = C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N
+    w, s, e, n = bbox or (C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N)
     wc = E.ImageCollection("ESA/WorldCover/v200").first().select("Map")
-    img = wc  # nearest-pixel class at each grid centre (a mode reduction from 10 m exceeds the 2^31 pixel limit)
+    img = wc.unmask(0).toByte()  # nearest-pixel class at each grid centre (a mode reduction from 10 m exceeds the 2^31 pixel limit)
     cols, rows = round((e - w) / step), round((n - s) / step)
-    arr = E.data.computePixels({"expression": img.unmask(0).toByte(), "fileFormat": "NUMPY_NDARRAY",
-                                "grid": {"dimensions": {"width": cols, "height": rows},
-                                         "affineTransform": {"scaleX": step, "shearX": 0, "translateX": w, "shearY": 0, "scaleY": -step, "translateY": n},
-                                         "crsCode": "EPSG:4326"}})
-    cls = np.asarray(arr["Map"], dtype=np.uint8)
+    bands = []
+    for r0 in range(0, rows, band_rows):
+        arr = E.data.computePixels({"expression": img, "fileFormat": "NUMPY_NDARRAY",
+                                    "grid": {"dimensions": {"width": cols, "height": min(band_rows, rows - r0)},
+                                             "affineTransform": {"scaleX": step, "shearX": 0, "translateX": w, "shearY": 0, "scaleY": -step, "translateY": n - r0 * step},
+                                             "crsCode": "EPSG:4326"}})
+        bands.append(np.asarray(arr["Map"], dtype=np.uint8))
+    cls = np.vstack(bands)
     p.parent.mkdir(parents=True, exist_ok=True)
-    np.savez_compressed(p, cls=cls, w=w, n=n, step=step)
+    tmp = p.with_suffix(".tmp.npz")
+    np.savez_compressed(tmp, cls=cls, w=w, n=n, step=step)
+    tmp.replace(p)
     return cls, w, n, step
 
 
-def wc_lookup_fn():
-    cls, w, n, step = worldcover_grid()
+def wc_lookup_fn(**kw):
+    cls, w, n, step = worldcover_grid(**kw)
 
     def look(lat, lon):
         r = np.clip(((n - np.asarray(lat)) / step).astype(int), 0, cls.shape[0] - 1)

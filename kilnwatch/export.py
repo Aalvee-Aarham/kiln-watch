@@ -372,7 +372,32 @@ def _fixture_kiln_activity(rng):
             "non_claims": [{"en": e, "bn": b} for e, b in NON_CLAIMS],
             "contamination": {"detections": 200000, "kiln_share": 0.0015, "control_share": 0.0014, "period": "2012–2026"},
             "periods": [t.strftime("%Y-%m-%d") for t in per], "national": area(3653, "national"),
-            "areas": {"BD3026": area(120, "district"), "BD302614": area(30, "upazila")}}
+            "areas": {"BD3026": area(120, "district"), "BD302614": area(30, "upazila")}, "transfer": _fixture_transfer()}
+
+
+def _fixture_transfer():
+    """Synthetic Amendment 2 block. No random draws, so every other fixture file stays byte-identical."""
+    order = [7, 8, 9, 10, 11, 12, 1, 2, 3, 4, 5, 6]
+
+    def prof(active):
+        p50 = [0.4 if m in active else 0.0 for m in order]
+        return {"months": order, "p50": p50, "lo": [round(v - 0.05, 3) for v in p50], "hi": [round(v + 0.05, 3) for v in p50], "n_clusters": 1600}
+
+    def rows(tag, ok):
+        return [{"test": tag, "criterion": c, "value": v, "threshold": th, "p": p, "pass": ok} for c, v, th, p in (
+            ("Contrast: median A, 2022-23 (n = 1580)", 0.2 if ok else -0.05, "> 0, Wilcoxon p < 0.01", 1e-20 if ok else 0.9),
+            ("Prevalence: share of clusters with A > 0", 0.7 if ok else 0.45, "≥ 0.60", None),
+            ("Replication: seasons with median A > 0 (13 evaluable)", 1.0 if ok else 0.3, "≥ 0.75", None),
+            ("Placebo: first control as pseudo-kiln (n = 1580)", 0.0, "Wilcoxon p > 0.05", 0.5))]
+
+    def country(code, name, kilns, clusters, core, off, active, strict_ok):
+        ch = {"learned": {"core": core, "off": off}, "profile": prof(active), "n_calibration": 400, "n_confirmation": 1600,
+              "tests": rows("TL", strict_ok) + rows("LL", True), "pass": {"TL": strict_ok, "LL": True}}
+        return {"code": code, "name": name, "n_kilns": kilns, "n_clusters": clusters, "n_sampled": 2000, "n_dropped": 20, "evaluable": True, "channels": {"ntl": ch}}
+    bd = {"code": "BD", "name": "Bangladesh", "n_clusters": 3653,
+          "channels": {"ntl": {"learned": {"core": [12, 1, 2, 3, 4], "off": [7, 8, 9, 10]}, "profile": prof((12, 1, 2, 3, 4)), "tests": [], "pass": {}}}}
+    return {"countries": [bd, country("PK", "Pakistan", 10585, 7509, [2, 3, 4, 5, 6], [9, 10, 11, 12], (1, 2, 3, 4, 5, 6, 9, 10), False),
+                          country("IN", "India", 22459, 18665, [1, 2, 3, 4, 5], [7, 8, 9, 10], (1, 2, 3, 4, 5, 6), True)]}
 
 
 def _fixture_calendar(uid, kind, is_district, keys, rng, branch):

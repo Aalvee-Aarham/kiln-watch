@@ -100,6 +100,17 @@ def test_kiln_activity(branch):
             for s in a["seasons"]:
                 for m in ("onset", "end", "duration", "peak"):
                     assert s[m] is None or s[m]["lo"] <= s[m]["p50"] <= s[m]["hi"]
+    for c in k.get("transfer", {}).get("countries", []):  # Amendment 2: country-level only
+        has(c, ["code", "name", "n_clusters", "channels"])
+        for kind, ch in c["channels"].items():
+            assert kind in ("ntl", "s1")
+            core, off = ch["learned"]["core"], ch["learned"]["off"]
+            assert len(core) == 5 and len(off) == 4 and not set(core) & set(off)
+            assert all(len(ch["profile"][key]) == 12 for key in ("months", "p50", "lo", "hi"))
+            for t in ch["tests"]:
+                has(t, ["test", "criterion", "value", "threshold", "pass"])
+                assert t["test"] in ("TL", "LL", "TS", "LS")
+            assert set(ch["pass"]) <= {t["test"] for t in ch["tests"]}
 
 
 @pytest.mark.parametrize("branch", BRANCHES)
