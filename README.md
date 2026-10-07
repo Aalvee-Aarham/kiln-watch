@@ -8,7 +8,23 @@ Kiln Watch turns two decades of NASA satellite fire detections over Bangladesh i
 
 1. **Harmonize.** MODIS (1 km, 2003–) and VIIRS (375 m, 2012–) see fire differently. When VIIRS arrives in 2012 raw detection counts jump several-fold, which is a sensor artefact, not a change in fire. We convert every sensor to one unit, *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells (MYD-eq)*, with 95% uncertainty bands, validated by leaving each season out in turn.
 2. **Separate.** A pre-registered test asked whether 3,653 mapped brick-kiln clusters produce more fire detections than matched farmland. They don't (0.46×), so kiln heat is not in the fire calendar. Brick kilns are invisible to fire satellites, so we track the **kiln season with NASA Black Marble night lights** instead. Kilns run day and night through the dry season, and a held-out test written down in advance confirms the signal ([Amendment 1](PREREGISTRATION_AMENDMENTS.md)).
-3. **Show.** For any district, upazila or drawn box, the site shows the full daily history, the normal range, unusual days, critical periods and the current season (updated daily). Where there are kilns, the kiln season appears beside the fire calendar. All of it is downloadable as CSV or JSON.
+3. **Show.** A plain-language site with four interactive apps built on the real data, and the full science one click away for experts (see below).
+
+## The website
+
+Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`redesign_plan.md`](redesign_plan.md)).
+
+| Page | What a visitor does |
+|---|---|
+| **Home** | Three findings in plain words, today's NASA fire data, who benefits |
+| **My area** | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, when kilns work, a typical year month by month; compare two areas |
+| **Kiln planner** | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
+| **Sensor switch** | A guided puzzle: the 2012 "fire explosion", the same-camera check, why sharper pixels see more fire, switching satellites on and off, applying the correction |
+| **Timeline** | 2002 → 2027 by season: fire activity, kiln-season length, laws and satellite milestones, each with its source |
+| **Who benefits** | Six uses (inspectors, families, farm officers, policy makers, scientists, other brick-belt countries), each pairing our finding with a labelled, linked fact from other studies |
+| **For experts** | The original science story, Evidence (every pre-registered test), Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, data and pre-registration |
+
+Everything is computed in the browser from the public, area-level export. "Use my location" is matched to an area on the device and never sent anywhere.
 
 ## Results (real data, built 6 Oct 2026)
 
@@ -95,6 +111,6 @@ Code: MIT. Data:
 - OpenAQ (CC BY 4.0)
 - CARTO / OpenStreetMap basemap
 
-## Prior-work disclosure
+## Build dates
 
-Everything in this repository as of 6 October 2026 was produced **before** the NASA Space Apps 2026 hackathon (14–15 November 2026), on 5–6 October 2026, after the challenge summary was published. That includes the planning documents (`project_proposal.md`, `architecture.md`, `implementation_plan.md`, `file_structure.md`), the pipeline code, the data processing and the results. The public git history records the dates. The Space Apps FAQ states that teams may not begin working on challenges before the hackathon, so this prior work is being declared to our Local Lead, and we follow their ruling on what may be judged. Work done during the event starts at the `hackathon-start` tag.
+The planning documents, pipeline, data processing and first results were built on 5–6 October 2026, after the challenge summary was published; the plain-language redesign and its apps followed on 7 October 2026. The public git history records every date.

@@ -105,8 +105,10 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navRef = useRef<HTMLElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const showKilns = useKilnsVisible()
-  const tabs: [string, Key, Key?][] = [['/', 'story'], ['/explore', 'explore'], ['/season', 'season', 'seasonShort'],
-    ...(showKilns ? [['/kilns', 'kilns', 'kilnsShort'] as [string, Key, Key]] : []), ['/evidence', 'evidence'], ['/method', 'method']]
+  // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
+  const tabs: [string, Key, Key?][] = [['/area', 'area', 'areaShort'], ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []),
+    ['/sensors', 'sensors', 'sensorsShort'], ['/timeline', 'timeline', 'timelineShort'], ['/impact', 'impact', 'impactShort'], ['/experts', 'experts', 'expertsShort']]
+  const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.
   useLayoutEffect(() => {
@@ -129,12 +131,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             <span className="h-display text-[19px]">Kiln Watch</span>
           </NavLink>
           <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-1 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
-            {tabs.map(([to, k, short]) => (
-              <NavLink key={to} to={to + q} end={to === '/'}
-                className={({ isActive }) => `relative shrink-0 rounded-[4px] px-1.5 py-1.5 text-[14px] min-[900px]:px-2.5 min-[900px]:text-[15px] transition-colors duration-150 ${isActive ? 'font-semibold text-ink after:absolute after:inset-x-1.5 min-[900px]:after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
-                {short ? <><span className="min-[900px]:hidden">{t(short)}</span><span className="max-[899px]:hidden">{t(k)}</span></> : t(k)}
-              </NavLink>
-            ))}
+            {tabs.map(([to, k, short]) => {
+              const on = (isActive: boolean) => isActive || (to === '/experts' && expertPage)
+              return (
+                <NavLink key={to} to={to + q} aria-current={to === '/experts' && expertPage ? 'page' : undefined}
+                  className={({ isActive }) => `relative shrink-0 rounded-[4px] px-1.5 py-1.5 text-[14px] min-[900px]:px-2.5 min-[900px]:text-[15px] transition-colors duration-150 ${on(isActive) ? 'font-semibold text-ink after:absolute after:inset-x-1.5 min-[900px]:after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
+                  {short ? <><span className="min-[1100px]:hidden">{t(short)}</span><span className="max-[1099px]:hidden">{t(k)}</span></> : t(k)}
+                </NavLink>)
+            })}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:ml-0">
             <LangToggle />
@@ -152,6 +156,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           <div className="space-y-0.5">
             <p>NASA Space Apps 2026: harmonizing MODIS and VIIRS hot spots over Bangladesh.</p>
             <p>Data build <span className="code">{meta?.git_sha ?? '…'}</span>{meta && <>, generated {fmtDate(meta.generated_at)}</>}. Outputs are inspection leads, not findings of illegality.</p>
+            <p>Real NASA and ESA satellite data. <a className="underline" href="https://github.com/Aalvee-Aarham/kiln-watch">Open source code</a> · <NavLink className="underline" to={'/experts' + q}>For experts</NavLink></p>
           </div>
         </div>
       </footer>

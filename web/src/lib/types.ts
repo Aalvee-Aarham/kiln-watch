@@ -69,6 +69,7 @@ export interface Validation {
 
 export interface Events {
   policy: { date: string; label_en: string; label_bn: string; url: string }[]
+  satellite?: { date: string; label_en: string; label_bn: string; url: string }[]  // launches and planned ends (older builds: absent)
   harvest: { crop: string; start_doy: number; end_doy: number; url: string }[]
 }
 
