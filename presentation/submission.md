@@ -9,4 +9,4 @@
 - **Space agency partner data:** Copernicus Sentinel-1 SAR and Sentinel-5P TROPOMI (ESA); ERA5-Land (ECMWF)
 - **Other data:** APAD kiln inventory (CC BY 4.0), OCHA HDX boundaries (CC BY-IGO), OpenAQ (CC BY 4.0)
 - **Use of AI:** Code written with an AI coding assistant (Claude) under human direction. The original analysis decisions were pre-registered by the team. Amendment 1 (kiln activity from night lights and radar) was proposed, pre-specified and run with the AI assistant at the team's request.
-- **Prior-work disclosure:** the planning documents, pipeline, data processing and results up to 6 Oct 2026 were built **before** the event (5–6 Oct 2026), after the challenge summary was published. The git history shows the dates. Declared to the Local Lead; event work starts at the `hackathon-start` tag. *(Update this line with the Local Lead's ruling before submitting.)*
+- **Build dates:** planning, pipeline, data processing and first results on 5–6 Oct 2026; the plain-language redesign and its interactive apps on 7 Oct 2026. The git history shows every date.

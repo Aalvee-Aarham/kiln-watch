@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const ROUTES = ['#/', '#/explore', '#/explore/district/BD3026', '#/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
+const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/experts',
+  '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
   const errors: string[] = []
@@ -83,7 +84,7 @@ test('evidence shows every pre-registered test as a verdict', async ({ page }) =
 })
 
 test('hovering a chart keeps its series drawn', async ({ page }) => {
-  await page.goto('#/')
+  await page.goto('#/story') // the science story moved here from the home page (redesign_plan.md §3)
   const canvas = page.locator('section', { has: page.getByRole('heading', { name: /record lies/ }) }).locator('canvas').first()
   await canvas.scrollIntoViewIfNeeded()
   await page.waitForTimeout(1200)
@@ -191,4 +192,57 @@ test('main nav fits without scrolling on common widths', async ({ page }) => {
     await expect(nav).toBeVisible()
     expect(await nav.evaluate((n) => n.scrollWidth - n.clientWidth), `nav overflow at ${width}px`).toBeLessThanOrEqual(0)
   }
+})
+
+// --- plain-language apps (redesign_plan.md §4) ---
+test('my area: a refused location falls back to search, a granted one opens the area', async ({ page, context }) => {
+  await page.goto('#/area')
+  await page.getByRole('button', { name: 'Use my location' }).click()
+  await expect(page.getByText(/Location is off or was refused/)).toBeVisible()
+  await context.grantPermissions(['geolocation'])
+  await context.setGeolocation({ latitude: 23.81, longitude: 90.41 }) // central Dhaka
+  await page.getByRole('button', { name: 'Use my location' }).click()
+  await expect(page).toHaveURL(/#\/area\/BD3026/)
+  await expect(page.getByText('Fire season here')).toBeVisible()
+})
+
+test('my area: search by name opens the area', async ({ page }) => {
+  await page.goto('#/area')
+  await page.getByLabel('Search by name').fill('Rajshahi (district, Rajshahi)')
+  await expect(page).toHaveURL(/#\/area\/BD\d{4}$/)
+  await expect(page.getByRole('heading', { level: 1, name: 'Rajshahi' })).toBeVisible()
+})
+
+test('kiln planner: the season slider recolours the map', async ({ page }) => {
+  await page.goto('#/kilns')
+  const feats = page.locator('.bd-feat')
+  await expect(feats.first()).toBeVisible()
+  const fills = () => feats.evaluateAll((els) => els.map((e) => e.getAttribute('fill')).join('|'))
+  const before = await fills()
+  await page.locator('input[type="range"]').fill('0')
+  await expect(page.locator('input[type="range"]')).toHaveAttribute('aria-valuetext', '2012-13')
+  await expect(page.getByText(/^In 2012-13, the kiln season across Bangladesh lasted/)).toBeVisible()
+  expect(await fills()).not.toBe(before)
+})
+
+test('sensor switch: answering reveals the steps and the correction shrinks the jump', async ({ page }) => {
+  await page.goto('#/sensors')
+  await expect(page.getByRole('button', { name: 'Apply the correction' })).toHaveCount(0)
+  await page.getByRole('button', { name: 'No, something else changed' }).click()
+  await page.getByRole('button', { name: 'Apply the correction' }).click()
+  await expect(page.getByText(/After correction, the 2012 jump shrinks/)).toBeVisible()
+})
+
+test('timeline: an event opens to its source', async ({ page }) => {
+  await page.goto('#/timeline')
+  const ev = page.locator('details', { hasText: 'Brick Kiln Control Act 2013 passed' })
+  await ev.locator('summary').click()
+  await expect(ev.getByRole('link', { name: 'Source' })).toHaveAttribute('href', /^https:\/\//)
+})
+
+test('glossary words explain themselves on tap', async ({ page }) => {
+  await page.goto('#/sensors')
+  await page.getByRole('button', { name: 'No, something else changed' }).click()
+  await page.getByRole('button', { name: /^VIIRS: what does this mean/ }).first().click()
+  await expect(page.getByText(/375 m by 375 m/).first()).toBeVisible()
 })

@@ -114,7 +114,11 @@ def test_validation(branch):
 @pytest.mark.parametrize("branch", BRANCHES)
 def test_other_files(branch):
     e = load(branch, "events.json")
-    has(e, ["policy", "harvest"])
+    has(e, ["policy", "harvest", "satellite"])
+    for ev in e["policy"] + e["satellite"]:  # every event is dated, bilingual and sourced
+        has(ev, ["date", "label_en", "label_bn", "url"])
+        assert ev["url"].startswith("https://")
+    assert [x["date"] for x in e["satellite"]] == sorted(x["date"] for x in e["satellite"])
     n = load(branch, "nrt/current_season.json")
     assert n["provisional"] is True
     has(n, ["updated_at", "season", "day0", "national", "districts"])

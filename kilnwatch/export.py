@@ -287,8 +287,10 @@ def _fixture_set_real(d: Path, src: Path) -> None:
 def events_payload() -> dict:
     """events.json from the real curated CSVs in data/static (same payload the pipeline writes)."""
     pol = pd.read_csv(C.STATIC / "policy_events.csv")
+    sat = pd.read_csv(C.STATIC / "satellite_events.csv")
     crop = pd.read_csv(C.STATIC / "crop_calendar.csv")
     return {"policy": pol.rename(columns={"source_url": "url"}).to_dict("records"),
+            "satellite": sat.rename(columns={"source_url": "url"}).to_dict("records"),
             "harvest": [{"crop": r.crop, "start_doy": int(pd.Timestamp(r.harvest_start).dayofyear),
                          "end_doy": int(pd.Timestamp(r.harvest_end).dayofyear), "url": r.source_url}
                         for r in crop.itertuples()]}

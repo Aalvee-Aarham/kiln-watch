@@ -1,6 +1,8 @@
 # 🔥 Kiln Watch
 
-**NASA Space Apps Challenge 2026 — *Harmonization of MODIS and VIIRS Hot Spots***
+NASA Space Apps Challenge 2026
+
+**Challenge: Harmonization of MODIS and VIIRS Hot Spots**
 
 🌐 **Live site: https://aalvee-aarham.github.io/kiln-watch/** (updated daily from NASA FIRMS)
 
