@@ -168,6 +168,6 @@ Judges score **Impact, Creativity, Validity, Relevance**. Each now has a home, a
 | Creativity + whole approach | `#/how` (new) | Six-step stepper on real data: satellites → hot pixels (to-scale illustration) → one scale (raw vs harmonized) → the six instruments tested for kilns → calendars → people act |
 | Relevance | `#/how`, last section | Table: each challenge requirement → what Kiln Watch does → link to it working |
 | Impact | `#/impact/:who?/:unitId?` (rewritten) | Person × district playbook: their question → what the data shows for that district (live) → dated actions → benefit, a labelled outside fact, and the limit. Printable, shareable URL |
-| Validity | `#/trust` (new) | Every pre-registered test in plain words with Passed / Failed / No link found, how we stayed honest, and `meta.non_claims` |
+| Validity | `#/trust` (new) | Every pre-registered test in plain words with Passed / Failed / No link found, how we stayed honest, and `meta.non_claims`. **Does it work outside Bangladesh?** (Amendments 2–4): a country switch over each tested country's real monthly kiln-glow profile, its learned busy months, the four checks, and first test vs retest |
 
 Home adds the six-step chain, "What people do with it" (question → live answer → action cards linking to playbooks), and "Four questions judges ask". Nav: `How it works · My area · Kiln planner · Who benefits · Can you trust it? · For experts`; Sensor switch and Timeline are linked from the pages.

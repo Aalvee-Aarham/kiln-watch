@@ -35,8 +35,12 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 **How we solved it.**
 1. **Test whether fire satellites see kilns at all.** Before looking at the data, we wrote down a test: do 3,653 mapped kiln clusters produce more fire detections than matched farmland nearby? They don't (0.46×). Only **0.15%** of dry-season fire detections fall on kilns, the same as on ordinary farmland. Kilns burn inside closed brick chambers, so fire satellites can't see them. The fire calendar is therefore clean, with no kiln heat to remove.
 2. **Find a satellite that can see kilns.** We tried six kinds of data. Two worked:
-   - **NASA Black Marble night lights:** kilns run all night with lamps and workers on site.
-   - **Sentinel-1 radar:** stacks of fresh bricks pile up in the kiln yards.
+   - ❌ **NASA FIRMS fire detections:** kiln fires burn inside closed chambers, so the satellite sees no flames.
+   - ❌ **NASA ECOSTRESS night heat:** kilns were no warmer at night than nearby farmland.
+   - ❌ **Landsat 8/9 surface heat:** it picked up the warm brick buildings even when kilns were shut, so it couldn't tell working kilns from idle ones.
+   - ❌ **TROPOMI air pollution (SO₂, NO₂):** each pixel covers too much ground, so kiln smoke gets mixed in with every other source.
+   - ✅ **NASA Black Marble night lights:** kilns run all night with lamps and workers on site.
+   - ✅ **Sentinel-1 radar:** stacks of fresh bricks pile up in the kiln yards.
 3. **Test it fairly.** We wrote the pass rules down in advance ([Amendment 1](PREREGISTRATION_AMENDMENTS.md)) and tested on 3,253 kiln clusters and a season the trial never touched. Both checks passed:
    - **Night lights:** **72%** of kiln clusters glow brighter in kiln season than nearby farmland. The result holds in **13 of 13 years**, and ordinary farmland shows nothing.
    - **Radar:** passes as an independent second check.
@@ -77,11 +81,17 @@ Everything is computed in the browser from the public, area-level export. "Use m
 | **Leave-one-season-out:** pooled 95% coverage 0.90–0.97 | **FAIL (conservative)**: 0.985 [0.982–0.987]. Intervals are too wide, not too narrow. See BLOCKERS.md |
 | **G1, kilns visible to VIIRS:** DR(kiln)/DR(control) ≥ 3, perm p < 0.01, plus shape and seasonality | **FAIL**: 0.46×, p = 0.96 across 3,653 clusters and 10,959 matched controls |
 | **G2, kilns visible to MODIS** | **FAIL**: 0.73× |
+| **Transfer, fire-satellite kiln classifier in Faisalabad, Pakistan** (frozen model, APAD Pakistan labels) | **FAIL**: PR-AUC 0.05 [0.02–0.14] against a prevalence of 0.03. Expected after G1/G2: fire satellites cannot see enclosed kilns. The night-light method was then tested abroad (Amendments 2–4, below) |
 | → Gate branch | **`nokiln`**: calendar ships in full; split = Aman / Boro harvest windows / other; index = HBI |
 | Kiln heat inside the fire calendar (upper bound) | 351 of 234,693 Bangladesh VIIRS detections, Nov–May 2012–2026 (**0.15%**), fall on kiln footprints, against 0.14% on matched farmland: no kiln contamination to remove |
 | *Amendment 1 (written before the confirmatory run):* **GL, kiln season in NASA Black Marble night lights**, held-out clusters, season 2022-23 | **PASS**: median seasonal excess +0.195 nW/cm²/sr (p < 10⁻³⁰⁰); 72% of 3,253 clusters > 0; 13/13 seasons replicate; placebo p = 0.58 |
 | Other kiln channels tried (pilot, all reported) | FIRMS night detections: 37 of 3,653 clusters in 14 years · ECOSTRESS night: no signal · Landsat day: sees the kiln structure, not firing · TROPOMI SO₂/NO₂: no signal |
 | *Amendment 1:* **GS, independent check with Sentinel-1 radar** (brick stacks in kiln yards) | **PASS**: median +0.30 dB (p = 3×10⁻⁵⁸); 62% of clusters > 0; 9/10 seasons; placebo p = 0.12 |
+| *Amendment 2:* **night lights in Pakistan and India** (2,000 clusters each; Bangladesh's months TL, and months learned on 400 calibration clusters LL) | **FAIL** in both, on the placebo only. Contrast, prevalence and replication passed (Pakistan LL: +0.15, p ≈ 10⁻⁵⁹, 70%, 13/13; India LL: +0.17, p ≈ 10⁻⁴², 66%, 13/13). Diagnosis: farmland 3–6 km from kilns also brightens in kiln season, and the placebo's first control was the far one |
+| *Amendment 2:* **radar in Pakistan and India** (600 confirmation clusters each) | **PASS**, both months and learned months, placebos clean. Learned busy months: Jan–May (Pakistan), Feb–Jun (India) |
+| *Amendment 3:* **night lights in Afghanistan** (SentinelKilnDB, 496 clusters) | **FAIL**: no signal (contrast +0.002, p = 0.75). The method does not work there |
+| *Amendment 4:* **night-light retest on fresh clusters**, farmland ≥ 6 km from every kiln, random control order | **Pakistan PASS** (TL and LL; LL +0.19, 76%, 13/13, placebo p = 0.09). **India PASS on LL** (primary; +0.19, 68%, 13/13, placebo p = 0.08); TL fails its placebo (p = 0.02) |
+| Self-check | Given only Bangladesh's 400 pilot clusters, the window learner picks exactly Dec–Apr / Jul–Oct |
 
 Data: 1,221,809 FIRMS detections (2003 → today) · 13M Earth Engine daily clear-land fractions · 4,760 APAD kilns · 560 district and upazila calendars.
 Full reports: [`reports/`](reports/) · Evidence page of the site · pitch materials in [`presentation/`](presentation/).

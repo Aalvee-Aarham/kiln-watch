@@ -156,7 +156,7 @@ function Kilns({ ka }: { ka?: KilnActivity }) {
       </ul>}
       <Ours>Winner: <Gloss k="nightLights">night lights</Gloss>. Kilns work all night with lamps on, so the ground around them glows brighter in kiln season.
         {pct && <> Fire satellites, by contrast, put only {pct}% of dry-season detections on kiln sites, the same as on farmland.</>}</Ours>
-      <TryLink to="/kilns">See kiln seasons by area</TryLink>
+      <div className="flex flex-wrap gap-2"><TryLink to="/kilns">See kiln seasons by area</TryLink><TryLink to="/trust">Does it work in other countries?</TryLink></div>
     </div>
   )
 }

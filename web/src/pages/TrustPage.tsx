@@ -1,9 +1,12 @@
-import type { ReactNode } from 'react'
-import { Icon, useKilnActivity, useMeta, useTitle } from '../components/ui'
+import { useMemo, useState, type ReactNode } from 'react'
+import { Icon, SegmentedToggle, useKilnActivity, useMeta, useTitle } from '../components/ui'
 import { Gloss, PageHead, TryLink } from '../components/plain'
+import { EChart } from '../components/EChart'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
-import type { Harmonization, Validation } from '../lib/types'
+import { MONTHS } from '../lib/plain'
+import { palette, useTheme } from '../lib/theme'
+import type { Harmonization, TransferChannel, TransferCountry, TransferTest, Validation } from '../lib/types'
 
 const REPO = 'https://github.com/Aalvee-Aarham/kiln-watch'
 type Result = 'pass' | 'fail' | 'none'
@@ -24,6 +27,7 @@ export default function TrustPage() {
   const fireGate = val?.gates.find((g) => g.gate === 'G1' && g.pass !== undefined)
   const rs = (val?.pm25 ?? []).flatMap((x) => [x.r_kiln.p50, x.r_veg.p50])
   const cov = harm?.loso_pooled.covered.p50
+  const abroad = (ka?.transfer?.countries ?? []).filter((c) => c.code !== 'BD' && c.evaluable !== false)
 
   const checks: Check[] = [
     ...(harm ? [{
@@ -41,8 +45,9 @@ export default function TrustPage() {
     ...(fireGate ? [{
       claim: 'Fire satellites can tell brick kilns apart from farm fires.',
       result: (fireGate.pass ? 'pass' : 'fail') as Result,
-      got: <>Kilns looked no different from nearby farmland in the fire data</>,
-      meaning: 'So we did not publish any fire-based kiln map, and tested other instruments instead (see How it works, step 4).',
+      got: fireGate.pass ? <>Kilns stood out from nearby farmland in the fire data</> : <>Kilns looked no different from nearby farmland in the fire data</>,
+      meaning: fireGate.pass ? 'Fire data can separate kiln heat from crop fires.'
+        : 'So we did not publish any fire-based kiln map, and tested other instruments instead (see How it works, step 4).',
     }] : []),
     ...(gl('Contrast') ? [{
       claim: <>Kiln areas glow brighter at night in kiln season than nearby farmland (<Gloss k="nightLights">night lights</Gloss>).</>,
@@ -75,11 +80,34 @@ export default function TrustPage() {
       meaning: 'So Kiln Watch is not an air-quality forecast, and never says it is.',
     }] : []),
     ...(val?.transfer ? [{
-      claim: `The fire-satellite kiln method works in another country (${val.transfer.district}, Pakistan).`,
+      claim: `Fire satellites can spot kilns in another country (${val.transfer.district}, Pakistan).`,
       result: (val.transfer.gate_pass ? 'pass' : 'fail') as Result,
-      got: <>It did not pass there</>,
-      meaning: 'We only claim results for Bangladesh.',
+      got: val.transfer.gate_pass ? <>Yes, the fire-data kiln model worked there</> : <>No: kilns looked like farmland to fire satellites there too</>,
+      meaning: val.transfer.gate_pass ? 'The fire-data kiln model carries over to Pakistan.'
+        : 'The same failure as in Bangladesh: fire satellites cannot see enclosed kilns, so kilns are tracked with night lights instead.',
     }] : []),
+    ...abroad.flatMap((c) => {
+      const first = c.channels.ntl, re = headline(c) !== c ? headline(c).channels.ntl : undefined
+      if (first?.pass.LL == null) return []
+      const fails = failed(first, 'LL')
+      const row = (ch: TransferChannel, claim: ReactNode, meaning: string) => ({
+        claim, result: (ch.pass.LL ? 'pass' : 'fail') as Result, meaning,
+        got: ch.pass.LL ? <>Busiest {span(ch.learned.core)}; Bangladesh’s months unchanged: {ch.pass.TL ? 'also passed' : 'failed'}</>
+          : <>Failed: {failed(ch, 'LL').join('; ').toLowerCase()}</>,
+      })
+      const verdict = (ch: TransferChannel) => (ch.pass.LL ? `The night-light kiln method works in ${c.name}.` : `We do not claim the method works in ${c.name}.`)
+      return [
+        row(first, <>Night lights see kilns in {c.name} too, once the method learns {c.name}’s own kiln calendar{re ? ' (first test)' : ''}.</>,
+          re && !first.pass.LL ? (fails.length === 1 && fails[0] === CHECKS[3][1] ? `${SPILL} Retested below.` : 'Retested below.') : verdict(first)),
+        ...(re ? [row(re, <>Retest in {c.name} on fresh kiln clusters, with farmland at least 6 km from any kiln.</>, verdict(re))] : []),
+        ...(c.channels.s1?.pass.LS != null ? [{
+          claim: <>Radar sees kiln yards in {c.name} too, on {c.name}’s own calendar.</>,
+          result: (c.channels.s1.pass.LS ? 'pass' : 'fail') as Result,
+          got: c.channels.s1.pass.LS ? <>Busiest {span(c.channels.s1.learned.core)}</> : <>Failed: {failed(c.channels.s1, 'LS').join('; ').toLowerCase()}</>,
+          meaning: c.channels.s1.pass.LS ? 'A second, independent sensor agrees.' : 'Radar does not confirm it there.',
+        }] : []),
+      ]
+    }),
   ]
   const n = (r: Result) => checks.filter((c) => c.result === r).length
 
@@ -101,6 +129,8 @@ export default function TrustPage() {
             </li>))}
         </ul>
       </section>
+
+      {ka?.transfer && ka.transfer.countries.length > 1 && <Abroad countries={ka.transfer.countries} />}
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label="How we kept ourselves honest">
         {[['Tests written first', 'Every pass mark was committed to a public file before the analysis it governs. Later changes go in dated amendments, never edits.'],
@@ -126,4 +156,122 @@ export default function TrustPage() {
 function Badge({ r }: { r: Result }) {
   const [label, cls, icon] = r === 'pass' ? ['Passed', 'bg-ok-soft text-ok', 'check'] as const : r === 'fail' ? ['Failed', 'bg-err-soft text-err', 'cross'] as const : ['No link found', 'bg-surface-2 text-muted', 'half'] as const
   return <span className={`inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-0.5 text-sm font-semibold ${cls}`}><Icon name={icon} className="h-3.5 w-3.5" />{label}</span>
+}
+
+const mon = (m: number) => MONTHS[m - 1]
+/** "A", "A and B", "A, B and C". */
+const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`)
+const span = (ms: number[]) => (ms.length ? `${mon(ms[0])} to ${mon(ms[ms.length - 1])}` : '')
+const CHECKS: [string, string][] = [
+  ['Contrast', 'Kilns glow more in their busy months than nearby farmland'], ['Prevalence', 'In most kiln clusters, not just a few'],
+  ['Replication', 'Year after year'], ['Placebo', 'Farmland pretending to be a kiln shows nothing'],
+]
+
+/** Amendment 2: the night-light kiln method in other countries, one country at a time, on its real monthly profile. */
+export function Abroad({ countries }: { countries: TransferCountry[] }) {
+  const [code, setCode] = useState(countries.find((c) => c.code !== 'BD')?.code ?? countries[0].code)
+  const c = countries.find((x) => x.code === code) ?? countries[0]
+  const ntl = headline(c).channels.ntl
+  return (
+    <section className="space-y-4" aria-label="Does it work outside Bangladesh?">
+      <h2 className="h-display text-[clamp(1.6rem,3.5vw,2.2rem)]">Does it work outside Bangladesh?</h2>
+      <p className="prose-measure text-muted">We repeated the night-light kiln test in {list(countries.filter((x) => x.code !== 'BD').map((x) => x.name))}, with the rules
+        written down before any of their data was pulled. Kilns keep different calendars in each country, so the method first learns each country’s busy
+        months from one in five of its kiln clusters, then is tested on the rest.</p>
+      <SegmentedToggle label="Country" value={code} options={countries.map((x) => [x.code, x.name] as [string, string])} onChange={setCode} />
+      <div className="grid gap-4 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+        <figure className="panel m-0 space-y-2">
+          <figcaption className="font-semibold">Extra night glow at kiln sites, month by month: {c.name}</figcaption>
+          {ntl ? <ProfileChart ch={ntl} name={c.name} /> : <p className="text-sm text-muted">No night-light data for this country.</p>}
+          {ntl && <p className="text-xs text-muted">Line: median over {ntl.profile.n_clusters.toLocaleString('en-US')} kiln clusters of their glow minus three patches of similar
+            farmland nearby. Band: 95% range. Dark shading: the 5 busiest months the method learned; light shading: the 4 quietest.</p>}
+        </figure>
+        <Verdict c={c} />
+      </div>
+    </section>
+  )
+}
+
+function ProfileChart({ ch, name }: { ch: TransferChannel; name: string }) {
+  const theme = useTheme()
+  const p = useMemo(() => palette(), [theme]) // eslint-disable-line react-hooks/exhaustive-deps
+  const x = ch.profile.months.map((m) => mon(m).slice(0, 3))
+  const lo = ch.profile.lo
+  const band = ch.profile.hi.map((h, i) => (h == null || lo[i] == null ? null : Math.round((h - (lo[i] as number)) * 1e4) / 1e4))
+  const area = (ms: number[], color: string, label: string) => ({
+    silent: true, itemStyle: { color, opacity: 0.12 }, label: { show: true, position: 'insideTop', color, fontSize: 11, formatter: label },
+    data: [[{ xAxis: mon(ms[0]).slice(0, 3) }, { xAxis: mon(ms[ms.length - 1]).slice(0, 3) }]],
+  })
+  const opt = {
+    grid: { left: 44, right: 12, top: 28, bottom: 28 }, tooltip: { trigger: 'axis' },
+    xAxis: { type: 'category', data: x, boundaryGap: false },
+    yAxis: { type: 'value', name: 'nW/cm²/sr' },
+    series: [
+      { name: 'lo', type: 'line', data: lo, stack: 'ci', stackStrategy: 'all', symbol: 'none', lineStyle: { opacity: 0 }, tooltip: { show: false } },
+      { name: '95% range', type: 'line', data: band, stack: 'ci', stackStrategy: 'all', symbol: 'none', lineStyle: { opacity: 0 },
+        areaStyle: { color: p.brick, opacity: 0.18 }, tooltip: { show: false } },
+      { name: 'Kiln glow above farmland', type: 'line', data: ch.profile.p50, color: p.brick, lineStyle: { width: 3 }, symbolSize: 6,
+        markArea: area(ch.learned.core, p.brick, 'busiest'),
+        markLine: { silent: true, symbol: 'none', lineStyle: { color: p.muted, type: 'dotted' }, data: [{ yAxis: 0 }], label: { show: false } } },
+      { name: 'quiet', type: 'line', data: [], markArea: area(ch.learned.off, p.muted, 'quietest') },
+    ],
+  }
+  return <EChart option={opt} height={280} label={`Median extra night glow at kiln sites in ${name}, July to June, with the learned busiest and quietest months shaded`}
+    exportName={`kilnwatch_kilns_${name.toLowerCase()}`} />
+}
+
+/** Plain labels of the checks a test failed. */
+const failed = (ch: TransferChannel | undefined, t: TransferTest) =>
+  CHECKS.filter(([k]) => ch?.tests.some((r) => r.test === t && r.criterion.startsWith(k) && !r.pass)).map(([, label]) => label)
+/** The retest (Amendment 4) when it ran, else the first test. */
+const headline = (c: TransferCountry) => (c.retest && c.retest.evaluable !== false && c.retest.channels.ntl ? c.retest : c)
+const SPILL = 'Farmland close to kilns also brightened in the kiln season (kiln light reaches it), so the farmland-versus-farmland check failed.'
+
+function Verdict({ c }: { c: TransferCountry }) {
+  const head = headline(c)
+  const ntl = head.channels.ntl, s1 = c.channels.s1, first = c.channels.ntl
+  if (c.code === 'BD') return (
+    <div className="panel space-y-3 self-start">
+      <b className="block text-lg">Home test: passed</b>
+      <p className="text-sm">The night-light method was first tested here (see the checks above).</p>
+      {ntl && <p className="text-sm text-muted">Self-check: given only Bangladesh’s 400 pilot clusters, the learner picks <b>{span(ntl.learned.core)}</b> as the
+        busiest months. The fixed Bangladesh test uses December to April.</p>}
+    </div>
+  )
+  if (head.evaluable === false) return <div className="panel self-start text-sm">Not tested: too few kiln clusters had fair farmland controls nearby.</div>
+  const local = ntl?.pass.LL, strict = ntl?.pass.TL
+  const firstFails = failed(first, 'LL')
+  return (
+    <div className="panel space-y-3 self-start">
+      {ntl && <>
+        <b className={`block text-lg ${local ? 'text-ok' : 'text-err'}`}>{local ? `Passed in ${c.name}` : `Did not pass in ${c.name}`}</b>
+        {!local && failed(ntl, 'LL').includes(CHECKS[0][1]) && <p className="text-sm">Night lights show no kiln season here, so this method cannot time kilns
+          in {c.name}.</p>}
+        {head !== c && <p className="text-sm">Retest on {head.n_sampled?.toLocaleString('en-US')} fresh kiln clusters, with farmland at least 6 km from any kiln.</p>}
+        <p className="text-sm">Learned from {c.name}’s own kilns: busiest <b>{span(ntl.learned.core)}</b>, quietest <b>{span(ntl.learned.off)}</b>.</p>
+        <Rows tests={ntl.tests.filter((r) => r.test === 'LL')} />
+        <p className="text-sm text-muted">Using Bangladesh’s months unchanged (December to April): <b>{strict ? 'passed' : 'failed'}</b>.
+          {!strict && local && ' Kilns there keep a different calendar, which is why the method learns it first.'}</p>
+      </>}
+      {head !== c && first && <p className="text-sm text-muted">First test, on {c.n_sampled?.toLocaleString('en-US')} other clusters with farmland 3–15 km
+        from kilns: <b>{first.pass.LL ? 'passed' : 'did not pass'}</b>.{firstFails.length === 1 && firstFails[0] === CHECKS[3][1] ? ` ${SPILL}` : firstFails.length ? ` Failed: ${firstFails.join('; ').toLowerCase()}.` : ''}</p>}
+      {s1 && <p className="text-sm text-muted">Radar, as an independent check ({s1.n_confirmation} clusters): own calendar <b>{s1.pass.LS ? 'passed' : 'failed'}</b>,
+        Bangladesh’s months <b>{s1.pass.TS ? 'passed' : 'failed'}</b>.</p>}
+      <p className="text-xs text-muted">{c.n_kilns?.toLocaleString('en-US')} mapped kilns in {c.n_clusters.toLocaleString('en-US')} clusters ({c.source ?? 'APAD'});
+        {c.n_sampled === c.n_clusters ? ' all were used.' : ` a random ${c.n_sampled?.toLocaleString('en-US')} were used.`}</p>
+    </div>
+  )
+}
+
+function Rows({ tests }: { tests: TransferChannel['tests'] }) {
+  return (
+    <ul className="space-y-1 text-sm">
+      {CHECKS.map(([k, label]) => {
+        const r = tests.find((t) => t.criterion.startsWith(k))
+        if (!r) return null
+        const val = k === 'Prevalence' && r.value != null ? ` (${Math.round(r.value * 100)}%)` : ''
+        return <li key={k} className="flex gap-2"><Icon name={r.pass ? 'check' : 'cross'} className={`mt-0.5 h-4 w-4 ${r.pass ? 'text-ok' : 'text-err'}`} /><span>{label}{val}</span></li>
+      })}
+    </ul>
+  )
 }

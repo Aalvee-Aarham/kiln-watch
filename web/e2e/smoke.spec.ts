@@ -265,3 +265,16 @@ test('how it works: Next walks the six steps in order', async ({ page }) => {
   }
   await expect(page.getByRole('button', { name: /^Next/ })).toBeDisabled()
 })
+
+test('trust: the country switch shows each tested country on its own data', async ({ page }) => {
+  await page.goto('#/trust')
+  const sw = page.getByRole('radiogroup', { name: 'Country' })
+  await expect(sw.getByRole('radio').first()).toHaveText('Bangladesh') // the switch fills once kiln_activity.json loads
+  const names = await sw.getByRole('radio').allTextContents()
+  expect(names.length).toBeGreaterThan(1)
+  for (const n of names.slice(1)) {
+    await sw.getByRole('radio', { name: n }).click()
+    await expect(page.getByText(`Extra night glow at kiln sites, month by month: ${n}`)).toBeVisible()
+    await expect(page.getByText(new RegExp(`^(Passed in|Did not pass in|Not tested)`)).first()).toBeVisible()
+  }
+})

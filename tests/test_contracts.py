@@ -100,8 +100,10 @@ def test_kiln_activity(branch):
             for s in a["seasons"]:
                 for m in ("onset", "end", "duration", "peak"):
                     assert s[m] is None or s[m]["lo"] <= s[m]["p50"] <= s[m]["hi"]
-    for c in k.get("transfer", {}).get("countries", []):  # Amendment 2: country-level only
+    rows = k.get("transfer", {}).get("countries", [])
+    for c in rows + [r["retest"] for r in rows if "retest" in r]:  # Amendments 2-4: country-level only
         has(c, ["code", "name", "n_clusters", "channels"])
+        assert "retest" not in c.get("retest", {}), "a retest has no retest of its own"
         for kind, ch in c["channels"].items():
             assert kind in ("ntl", "s1")
             core, off = ch["learned"]["core"], ch["learned"]["off"]

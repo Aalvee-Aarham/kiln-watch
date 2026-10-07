@@ -400,7 +400,7 @@ def _write_report(res: dict) -> None:
     L += [f"Bangladesh self-check (descriptive): the window learned from its 400 pilot clusters is core {span(b['learned']['core'])}, "
           f"off {span(b['learned']['off'])} (Amendment 1 fixed Dec–Apr / Jul–Oct).", ""]
     for c in res["countries"]:
-        L += [f"## {c['name']}", "", f"{c['n_kilns']:,} kilns, {c['n_clusters']:,} clusters; {c['n_sampled']:,} sampled, {c['n_dropped']} dropped for lack of controls. "
+        L += [f"## {c['name']}: {'retest (Amendment 4)' if c.get('design') == 'A4' else 'first test'}", "", f"{c['n_kilns']:,} kilns, {c['n_clusters']:,} clusters; {c['n_sampled']:,} sampled, {c['n_dropped']} dropped for lack of controls. "
               f"Control rungs: {c.get('control_rungs')}.", ""]
         if not c["evaluable"]:
             L += ["Not evaluable: more than 20% of sampled clusters lack three controls.", ""]

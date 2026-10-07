@@ -27,6 +27,7 @@ interface Facts {
   unusual: number | null; season?: string
   harvest: string[]
   seamPct: number | null; repl: string | null
+  passedAbroad: string[]; failedAbroad: string[]   // Amendment 2: night-light kiln test, local calendar (LL)
 }
 
 interface Persona {
@@ -37,10 +38,12 @@ interface Persona {
   actions: (f: Facts) => ReactNode[]
   outcome: string
   other?: [text: ReactNode, src: string, href: string]
-  limit: ReactNode
+  limit: ReactNode | ((f: Facts) => ReactNode)
 }
 
 const m = (i: number) => SEASON_MONTHS[(i + 12) % 12]
+/** "A", "A and B", "A, B and C". */
+const list = (xs: string[]) => (xs.length < 2 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs.at(-1)}`)
 const span = (a: string, b: string) => (a === b ? `in ${a}` : `${a} to ${b}`)
 const kilnMonths = (f: Facts) => f.kiln && span(monthOfSeasonDay(f.kiln.onset), monthOfSeasonDay(f.kiln.end))
 const fireMonths = (f: Facts) => f.fire && span(m(f.fire.first), m(f.fire.last))
@@ -135,15 +138,15 @@ const PERSONAS: Persona[] = [
     id: 'science', who: 'Scientists and other countries', benefit: 'Keep fire records alive after MODIS retires', area: false,
     question: () => 'How do we keep 20-year fire records going after MODIS retires, and find kilns that fire satellites can’t see?',
     tool: () => ['/sensors', 'Sensor switch'],
-    shows: (f) => <p>{f.seamPct != null && <>Our correction removed <b>{f.seamPct}%</b> of the false 2012 jump. </>}{f.repl && <>The night-light kiln test passed in <b>{f.repl}</b> seasons, and found nothing on ordinary farmland, as it should.</>}</p>,
+    shows: (f) => <p>{f.seamPct != null && <>Our correction removed <b>{f.seamPct}%</b> of the false 2012 jump. </>}{f.repl && <>The night-light kiln test passed in <b>{f.repl}</b> seasons, and found nothing on ordinary farmland, as it should.</>}{f.passedAbroad.length > 0 && <> Repeated with the same rules, it also passed in <b>{list(f.passedAbroad)}</b>.</>}{f.failedAbroad.length > 0 && <> It did not pass in <b>{list(f.failedAbroad)}</b>.</>}</p>,
     actions: () => [
       <>Reuse the open code to bridge MODIS to VIIRS for your own country before MODIS stops in 2027.</>,
-      <>Run the night-light kiln calendar with free NASA Black Marble data in another brick-belt country.</>,
+      <>Run the night-light kiln calendar with free NASA Black Marble data in another brick-belt country: learn its kiln calendar from one in five of its kiln clusters first, then test on the rest.</>,
       <>Copy the pre-registration: write the tests down before you look at the data.</>,
     ],
-    outcome: 'Long fire records stay comparable across the camera change, anywhere in the world.',
+    outcome: 'Long fire records stay comparable across the camera change, with an open method any team can rerun for its own region.',
     other: [<>NASA plans to end data collection from Terra MODIS in <b>January 2027</b> and from Aqua MODIS around <b>September 2027</b>.</>, ...SRC.modis],
-    limit: <>The night-light kiln method is tested in Bangladesh only. An early fire-satellite kiln test in Faisalabad, Pakistan, failed.</>,
+    limit: (f) => <>The night-light kiln method is tested in {list(['Bangladesh', ...f.passedAbroad, ...f.failedAbroad])} only; we make no claim for other countries. The older fire-satellite kiln test in Faisalabad, Pakistan, failed, as it did in Bangladesh.</>,
   },
 ]
 
@@ -207,7 +210,7 @@ function Playbook({ p, f }: { p: Persona; f: Facts }) {
             <li key={i} className="flex gap-2"><Icon name="check" className="mt-1 h-4 w-4 text-ok" /><span>{a}</span></li>))}</ul></li>
       </ol>
       <div className="grid gap-4 border-t border-line pt-4 md:grid-cols-2">
-        <div className="space-y-2"><span className="tag">The benefit</span><p className="text-lg">{p.outcome}</p><Caution>{p.limit}</Caution></div>
+        <div className="space-y-2"><span className="tag">The benefit</span><p className="text-lg">{p.outcome}</p><Caution>{typeof p.limit === 'function' ? p.limit(f) : p.limit}</Caution></div>
         {p.other && <Other src={p.other[1]} href={p.other[2]}>{p.other[0]}</Other>}
       </div>
       <div className="flex flex-wrap gap-2 print:hidden">
@@ -228,6 +231,7 @@ function useFacts(id: string, name: string): Facts | null {
   if (!cal.data && !cal.error) return null
   const area = ka?.areas?.[id]
   const rep = ka?.tests.find((r) => r.test === 'GL' && r.criterion.startsWith('Replication'))
+  const abroad = (ka?.transfer?.countries ?? []).filter((c) => c.code !== 'BD' && c.evaluable !== false)
   const repN = Number(rep?.criterion.match(/\((\d+) evaluable\)/)?.[1] ?? NaN)
   const mon = (doy: number) => MONTHS[new Date(Date.UTC(2001, 0, doy)).getUTCMonth()]
   return {
@@ -238,6 +242,8 @@ function useFacts(id: string, name: string): Facts | null {
     unusual: nrt?.districts[id]?.above_p90_days ?? null, season: nrt?.season,
     harvest: (events?.harvest ?? []).map((h) => `${h.crop === 'aman' ? 'Aman' : h.crop === 'boro' ? 'Boro' : h.crop} in ${mon(h.start_doy)}–${mon(h.end_doy)}`),
     seamPct: harm ? Math.round((1 - harm.seam.ratio) * 100) : null,
+    passedAbroad: abroad.filter((c) => c.channels.ntl?.pass.LL).map((c) => c.name),
+    failedAbroad: abroad.filter((c) => c.channels.ntl?.pass.LL === false).map((c) => c.name),
     repl: rep?.value != null && Number.isFinite(repN) ? `${Math.round(rep.value * repN)} of ${repN}` : null,
   }
 }

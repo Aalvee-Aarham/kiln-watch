@@ -146,7 +146,7 @@ export default function HomePage() {
           {([
             ['Impact', 'Does it help many people?', 'Air pollution killed an estimated 78,000 to 88,000 people in Bangladesh in 2019 (World Bank). Kiln Watch gives inspectors, farm officers, families and planners in all 64 districts dates to act on.', '/impact', 'Who benefits'],
             ['Creativity', 'Is the approach new?', `Fire satellites can’t see brick kilns, so we found them with NASA night lights instead, after testing ${ka?.pilots.length ?? 'several'} space instruments.`, '/how', 'How it works'],
-            ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. Open code and data.', '/trust', 'Can you trust it?'],
+            ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. The kiln method was retested in Pakistan, India and Afghanistan. Open code and data.', '/trust', 'Can you trust it?'],
             ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning.', '/how', 'Challenge checklist'],
           ] as const).map(([k, qn, a, to, l]) => (
             <li key={k} className="panel flex flex-col gap-2"><span className="tag">{k}</span><b className="leading-snug">{qn}</b><span className="text-sm text-muted">{a}</span>

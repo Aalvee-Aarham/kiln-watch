@@ -383,21 +383,24 @@ def _fixture_transfer():
         p50 = [0.4 if m in active else 0.0 for m in order]
         return {"months": order, "p50": p50, "lo": [round(v - 0.05, 3) for v in p50], "hi": [round(v + 0.05, 3) for v in p50], "n_clusters": 1600}
 
-    def rows(tag, ok):
-        return [{"test": tag, "criterion": c, "value": v, "threshold": th, "p": p, "pass": ok} for c, v, th, p in (
+    def rows(tag, ok, placebo_ok=True):
+        return [{"test": tag, "criterion": c, "value": v, "threshold": th, "p": p, "pass": ok if i < 3 else ok and placebo_ok} for i, (c, v, th, p) in enumerate((
             ("Contrast: median A, 2022-23 (n = 1580)", 0.2 if ok else -0.05, "> 0, Wilcoxon p < 0.01", 1e-20 if ok else 0.9),
             ("Prevalence: share of clusters with A > 0", 0.7 if ok else 0.45, "≥ 0.60", None),
             ("Replication: seasons with median A > 0 (13 evaluable)", 1.0 if ok else 0.3, "≥ 0.75", None),
-            ("Placebo: first control as pseudo-kiln (n = 1580)", 0.0, "Wilcoxon p > 0.05", 0.5))]
+            ("Placebo: first control as pseudo-kiln (n = 1580)", 0.0 if placebo_ok else -0.03, "Wilcoxon p > 0.05", 0.5 if placebo_ok else 1e-6)))]
 
-    def country(code, name, kilns, clusters, core, off, active, strict_ok):
+    def country(code, name, kilns, clusters, core, off, active, strict_ok, placebo_ok=True, design="A2"):
+        ok = placebo_ok
         ch = {"learned": {"core": core, "off": off}, "profile": prof(active), "n_calibration": 400, "n_confirmation": 1600,
-              "tests": rows("TL", strict_ok) + rows("LL", True), "pass": {"TL": strict_ok, "LL": True}}
-        return {"code": code, "name": name, "n_kilns": kilns, "n_clusters": clusters, "n_sampled": 2000, "n_dropped": 20, "evaluable": True, "channels": {"ntl": ch}}
+              "tests": rows("TL", strict_ok, placebo_ok) + rows("LL", True, placebo_ok), "pass": {"TL": strict_ok and ok, "LL": ok}}
+        return {"code": code, "name": name, "design": design, "n_kilns": kilns, "n_clusters": clusters, "n_sampled": 2000, "n_dropped": 20,
+                "evaluable": True, "channels": {"ntl": ch}}
     bd = {"code": "BD", "name": "Bangladesh", "n_clusters": 3653,
           "channels": {"ntl": {"learned": {"core": [12, 1, 2, 3, 4], "off": [7, 8, 9, 10]}, "profile": prof((12, 1, 2, 3, 4)), "tests": [], "pass": {}}}}
-    return {"countries": [bd, country("PK", "Pakistan", 10585, 7509, [2, 3, 4, 5, 6], [9, 10, 11, 12], (1, 2, 3, 4, 5, 6, 9, 10), False),
-                          country("IN", "India", 22459, 18665, [1, 2, 3, 4, 5], [7, 8, 9, 10], (1, 2, 3, 4, 5, 6), True)]}
+    pk = country("PK", "Pakistan", 10585, 7509, [2, 3, 4, 5, 6], [9, 10, 11, 12], (1, 2, 3, 4, 5, 6, 9, 10), False, placebo_ok=False)
+    pk["retest"] = country("PK", "Pakistan", 10585, 7509, [2, 3, 4, 5, 6], [9, 10, 11, 12], (1, 2, 3, 4, 5, 6, 9, 10), False, design="A4")
+    return {"countries": [bd, pk, country("IN", "India", 22459, 18665, [1, 2, 3, 4, 5], [7, 8, 9, 10], (1, 2, 3, 4, 5, 6), True)]}
 
 
 def _fixture_calendar(uid, kind, is_district, keys, rng, branch):

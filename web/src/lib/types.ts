@@ -109,8 +109,10 @@ export interface TransferChannel {
   pass: Partial<Record<TransferTest, boolean>>
 }
 export interface TransferCountry {
-  code: string; name: string; n_kilns?: number; n_clusters: number; n_sampled?: number; n_dropped?: number; evaluable?: boolean
+  code: string; name: string; source?: string; n_kilns?: number; n_clusters: number; n_sampled?: number; n_dropped?: number; evaluable?: boolean
   channels: Partial<Record<'ntl' | 's1', TransferChannel>>
+  design?: string            // 'A2' first test (Amendments 2-3), 'A4' retest
+  retest?: TransferCountry   // Amendment 4: fresh clusters, controls >= 6 km from every kiln
 }
 
 export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }
