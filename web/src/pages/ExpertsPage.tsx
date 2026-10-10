@@ -15,6 +15,7 @@ export default function ExpertsPage() {
     ['/method', 'Method', 'The pipeline step by step, what we do not claim, release policy, credits, licences and parameters.'],
     ['/explore', 'Full explorer', 'Every district and upazila, raw vs harmonized, source split, normals, unusual days, season metrics with 95% intervals, drawn boxes.'],
     ['/season', 'This season by district', 'Near-real-time season-to-date activity, ranked by days above each district’s 90th-percentile normal.'],
+    ['/ask', 'Ask Kiln Watch', 'Plain-language answers written by Claude from our own functions, with the data behind every figure. The AI never computes a number.'],
     ['/experts/kilns', 'Kiln season charts', 'Night-light kiln excess by half-month, kiln calendars, onset and end with 95% intervals, and the radar check.'],
   ]
   const outside: [string, string, string][] = [

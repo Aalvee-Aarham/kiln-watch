@@ -12,6 +12,7 @@ Bangladesh burning + brick-kiln seasons from 23 years of NASA satellite data. Py
 | [web-frontend.md](web-frontend.md) | The site: stack, routes, pages, libs, theming, i18n, tests |
 | [operations.md](operations.md) | Setup, CI, the daily NRT deploy, publishing, dual-tier release, governance |
 | [../README.md](../README.md) | Project overview, quick start, results |
+| [AI_USE.md](AI_USE.md) | Every use of AI in the project, for the Space Apps AI disclosure |
 | [roadmap.md](roadmap.md) | The plan to the event: steps F0–F7, what each must show to be done |
 | [../CLAUDE.md](../CLAUDE.md) | Living rules for coding agents (invariants, conventions, when blocked) |
 

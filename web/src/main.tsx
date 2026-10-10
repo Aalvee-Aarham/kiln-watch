@@ -20,6 +20,7 @@ const StoryPage = lazy(() => import('./pages/StoryPage'))
 const ExplorerPage = lazy(() => import('./pages/ExplorerPage'))
 const EvidencePage = lazy(() => import('./pages/EvidencePage'))
 const KilnSeasonsPage = lazy(() => import('./pages/KilnSeasonsPage'))
+const AskPage = lazy(() => import('./pages/AskPage'))
 
 function App() {
   const meta = useMeta().data
@@ -38,6 +39,7 @@ function App() {
             <Route path="/impact/:who?/:unitId?" element={<ImpactPage />} />
             <Route path="/trust" element={<TrustPage />} />
             <Route path="/experts" element={<ExpertsPage />} />
+            <Route path="/ask" element={<AskPage />} />
             <Route path="/story" element={<StoryPage />} />
             <Route path="/explore" element={<ExplorerPage />} />
             <Route path="/explore/box/:box" element={<ExplorerPage />} />

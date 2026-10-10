@@ -127,3 +127,10 @@ export interface TransferCountry {
 }
 
 export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }
+
+/** ask.json: cached Ask Kiln Watch answers (kilnwatch/ask.py build_cache). Optional file. */
+export interface AskCache {
+  model: string; generated_at: string; data_build: string | null
+  answers: { question: string; lang: 'en' | 'bn'; answer: string | null; blocked: boolean; reason?: string; unsupported?: number[]
+             tools: { name: string; input: Record<string, string>; result: Record<string, unknown> }[] }[]
+}

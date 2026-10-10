@@ -26,6 +26,7 @@ Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export,
 | `validation.json` | `Validation`: gate rows, plateau/spike profiles, radius sweep, classifier (PR curve/AUC, importance, four holdouts, label-set comparison, ablation), controls, candidates, TROPOMI, PM2.5 lags, transfer, closure, `skipped` | 500 KB |
 | `kiln_activity.json` | `KilnActivity` (Amendment 1 + transfer, below). **Optional file: absent means "no kiln layer"** and the site hides kiln pages | 1.5 MB |
 | `outlook.json` | `Outlook`: the two-week unusual-fire outlook per district (P(at least one unusual day in the next 14 days) by week from 1 Nov, given whether the last 14 had one, plus the district × week climatology) and its leave-one-season-out backtest (Brier skill vs that climatology, district bootstrap). **Optional: written only when the backtest is estimable; `ships` is true only when the lower 95% bound of skill is above 0, and the site shows the outlook only then** | 200 KB |
+| `ask.json` | `AskCache`: cached Ask Kiln Watch answers with the tool calls and results behind each. **Optional: written only by `ask --build-cache`** | — |
 | `nrt/current_season.json` | `NrtSeason`: season-to-date national + per-district harmonized activity, `provisional: true`, `above_p90_days` | 300 KB |
 
 ## Branch-dependent fields

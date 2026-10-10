@@ -12,8 +12,8 @@ Each step is built and verified on its own (ruff, pytest, web lint/typecheck/Vit
 | **F3** ✓ `466058f` | **Validation in the open.** Raw-vs-raw and harmonized-vs-harmonized MODIS/VIIRS agreement on the overlap years; a provenance line (dataset, file, build) behind each headline number | Numbers computed in the pipeline (tested), shown on Trust and Home |
 | **F4** ✓ `5dfb7b0` | **Unusual-fire warnings and a tested seasonal outlook.** Warnings from the existing p90 normals; any outlook is backtested against "a normal year" before it ships | Backtest skill reported; the outlook ships only if it beats climatology, else it is reported as a negative result |
 | **F5** ✓ `cf6cb84` | **Impact page.** Who acts, on which output, when; cited Bangladesh figures; each section ends on a decision | Every number carries a source link |
-| **F6** ✓ | **Map navigation.** Smooth zoom to an area, a NASA imagery layer cached for offline use, a time slider | Works with the network off |
-| **F7** | **"Ask Kiln Watch".** The model explains results returned by the project's own functions; it never computes a number; answers to the demo questions cached for offline; `docs/AI_USE.md` | Every number in an answer traces to a tool result; offline demo works |
+| **F6** ✓ `f9821eb` | **Map navigation.** Smooth zoom to an area, a NASA imagery layer cached for offline use, a time slider | Works with the network off |
+| **F7** ✓ code | **"Ask Kiln Watch".** The model explains results returned by the project's own functions; it never computes a number; answers to the demo questions cached for offline; `docs/AI_USE.md` | Every number in an answer traces to a tool result; offline demo works |
 | — | Kiln and crop season *prediction* | Cut: highest validity risk; Black Marble VNP46A2 is a Suomi NPP product and needs the NOAA-20 equivalent first |
 
 Decisions that need a person: the AI hosting and key (F7), a Zenodo DOI for the data release (F2), and signing the rows in [VERIFICATION.md](VERIFICATION.md).

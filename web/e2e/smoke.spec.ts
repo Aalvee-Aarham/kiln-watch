@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts',
+const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts', '#/ask',
   '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
@@ -305,4 +305,10 @@ test('map: NASA image layers switch on and the season slider steps by week', asy
   await expect(page.getByText(/^Week of 1 Jul – 7 Jul/)).toBeVisible()
   await page.keyboard.press('End')
   await expect(page.getByText(/^Season so far/)).toBeVisible()
+})
+
+test('ask: without a generated cache the page says how to make one', async ({ page }) => {
+  await page.goto('#/ask')
+  await expect(page.getByRole('heading', { level: 1, name: 'Ask Kiln Watch' })).toBeVisible()
+  await expect(page.getByText(/No answers have been generated for this data build yet/)).toBeVisible()
 })

@@ -23,6 +23,7 @@ One Python package, `kilnwatch/`, turns raw NASA/ESA satellite data into the sta
 | `nrt.py` | Daily near-real-time update for CI: FIRMS NRT fetch, `data/nrt/season.csv` maintenance, frozen classifier + thresholds, harvest-key split under `nokiln`, β-weighted harmonized rates per district and national → `web/public/data/nrt/current_season.json` |
 | `export.py` | The public / regulator / fixtures / publish tiers; name and value safety checks; per-file size budgets |
 | `research.py` | The research release: the public export re-shaped as tidy CSV + Parquet tables (daily/monthly/weekly-interval calendars, season metrics, calibration betas, national series, kiln seasons by area) with a data dictionary, CC BY 4.0 and a SHA-256 manifest; refuses kiln-level and coordinate columns |
+| `ask.py` | Ask Kiln Watch: five deterministic tools over the public export (with dataset id, source URL and data build on every result), a bounded tool-use loop (≤ 6 model calls, Claude Opus 5.5), and `guard()`, which blocks any answer stating a number no tool returned |
 | `stats.py` | `bootstrap_ci` (block), stratified `perm_test`, `wilson`, `chow_test` |
 | `pipeline.py` | Stage glue behind `grid`, `harmonize`, `metrics`: record assembly, national series, per-unit calendars, AOI GeoJSON, grid tiles, `events.json`, money-shot figures, `reports/baseline.json` |
 | `__main__.py` | The CLI (below) |
@@ -47,6 +48,7 @@ python -m kilnwatch <stage> [flags]
 | `activity` | `--extract ntl\|s1\|all` | Amendment 1; `--extract` pulls the Earth Engine cache first (slow, resumable) |
 | `transfer` | `--countries PK IN AF` · `--kinds ntl s1` · `--no-extract` · `--prepare-only` · `--design A2\|A4` | Amendments 2–4; `--prepare-only` builds samples and controls without outcome data |
 | `export` | `--regulator` · `--fixtures` · `--check-public DIR` · `--publish` · `--research [PUBLIC_DIR]` | `--research` writes the CSV + Parquet research release to `research/` from a public export (default `web/public/data`; `web/fixtures/nokiln/data` is the real offline copy) |
+| `ask` | `"question"` · `--src DIR` · `--build-cache` | Ask Kiln Watch: Claude answers by calling the project's functions (never computing); `--build-cache` answers the demo questions into `ask.json` for the offline `#/ask` page. Needs `ANTHROPIC_API_KEY`; see [AI_USE.md](AI_USE.md) |
 | `nrt` | `--days 5` | The daily update run by CI |
 | `all` | — | ingest → grid → kilns → gates → harmonize → classify → metrics → validate → activity (cache only) → export. **Excludes `gee`** (fails fast with exit 2 if `data/raw/gee/clear/admin` is missing) **and `transfer`** (run it separately). If harmonize's result checks fail (A6d LOSO coverage, A6e seam), its outputs are already written, so `all` runs the remaining stages and then exits 1 naming the failed checks; any other stage failure stops `all` at once |
 
