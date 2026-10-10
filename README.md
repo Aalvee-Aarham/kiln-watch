@@ -225,6 +225,10 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 - **Pre-registration:** [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited. Later additions are dated amendments in [`docs/PREREGISTRATION_AMENDMENTS.md`](docs/PREREGISTRATION_AMENDMENTS.md), each written before the data it governs were analysed.
 - **Knowledge graph:** `graphify-out/` holds a graph of the design docs (`graphify query "<question>"`).
 
+## Research data
+
+`python -m kilnwatch export --research` turns the public export into tidy **CSV + Parquet** tables for analysis: a daily calendar for every district and upazila since 2003 (with an `observed` flag, so "no fire" and "not seen" stay apart), monthly totals, weekly 95% intervals, season metrics, the calibration table and the national series. It ships with a data dictionary, a CC BY 4.0 licence and a SHA-256 manifest, and is attached to every data release as `kilnwatch-research-data.zip`. Like the website, it holds area-level data only.
+
 ## Responsible release
 
 Public files contain area-level statistics only. Kiln ids, cluster ids, candidate unmapped kilns and kiln coordinates never reach `web/`. A name check and a value check enforce this locally and in CI. Site-level leads exist only in an offline regulator export (`python -m kilnwatch export --regulator`).

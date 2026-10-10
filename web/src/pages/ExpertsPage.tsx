@@ -22,6 +22,7 @@ export default function ExpertsPage() {
     [`${REPO}/blob/main/docs/PREREGISTRATION.md`, 'Pre-registration', 'Committed before any analysis; thresholds never edited.'],
     [`${REPO}/blob/main/docs/PREREGISTRATION_AMENDMENTS.md`, 'Amendment 1', 'The night-light and radar kiln tests, written before the confirmatory run.'],
     [`${REPO}/releases/tag/data-current`, 'Public data release', 'The whole public export as one archive (area-level only).'],
+    [`${REPO}/releases/tag/data-current#research-data`, 'Research data (CSV + Parquet)', 'Daily, monthly and weekly-interval calendars for every area, season metrics, the calibration table and a data dictionary: kilnwatch-research-data.zip, CC BY 4.0.'],
     [`${REPO}/tree/main/reports`, 'Reports', 'Machine-written reports for every stage: gates, harmonization, kiln activity.'],
   ]
   return (

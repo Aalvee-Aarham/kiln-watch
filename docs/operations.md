@@ -36,7 +36,7 @@ If `data-current` is missing or a check fails, deploy fails loudly and the last 
 
 ## Publishing the real data (`export --publish`)
 
-`python -m kilnwatch export --publish` runs both safety checks, packages `web/public/data/` (excluding `nrt/`) as `public-data.tar.gz`, uploads it with `--clobber` to the **`data-current`** GitHub Release, and creates an immutable `data-<short_sha>` release for provenance. The real public export never enters git history. A copy of the current asset is kept at `data/releases/public-data.tar.gz` for offline demos.
+`python -m kilnwatch export --publish` runs both safety checks, packages `web/public/data/` (excluding `nrt/`) as `public-data.tar.gz`, builds the research release from the same files (`kilnwatch-research-data.zip`: CSV + Parquet tables, data dictionary, CC BY 4.0, SHA-256 manifest), uploads both with `--clobber` to the **`data-current`** GitHub Release, and creates an immutable `data-<short_sha>` release with both files for provenance. A DOI (for example through the Zenodo GitHub integration) is a team decision, not automated. The real public export never enters git history. A copy of the current asset is kept at `data/releases/public-data.tar.gz` for offline demos.
 
 ## Dual-tier release
 

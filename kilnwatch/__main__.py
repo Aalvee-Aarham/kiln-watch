@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import logging
 import sys
+from pathlib import Path
 
 from . import config as C
 
@@ -38,6 +39,7 @@ def main(argv=None) -> int:
     s.add_argument("--fixtures", action="store_true")
     s.add_argument("--check-public", dest="check_public")
     s.add_argument("--publish", action="store_true")
+    s.add_argument("--research", nargs="?", const=str(C.WEB_DATA), metavar="PUBLIC_DIR", help="write the CSV + Parquet research release to research/ from a public export")
     s = sub.add_parser("nrt", help="daily near-real-time update")
     s.add_argument("--days", type=int, default=5)
     sub.add_parser("all", help="every stage after gee, in order (fails fast without the GEE cache)")
@@ -79,6 +81,10 @@ def main(argv=None) -> int:
         from . import transfer
         transfer.prepare_summary(tuple(a.countries), a.design) if a.prepare_only else transfer.run(tuple(a.countries), tuple(a.kinds), a.extract, a.design)
     elif a.stage == "export":
+        if a.research:
+            from . import research
+            research.write(Path(a.research))
+            return 0
         from . import export
         export.run(a.regulator, a.fixtures, a.check_public, a.publish)
     elif a.stage == "nrt":

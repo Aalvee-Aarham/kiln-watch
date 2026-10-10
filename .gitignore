@@ -16,3 +16,6 @@ graphify-out/cache/
 *.tmp
 logs/
 data/releases/public/
+research/
+research.tmp/
+kilnwatch-research-data.zip

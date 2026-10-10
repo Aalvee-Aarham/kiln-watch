@@ -207,12 +207,17 @@ def publish() -> None:
         for p in C.WEB_DATA.rglob("*"):
             if p.is_file() and "nrt" not in p.relative_to(C.WEB_DATA).parts:
                 t.add(p, arcname=str(p.relative_to(C.WEB_DATA)))
+    from . import research
+
+    research.write(C.WEB_DATA, C.ROOT / "research")  # CSV + Parquet tables built from the same public files
+    rzip = Path(shutil.make_archive(str(C.ROOT / "kilnwatch-research-data"), "zip", C.ROOT / "research"))
     sha = _git_sha()
     subprocess.run(["gh", "release", "view", "data-current"], cwd=C.ROOT, capture_output=True).returncode == 0 or \
         subprocess.run(["gh", "release", "create", "data-current", "--title", "Public data (current)", "--notes", "Real public export. Rolling."], cwd=C.ROOT, check=True)
-    subprocess.run(["gh", "release", "upload", "data-current", str(tar), "--clobber"], cwd=C.ROOT, check=True)
-    subprocess.run(["gh", "release", "create", f"data-{sha}", str(tar), "--title", f"Public data {sha}", "--notes", "Immutable provenance copy."], cwd=C.ROOT, check=False)
+    subprocess.run(["gh", "release", "upload", "data-current", str(tar), str(rzip), "--clobber"], cwd=C.ROOT, check=True)
+    subprocess.run(["gh", "release", "create", f"data-{sha}", str(tar), str(rzip), "--title", f"Public data {sha}", "--notes", "Immutable provenance copy."], cwd=C.ROOT, check=False)
     tar.unlink()
+    rzip.unlink()
 
 
 # --- fixtures (synthetic, one complete set per branch) ---------------------------------------
