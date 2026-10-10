@@ -27,3 +27,19 @@ def test_public_safe_values(tmp_path):
 def test_regulator_path_guard():
     with pytest.raises(ValueError):
         write_regulator(C.ROOT / "web" / "public" / "regulator")
+
+
+def test_rebuild_drops_an_outlook_it_cannot_estimate(tmp_path):
+    """An outlook.json left by an earlier build must not survive a build whose backtest is not estimable."""
+    import shutil
+
+    from kilnwatch.export import add_overlap
+
+    src = C.ROOT / "web" / "fixtures" / "full" / "data"  # synthetic, committed
+    d = tmp_path / "data"
+    (d / "calendar").mkdir(parents=True)
+    shutil.copy(src / "harmonization.json", d / "harmonization.json")
+    shutil.copy(src / "calendar" / "BD3026.json", d / "calendar" / "BD3026.json")  # one district: no backtest possible
+    (d / "outlook.json").write_text('{"ships": true}')
+    add_overlap(d)
+    assert not (d / "outlook.json").exists()

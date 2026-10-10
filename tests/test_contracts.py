@@ -79,6 +79,43 @@ def test_harmonization(branch):
     has(h["seam"], ["d_raw", "d_harm", "ratio", "chow_p_raw", "chow_p_harm"])
     for b in h["betas"]:
         has(b, ["step", "division", "month", "pass", "loc", "beta", "rung_used", "n_celldays", "n_days"])
+    for o in h.get("overlap", []):
+        has(o, ["period", "seasons", "n_months", "n_districts", "ratio_raw", "ratio_harm", "ccc_raw", "ccc_harm"])
+        assert o["period"] in ("calibration", "held_out")
+        for k in ("ratio_raw", "ratio_harm", "ccc_raw", "ccc_harm"):
+            assert o[k]["lo"] <= o[k]["hi"]
+
+
+@pytest.mark.parametrize("branch", BRANCHES)
+def test_south_asia_map(branch):
+    fc = load(branch, "aoi/south_asia.geojson")
+    assert sorted(f["properties"]["unit_id"] for f in fc["features"]) == ["AFG", "BGD", "BTN", "IND", "LKA", "MDV", "NPL", "PAK"]
+    for f in fc["features"]:
+        has(f["properties"], ["unit_id", "level", "name_en", "name_bn", "division", "kiln_count", "kiln_share"])
+        assert f["geometry"]["type"] in ("Polygon", "MultiPolygon")
+
+
+@pytest.mark.parametrize("branch", BRANCHES)
+def test_world_map_names(branch):
+    """Every place the world map can search for has a name in English and Bangla (search reads both)."""
+    for rel in ("aoi/world_countries.geojson", "aoi/world_states.geojson"):
+        for f in load(branch, rel)["features"]:
+            assert isinstance(f["properties"]["name_en"], str) and f["properties"]["name_en"], (rel, f["properties"]["unit_id"])
+            assert isinstance(f["properties"]["name_bn"], str) and f["properties"]["name_bn"], (rel, f["properties"]["unit_id"])
+    c = load(branch, "aoi/world_cities.json")
+    assert c["fields"][:2] == ["name_en", "name_bn"] and all(r[0] and r[1] for r in c["rows"])
+
+
+@pytest.mark.parametrize("branch", BRANCHES)
+def test_outlook(branch):
+    if not (FIXT / branch / "data" / "outlook.json").exists():
+        pytest.skip("optional file: no outlook when its backtest is not estimable (synthetic calendars)")
+    o = load(branch, "outlook.json")
+    has(o, ["rule", "start", "step_days", "window_days", "weeks", "backtest", "ships", "districts"])
+    assert o["ships"] == (o["backtest"]["brier_skill"]["lo"] > 0)  # the ship rule
+    for d in o["districts"].values():
+        assert len(d["clim"]) == len(d["if_recent"]) == len(d["if_quiet"]) == o["weeks"]
+        assert all(0 <= v <= 1 for k in ("clim", "if_recent", "if_quiet") for v in d[k] if v is not None)
 
 
 @pytest.mark.parametrize("branch", BRANCHES)

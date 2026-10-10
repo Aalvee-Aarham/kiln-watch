@@ -15,6 +15,7 @@ export default function ExpertsPage() {
     ['/method', 'Method', 'The pipeline step by step, what we do not claim, release policy, credits, licences and parameters.'],
     ['/explore', 'Full explorer', 'Every district and upazila, raw vs harmonized, source split, normals, unusual days, season metrics with 95% intervals, drawn boxes.'],
     ['/season', 'This season by district', 'Near-real-time season-to-date activity, ranked by days above each district’s 90th-percentile normal.'],
+    ['/ask', 'Ask Kiln Watch', 'Plain-language answers written by Claude from our own functions, with the data behind every figure. The AI never computes a number.'],
     ['/experts/kilns', 'Kiln season charts', 'Night-light kiln excess by half-month, kiln calendars, onset and end with 95% intervals, and the radar check.'],
   ]
   const outside: [string, string, string][] = [
@@ -22,6 +23,7 @@ export default function ExpertsPage() {
     [`${REPO}/blob/main/docs/PREREGISTRATION.md`, 'Pre-registration', 'Committed before any analysis; thresholds never edited.'],
     [`${REPO}/blob/main/docs/PREREGISTRATION_AMENDMENTS.md`, 'Amendment 1', 'The night-light and radar kiln tests, written before the confirmatory run.'],
     [`${REPO}/releases/tag/data-current`, 'Public data release', 'The whole public export as one archive (area-level only).'],
+    [`${REPO}/releases/tag/data-current#research-data`, 'Research data (CSV + Parquet)', 'Daily, monthly and weekly-interval calendars for every area, season metrics, the calibration table and a data dictionary: kilnwatch-research-data.zip, CC BY 4.0.'],
     [`${REPO}/tree/main/reports`, 'Reports', 'Machine-written reports for every stage: gates, harmonization, kiln activity.'],
   ]
   return (

@@ -20,7 +20,7 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 
 **How we solved it.**
 - **One common unit.** On days when two satellites saw the same place, we learned how many old-camera detections one new-camera detection is worth, by region, month and day or night pass.
-- **Chaining the satellites.** We chained every satellite onto one scale: Aqua ← Suomi NPP ← NOAA-20 ← NOAA-21. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*.
+- **Chaining the satellites.** We chained the satellites onto one scale: Aqua ← Suomi NPP ← NOAA-20. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*. Suomi NPP stops delivering new data on 2 Nov 2026 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/content/data-alert-history/21880)); from then on NOAA-20 carries the record on the same scale. The NOAA-21 link is set up but not yet calibrated: there are not yet enough months in which both satellites' near-real-time data overlap.
 - **Correcting for cloud.** Satellites can't see fire through cloud, so we counted the cloud-free land every day with Google Earth Engine.
 - **Error ranges.** Every number carries a 95% uncertainty range.
 
@@ -28,7 +28,7 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 - **The fake jump is gone.** The 2012 jump shrinks from 55.1 to 1.6 units: **97% of it was the camera**. A statistical break test finds a clear break in the raw record and none after correction.
 - **It matches a real reading.** Our corrected 2012-13 value (23.4, range 21.8–24.9) matches what the unchanged Aqua camera actually saw (23.7).
 
-### Problem 2: Telling brick kilns apart from crop fires
+### Problem 2 (our extension): Telling brick kilns apart from crop fires
 
 **The problem.** Brick kilns are a major source of Dhaka's winter smog. If their heat were hiding inside the fire record, the crop-burning calendar would be wrong, and nobody could say when kilns are actually working.
 
@@ -63,13 +63,14 @@ The pages are organised around the four things Space Apps judges score.
 | Page | Judging question | What a visitor does |
 |---|---|---|
 | **Home** | All four | Three findings, the six steps from satellite to decision, real questions turned into actions, today's NASA fire data, and a four-card guide for judges |
-| **How it works** | Creativity, Relevance | Steps through the whole approach on real data (satellites, hot pixels, one scale, finding kilns, calendars, who acts), then a checklist of everything the challenge asks for and where it is on the site |
-| **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, when kilns work, a typical year month by month; compare two areas |
-| **Kiln planner** | Impact | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
-| **Who benefits** | Impact | Picks a person (inspector, farm officer, family, journalist, policy maker, scientist) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
-| **Can you trust it?** | Validity | Every pre-registered test in plain words, marked passed, failed or no link found; how we kept ourselves honest; what we never claim |
+| **How it works** | Creativity, Relevance | Steps through the whole approach on real data (satellites, hot pixels, one scale, calendars, who acts, then the kiln extension), then a checklist of everything the challenge asks for and where it is on the site |
+| **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, a tested two-week outlook (1 November to mid-May), when kilns work, a typical year month by month; compare two areas. The map can show NASA satellite or night-lights imagery and step through this season week by week |
+| **World map** | Relevance | Every country, state and city on Earth, opening on South Asia, with NASA satellite and night-light backgrounds: search any place or tap the map to see what Kiln Watch covers there and the kiln tests abroad. The harmonized calendar beyond Bangladesh is being built |
+| **Kiln planner** (extension) | Impact | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
+| **Who benefits** | Impact | Picks a person (farm officer, family, scientist, journalist, inspector, policy maker) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
+| **Can you trust it?** | Validity | Every pre-registered test in plain words, marked passed, failed or no link found; whether the cameras agree after correction; how the outlook was tested; how we kept ourselves honest; what we never claim |
 | **Sensor switch**, **Timeline** | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 by season with laws and satellite milestones (linked from the pages above) |
-| **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, data and pre-registration |
+| **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, the research data (CSV + Parquet), pre-registration, and **Ask Kiln Watch**: answers written by Claude from our own functions, with the data behind each figure |
 
 Everything is computed in the browser from the public, area-level export. "Use my location" is matched to an area on the device and never sent anywhere.
 
@@ -79,6 +80,8 @@ Everything is computed in the browser from the public, area-level export. "Use m
 |---|---|
 | **Seam:** harmonized 2012 jump ≤ 25% of raw; break in raw (p < 0.01) and none after (p > 0.05) | **PASS**: 55.1 → 1.6 (**2.9%**); Chow p 6×10⁻⁵ raw, 0.29 harmonized |
 | **Leave-one-season-out:** pooled 95% coverage 0.90–0.97 | **FAIL (conservative)**: 0.985 [0.982–0.987]. Intervals are too wide, not too narrow. See [docs/BLOCKERS.md](docs/BLOCKERS.md) |
+| *Exploratory (not pre-registered):* **do the cameras agree after correction?** VIIRS/Aqua ratio and Lin's concordance on district-months both saw | Raw VIIRS reads **4.4×** Aqua, corrected **1.04×**; concordance 0.62 → **0.98** (calibration seasons). On later seasons the correction never saw: 4.8× → **1.04×**, 0.61 → **0.96** |
+| *Exploratory:* **two-week unusual-fire outlook** vs the usual chance for that district and week (leave-one-season-out) | Brier skill **0.075** [0.056–0.097]: a modest but real gain, so it is shown on My area from 1 November |
 | **G1, kilns visible to VIIRS:** DR(kiln)/DR(control) ≥ 3, perm p < 0.01, plus shape and seasonality | **FAIL**: 0.46×, p = 0.96 across 3,653 clusters and 10,959 matched controls |
 | **G2, kilns visible to MODIS** | **FAIL**: 0.73× |
 | **Transfer, fire-satellite kiln classifier in Faisalabad, Pakistan** (frozen model, APAD Pakistan labels) | **FAIL**: PR-AUC 0.05 [0.02–0.14] against a prevalence of 0.03. Expected after G1/G2: fire satellites cannot see enclosed kilns. The night-light method was then tested abroad (Amendments 2–4, below) |
@@ -205,7 +208,7 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 | 4 | `python -m kilnwatch kilns` | Kiln clusters (DBSCAN with 5 km diameter cap), 3 matched controls each, detection linking |
 | 5 | `python -m kilnwatch gee --units footprints` | Clear fractions at kiln and control footprints for the gate season |
 | 6 | `python -m kilnwatch gates` | Pre-registered feasibility gates G0–G3 → `GATE_BRANCH` |
-| 7 | `python -m kilnwatch harmonize` | Calibration chain Aqua ← S-NPP ← NOAA-20 ← NOAA-21, pooling ladder, M0/M1, leave-one-season-out, seam test |
+| 7 | `python -m kilnwatch harmonize` | Calibration chain Aqua ← S-NPP ← NOAA-20 (NOAA-21 not yet calibrated), pooling ladder, M0/M1, leave-one-season-out, seam test |
 | 8 | `python -m kilnwatch classify` | Source classifier, 4 holdouts, label-set comparison, persistence ablation, transfer test |
 | 9 | `python -m kilnwatch metrics` | ~570 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
 | 10 | `python -m kilnwatch validate` | Validation layers (shape across seasons, TROPOMI NO₂ DiD, Dhaka PM2.5 lags) |
@@ -225,6 +228,10 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 - **Pre-registration:** [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited. Later additions are dated amendments in [`docs/PREREGISTRATION_AMENDMENTS.md`](docs/PREREGISTRATION_AMENDMENTS.md), each written before the data it governs were analysed.
 - **Knowledge graph:** `graphify-out/` holds a graph of the design docs (`graphify query "<question>"`).
 
+## Research data
+
+`python -m kilnwatch export --research` turns the public export into tidy **CSV + Parquet** tables for analysis: a daily calendar for every district and upazila since 2003 (with an `observed` flag, so "no fire" and "not seen" stay apart), monthly totals, weekly 95% intervals, season metrics, the calibration table and the national series. It ships with a data dictionary, a CC BY 4.0 licence and a SHA-256 manifest, and is attached to every data release as `kilnwatch-research-data.zip`. Like the website, it holds area-level data only.
+
 ## Responsible release
 
 Public files contain area-level statistics only. Kiln ids, cluster ids, candidate unmapped kilns and kiln coordinates never reach `web/`. A name check and a value check enforce this locally and in CI. Site-level leads exist only in an offline regulator export (`python -m kilnwatch export --regulator`).
@@ -239,9 +246,10 @@ Code: MIT. Data:
 - NASA Black Marble VNP46A2 night lights (Román et al. 2018); Copernicus Sentinel-1 SAR (ESA); NASA ECOSTRESS L2T LSTE v2 and Landsat 8/9 Collection 2 (kiln pilots only)
 - **APAD IGP Brick Kilns Bangladesh / Pakistan / India** (CC BY 4.0). *IGP Brick Kilns Bangladesh was accessed on 2026-10-06 from https://registry.opendata.aws/asset-data-igp-brick-kilns-ban*
 - OCHA HDX COD-AB Bangladesh / Pakistan (CC BY-IGO)
+- Natural Earth countries, states/provinces and populated places for the world map (public domain; de facto boundaries, no position on any claim)
+- NASA GIBS: Blue Marble Next Generation and Black Marble 2016 map backgrounds
 - geoBoundaries ADM0 outlines of Pakistan (OpenStreetMap, ODbL 1.0) and India (CC0 1.0), for Amendment 2 controls
 - OpenAQ (CC BY 4.0)
-- CARTO / OpenStreetMap basemap
 
 ## Build dates
 

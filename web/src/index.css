@@ -285,9 +285,28 @@
    path attribute (ramp/surface) — never set `fill` here: CSS overrides attributes. */
 .bd-feat { stroke: var(--color-line); stroke-width: 1; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
 .bd-feat:hover, .bd-feat:focus-visible { stroke: var(--color-ink); stroke-width: 1.8; outline: none; }
+.bd-feat:focus:not(:focus-visible) { outline: none; } /* a mouse pick shows as the selection stroke, not a focus box */
 .bd-sel { stroke: var(--color-orbit); stroke-width: 2.6; }
 .bd-label { fill: var(--color-ink); font-weight: 600; paint-order: stroke; stroke: var(--color-bg); stroke-width: 3px; pointer-events: none; }
 .bd-boxrect { fill: var(--color-orbit); fill-opacity: 0.08; stroke: var(--color-orbit); stroke-width: 2; }
+
+/* WorldMap (#/region): degrees as viewBox units, so every stroke is non-scaling. Lines go light over NASA imagery. */
+.wm-land, .wm-state, .wm-country, .wm-sa, .wm-sel, .wm-city { vector-effect: non-scaling-stroke; }
+.wm-land { fill: var(--color-surface); stroke: none; }
+.wm-state { fill: var(--color-surface); fill-opacity: 0.001; stroke: var(--color-line); stroke-width: 0.6; cursor: pointer; }
+.wm-state:hover { stroke: var(--color-ink); stroke-width: 1.4; fill: var(--color-orbit); fill-opacity: 0.08; }
+.wm-country { fill: none; stroke: var(--color-muted); stroke-width: 1; pointer-events: none; }
+.wm-country.is-pick { fill: var(--color-surface); fill-opacity: 0.001; pointer-events: auto; cursor: pointer; }
+.wm-country.is-pick:hover { fill: var(--color-orbit); fill-opacity: 0.08; stroke: var(--color-ink); }
+.wm-sa { fill: none; stroke: var(--color-heat); stroke-width: 1.8; pointer-events: none; }
+.wm-sel { fill: var(--color-orbit); fill-opacity: 0.14; stroke: var(--color-orbit); stroke-width: 2.4; pointer-events: none; }
+.wm-city { fill: var(--color-ink); stroke: var(--color-bg); stroke-width: 1; }
+.wm-city.is-capital { fill: var(--color-bg); stroke: var(--color-ink); stroke-width: 1.6; }
+.wm-city.is-sel { fill: var(--color-orbit); stroke: var(--color-bg); stroke-width: 2; }
+.wm-name { fill: var(--color-ink); paint-order: stroke; stroke: var(--color-bg); stroke-linejoin: round; pointer-events: none; }
+.wm-imagery .wm-state { stroke: rgb(255 255 255 / 0.35); }
+.wm-imagery .wm-country { stroke: rgb(255 255 255 / 0.7); }
+.wm-imagery .wm-land { fill: none; }
 
 @keyframes sel-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.35; } }
 .map-sel { animation: sel-pulse 0.9s ease-out 2; }

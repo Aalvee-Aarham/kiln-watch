@@ -16,7 +16,7 @@ from . import config as C
 
 log = logging.getLogger("kilnwatch.export")
 BUDGET = {"meta.json": 50_000, "events.json": 50_000, "harmonization.json": 200_000, "validation.json": 500_000,
-          "aoi/districts.geojson": 400_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000,
+          "aoi/districts.geojson": 400_000, "aoi/south_asia.geojson": 100_000, "aoi/world_countries.geojson": 1_000_000, "aoi/world_states.geojson": 3_500_000, "aoi/world_cities.json": 700_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "outlook.json": 200_000,
           "kiln_activity.json": 1_500_000}
 BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000}
 SPLITS = {
@@ -175,6 +175,8 @@ def write_public(out: Path = C.WEB_DATA) -> None:
             shutil.copyfile(p, dst)
     dv = {"firms": "FIRMS API SP+NRT, fetched " + pd.Timestamp.today().strftime("%Y-%m-%d"), "apad": "APAD IGP Brick Kilns BAN (accessed 2026-10-06)",
           "boundaries": "HDX COD-AB BGD v03 (2023-05-21)"}
+    add_overlap(out)
+    write_region(out)
     _dump(meta(branch, dv), out / "meta.json")
     check_public_dir(out)
     errs = check_budgets(out)
@@ -207,12 +209,17 @@ def publish() -> None:
         for p in C.WEB_DATA.rglob("*"):
             if p.is_file() and "nrt" not in p.relative_to(C.WEB_DATA).parts:
                 t.add(p, arcname=str(p.relative_to(C.WEB_DATA)))
+    from . import research
+
+    research.write(C.WEB_DATA, C.ROOT / "research")  # CSV + Parquet tables built from the same public files
+    rzip = Path(shutil.make_archive(str(C.ROOT / "kilnwatch-research-data"), "zip", C.ROOT / "research"))
     sha = _git_sha()
     subprocess.run(["gh", "release", "view", "data-current"], cwd=C.ROOT, capture_output=True).returncode == 0 or \
         subprocess.run(["gh", "release", "create", "data-current", "--title", "Public data (current)", "--notes", "Real public export. Rolling."], cwd=C.ROOT, check=True)
-    subprocess.run(["gh", "release", "upload", "data-current", str(tar), "--clobber"], cwd=C.ROOT, check=True)
-    subprocess.run(["gh", "release", "create", f"data-{sha}", str(tar), "--title", f"Public data {sha}", "--notes", "Immutable provenance copy."], cwd=C.ROOT, check=False)
+    subprocess.run(["gh", "release", "upload", "data-current", str(tar), str(rzip), "--clobber"], cwd=C.ROOT, check=True)
+    subprocess.run(["gh", "release", "create", f"data-{sha}", str(tar), str(rzip), "--title", f"Public data {sha}", "--notes", "Immutable provenance copy."], cwd=C.ROOT, check=False)
     tar.unlink()
+    rzip.unlink()
 
 
 # --- fixtures (synthetic, one complete set per branch) ---------------------------------------
@@ -268,6 +275,9 @@ def _fixture_set_real(d: Path, src: Path) -> None:
     if d.exists():
         shutil.rmtree(d)
     shutil.copytree(src, d)
+    _dump(events_payload(), d / "events.json")  # curated data/static CSVs, not pipeline output: always current
+    add_overlap(d)  # derived from the public calendars alone, so it can be recomputed on the frozen release
+    write_region(d)
     # kiln_activity season CIs from release c310275 predate the activity.py p50 fix (bootstrap median):
     # a CI that cannot bracket its median is treated as not estimable, the file's own convention for degenerate rows.
     ka_p = d / "kiln_activity.json"
@@ -291,6 +301,34 @@ def _fixture_set_real(d: Path, src: Path) -> None:
     if repairs:
         ka_p.write_text(json.dumps(ka, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
         log.info("real fixture: nulled %d non-bracketing season CIs in kiln_activity.json", repairs)
+
+
+def add_overlap(d: Path) -> None:
+    """harmonization.json gains `overlap` (Aqua vs VIIRS on the months both flew) and `outlook.json` is written (the
+    backtested two-week unusual-fire outlook): both from the district calendars in the same export."""
+    from .validate import overlap_agreement
+
+    cals = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((d / "calendar").glob("*.json"))]
+    hp = d / "harmonization.json"
+    h = json.loads(hp.read_text(encoding="utf-8"))
+    h["overlap"] = overlap_agreement([c for c in cals if c.get("clear_frac")])
+    _dump(nan_to_none(h), hp)
+    from .validate import outlook
+
+    o = outlook([c for c in cals if c.get("clear_frac")])  # districts: the NRT job publishes districts only
+    if o:
+        _dump(nan_to_none(o), d / "outlook.json")
+    else:  # not estimable for this build: an outlook left by an earlier build would no longer match its calendars
+        (d / "outlook.json").unlink(missing_ok=True)
+
+
+def write_region(d: Path) -> None:
+    """The world map's reference geography (#/region), from committed Natural Earth extracts in data/static (public
+    domain, de facto boundaries): South Asia's eight countries, every country, every state/province, and city names as
+    plain records (not point features). Place names and outlines only: no data of ours."""
+    _dump(json.loads((C.STATIC / "south_asia_countries.geojson").read_text(encoding="utf-8")), d / "aoi" / "south_asia.geojson")
+    for name in ("world_countries.geojson", "world_states.geojson", "world_cities.json"):  # kilnwatch/geography.py builds these
+        _dump(json.loads((C.STATIC / name).read_text(encoding="utf-8")), d / "aoi" / name)
 
 
 def events_payload() -> dict:
@@ -356,6 +394,8 @@ def _fixture_set(branch: str, d: Path) -> None:
           d / "nrt" / "current_season.json")
     _dump({"tile": "90_23", "day0": "2003-01-01", "rows": [[int(1136241 + i), int(4000 + i % 300), int(i % 6)] for i in range(500)]}, d / "grid" / "90_23.json")
     _dump(_fixture_kiln_activity(rng), d / "kiln_activity.json")
+    add_overlap(d)
+    write_region(d)
 
 
 def _fixture_kiln_activity(rng):

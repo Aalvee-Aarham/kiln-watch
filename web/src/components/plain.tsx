@@ -2,7 +2,7 @@
 // outside-fact boxes, the caution line and a 12-month strip. Experts pages keep the original kit in ui.tsx.
 import { useId, type ReactNode } from 'react'
 import { Link, useSearchParams } from 'react-router'
-import { Icon } from './ui'
+import { Icon, useMeta } from './ui'
 import { SEASON_MONTHS } from '../lib/plain'
 
 const GLOSS = {
@@ -126,4 +126,10 @@ export function Flow({ items, active, onPick }: { items: [title: string, text?: 
       })}
     </ol>
   )
+}
+
+/** Where a headline number comes from: the public file, the data build that wrote it, and the NASA data behind it. */
+export function Provenance({ file, data }: { file: string; data: string }) {
+  const sha = useMeta().data?.git_sha
+  return <p className="text-xs text-muted">Source: <a className="underline" href={`${import.meta.env.BASE_URL}data/${file}`}>{file}</a>{sha && <>, data build <span className="code">{sha}</span></>}; {data}.</p>
 }

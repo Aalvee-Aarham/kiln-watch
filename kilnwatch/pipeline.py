@@ -265,9 +265,8 @@ def _calendar(uid, g, clear, cells, is_district, keys, branch, rng):
     idx = pd.date_range(DAY0, end)
     n = len(idx)
     cf = clear.pivot_table(index="date_local", columns="sensor", values="clear_frac").reindex(idx)
-    era = M.era_sensor(pd.Series(idx))
-    cf_era = np.select([era == "A", era == "N"], [cf.get("A", pd.Series(np.nan, idx)).to_numpy(), cf.get("N", pd.Series(np.nan, idx)).to_numpy()],
-                       cf.get("N", pd.Series(np.nan, idx)).to_numpy())
+    clim_n = M.clear_climatology(clear[clear.sensor == "N"]).set_index("doy").clear_frac
+    cf_era = M.era_clear_frac(idx, cf, clim_n)
     observed = np.nan_to_num(cf_era) >= 0.2
     di = ((g.date_local - DAY0).dt.days).to_numpy()
     raw = {}
@@ -277,6 +276,8 @@ def _calendar(uid, g, clear, cells, is_district, keys, branch, rng):
             continue
         cnt = np.bincount(di[m], minlength=n)[:n].astype(float)
         c = cf[s].to_numpy() if s in cf else (cf["N"].to_numpy() if "N" in cf else np.full(n, np.nan))
+        if s == "J1" and "J1" not in cf:  # NOAA-20 shares S-NPP's fraction; after S-NPP ends, its climatology (as h)
+            c = np.where(np.isnan(c), clim_n.reindex(idx.dayofyear).to_numpy(), c)
         raw[s] = np.where(np.nan_to_num(c) >= 0.2, 1000 * cnt / np.maximum(np.nan_to_num(c) * cells, 1), 0.0)
     e = g[g.era & g.w.notna()]
     de = ((e.date_local - DAY0).dt.days).to_numpy()

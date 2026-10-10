@@ -144,6 +144,19 @@ def conversion_weights(cd: pd.DataFrame, betas: pd.DataFrame) -> pd.Series:
     return w
 
 
+def era_clear_frac(idx: pd.DatetimeIndex, cf: pd.DataFrame, clim_n: pd.Series) -> np.ndarray:
+    """Clear fraction of each day's era sensor (the calendar's denominator). cf: date × sensor; clim_n: S-NPP
+    median clear fraction by day of year. NOAA-20 days use its own fraction where cached, else the S-NPP
+    climatology, as the NRT job does: S-NPP observations stop on 2 Nov 2026, so its daily fraction does too.
+
+    ponytail: climatological denominator after S-NPP; add a NOAA-20 fire-mask collection to gee.COLL when one is available."""
+    col = lambda s: cf[s].to_numpy() if s in cf else np.full(len(idx), np.nan)  # noqa: E731
+    j1 = col("J1")
+    j1 = np.where(np.isnan(j1), clim_n.reindex(idx.dayofyear).to_numpy(), j1)
+    era = era_sensor(pd.Series(idx))
+    return np.select([era == "A", era == "N"], [col("A"), col("N")], j1)
+
+
 def era_sensor(dates: pd.Series) -> np.ndarray:
     d = pd.to_datetime(dates)
     return np.where(d < SNPP_START, "A", np.where(d < SNPP_END, "N", "J1"))

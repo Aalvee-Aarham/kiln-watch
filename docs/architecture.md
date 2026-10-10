@@ -436,6 +436,16 @@ Does the night-light method survive outside Bangladesh? Per country — Pakistan
 
 ---
 
+### 5.13 Outputs added for the event (`fire-calendar` branch, roadmap F2–F7)
+
+Each is built from the public export alone, so none can carry more than the website already publishes. Plan and status: [roadmap.md](roadmap.md).
+
+- **Sensor continuity.** Suomi NPP stops delivering data on 2 Nov 2026; NOAA-20 becomes the era sensor (β1·β2). Days without a cached NOAA-20 clear fraction use the S-NPP clear-fraction climatology (`metrics.era_clear_frac`), as the NRT job already did. The NOAA-21 step has no valid β yet.
+- **Research release** (`research.py`, `export --research`): tidy CSV + Parquet tables with a data dictionary, CC BY 4.0 and a SHA-256 manifest; attached to every data release.
+- **Overlap agreement** (`validate.overlap_agreement` → `harmonization.json` `overlap`): Aqua vs VIIRS on district-months both saw, raw vs harmonized, calibration vs held-out seasons, Lin's CCC with a district bootstrap.
+- **Two-week outlook** (`validate.outlook` → `outlook.json`): backtested against the district × week climatology; published only when the lower 95% bound of Brier skill is above 0. Exploratory, not pre-registered.
+- **Ask Kiln Watch** (`ask.py`, `#/ask`): Claude calls the project's functions and explains; a guard blocks any answer stating a number no function returned. See [AI_USE.md](AI_USE.md).
+
 ## 6. Interim data model (`data/interim/*.parquet`, gitignored)
 
 | Table | Grain | Key columns |

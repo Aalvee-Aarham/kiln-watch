@@ -1,6 +1,6 @@
 # Static data contracts (`web/public/data/`)
 
-**Applies to:** `main` @ `1314a30` (10 Oct 2026) · **Authority:** `web/src/lib/types.ts` · **Producer:** [pipeline.md](pipeline.md)
+**Applies to:** `fire-calendar` branch (10 Oct 2026; `main` until it is merged) · **Authority:** `web/src/lib/types.ts` · **Producer:** [pipeline.md](pipeline.md)
 
 These files are the entire "API" between the Python pipeline and the UI. TypeScript defines the contract (`web/src/lib/types.ts`); Python writes it; `tests/test_contracts.py` asserts every exported file against it **under all five gate-branch fixture sets**. A contract change needs a same-commit Python change plus contract tests.
 
@@ -20,11 +20,15 @@ Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export,
 | `meta.json` | `generated_at`, `git_sha`, `prereg_sha`, params, data versions, credits + licences, bilingual non-claims, `gate_branch`, `split_labels`, `activity_index`, `grid`, optional `demo` (fixtures) | 50 KB |
 | `events.json` | Policy events, satellite milestones, harvest windows (bilingual labels, source URLs) — from `data/static/*.csv` | 50 KB |
 | `aoi/districts.geojson` · `aoi/upazilas.geojson` | Simplified boundaries; properties = `UnitProps` (`unit_id`, names en/bn, division, kiln count/share) | 400 KB · 1.5 MB |
+| `aoi/world_countries.geojson` · `aoi/world_states.geojson` · `aoi/world_cities.json` | Reference geography for the world map `#/region`: every country (242), every state/province (4,596) and every city (7,342) from Natural Earth (public domain), built by `kilnwatch/geography.py`. Cities are plain records (`fields` + `rows`: name_en, name_bn, lat, lon, rank, pop, adm0, adm1, capital), not point features: public place names for labels and search. States carry `type_en` and `adm0` | 1 MB · 3.5 MB · 700 KB |
+| `aoi/south_asia.geojson` | The eight South Asian countries (AFG, BGD, BTN, IND, LKA, MDV, NPL, PAK), drawn as the highlighted region on `#/region`: `UnitProps` with `level: "country"` and ISO3 `unit_id`. Copied from `data/static/south_asia_countries.geojson` (Natural Earth 1:50m, public domain, simplified 0.02°; de facto boundaries) by every export | 100 KB |
 | `calendar/{unit_id}.json` | One `Calendar` per unit (~560): sparse `days`, per-sensor `raw`, harmonized `h`, `split[]`, optional `index`, `nodata`, `clear_frac` (districts), weekly CI, `normal` p10/p50/p90, `unusual`, `critical`, `seasons[]` with CIs | 150 KB gz each |
 | `grid/{tile}.json` | 1° × 1° tiles of sparse `[cell, day, sensor_pass]` rows for drawn boxes — totals only, no source labels | 1 MB gz each |
-| `harmonization.json` | `Harmonization`: selected model, `yearly` raw vs harmonized, `betas` (chain step, stratum, CI, rung, counts), `loso_by_season` / `loso_pooled`, `seam`, optional `sp_nrt_ratio` (synthetic fixtures only: the real export has no SP/NRT overlap to compute it) | 200 KB |
+| `harmonization.json` | `Harmonization`: selected model, `yearly` raw vs harmonized, `betas` (chain step, stratum, CI, rung, counts), `loso_by_season` / `loso_pooled`, `seam`, optional `sp_nrt_ratio` (synthetic fixtures only: the real export has no SP/NRT overlap to compute it), `overlap` (Aqua MODIS vs S-NPP VIIRS on district-months both saw: VIIRS/Aqua ratio and Lin's CCC, raw vs harmonized, calibration vs held-out seasons, district-bootstrap 95% CIs; computed by `validate.overlap_agreement` from the export's own district calendars) | 200 KB |
 | `validation.json` | `Validation`: gate rows, plateau/spike profiles, radius sweep, classifier (PR curve/AUC, importance, four holdouts, label-set comparison, ablation), controls, candidates, TROPOMI, PM2.5 lags, transfer, closure, `skipped` | 500 KB |
 | `kiln_activity.json` | `KilnActivity` (Amendment 1 + transfer, below). **Optional file: absent means "no kiln layer"** and the site hides kiln pages | 1.5 MB |
+| `outlook.json` | `Outlook`: the two-week unusual-fire outlook per district (P(at least one unusual day in the next 14 days) by week from 1 Nov, given whether the last 14 had one, plus the district × week climatology) and its leave-one-season-out backtest (Brier skill vs that climatology, district bootstrap). **Optional: written only when the backtest is estimable; `ships` is true only when the lower 95% bound of skill is above 0, and the site shows the outlook only then** | 200 KB |
+| `ask.json` | `AskCache`: cached Ask Kiln Watch answers with the tool calls and results behind each. **Optional: written only by `ask --build-cache`** | — |
 | `nrt/current_season.json` | `NrtSeason`: season-to-date national + per-district harmonized activity, `provisional: true`, `above_p90_days` | 300 KB |
 
 ## Branch-dependent fields

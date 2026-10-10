@@ -60,6 +60,8 @@ function Planner({ ka }: { ka: KilnActivity }) {
         Fire satellites can’t see Bangladesh’s brick kilns, but NASA <Gloss k="nightLights">night lights</Gloss> can: kilns run all night through the dry season.
         Use this to see when kilns in each area usually work, and how the kiln season has changed since 2012.
       </PageHead>
+      <p className="prose-measure text-sm text-muted"><span className="tag mr-2">Extension</span>The core of Kiln Watch is the harmonized fire calendar. This page adds what fire satellites
+        cannot show. The same method was also tested in Pakistan, India and Afghanistan, with mixed results: <Link className="text-orbit underline" to={`/trust${q}`}>see every test abroad</Link>.</p>
 
       <section className="grid gap-6 lg:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
         <div className="space-y-3">

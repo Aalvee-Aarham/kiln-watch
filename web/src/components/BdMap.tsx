@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { palette, rampColor, useTheme } from '../lib/theme'
 import type { FC } from '../lib/types'
-import { boxAreaKm2, type Box } from '../lib/box'
+import { BBOX, boxAreaKm2, type Box } from '../lib/box'
+import { LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
+// NASA GIBS WMS GetMap images, EPSG:4326, BBOX = the analysis extent (lib/box.ts), 960×1240 px: plate carrée, so they
+// line up with this map's equirectangular projection by their corners. Bundled, so the layers work with the network off.
+import dayImg from '../assets/basemap/bluemarble-ng_bd.jpg'
+import nightImg from '../assets/basemap/black-marble-2016_bd.jpg'
+
 
 const MIN_KM2 = 100 // same floor as parseBox: reject at draw time, not after navigation
 const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -93,6 +99,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   const [hover, setHover] = useState<{ id: string; x: number; y: number } | null>(null)
   const [hint, setHint] = useState(false)
   const [drawBox, setDrawBox] = useState<{ a: View; b: View; km2: number } | null>(null)
+  const [layer, setLayer] = useState<Layer>(readLayer)
+  const pickLayer = (l: Layer) => { setLayer(l); saveLayer(l) }
   const raf = useRef(0)
   const viewRef = useRef(view)
   viewRef.current = view
@@ -220,17 +228,19 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     return { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) }
   }, [box, toXY])
   const labelSize = Math.max(10, view.w * 0.013)
+  const img = useMemo(() => { const [x0, y0] = toXY(BBOX[0], BBOX[3]), [x1, y1] = toXY(BBOX[2], BBOX[1]); return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } }, [toXY])
 
   return (
     <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative h-[440px] w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none`}>
       <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="h-full w-full touch-none"
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
+        {layer !== 'none' && <image href={layer === 'day' ? dayImg : nightImg} x={img.x} y={img.y} width={img.w} height={img.h} preserveAspectRatio="none" aria-hidden />}
         {feats.map((f) => {
           const v = values?.[f.id]
           const sel = f.id === selected
           return (
             <path key={f.id} d={f.d} className={`bd-feat${sel ? ' bd-sel map-sel' : ''}${drawing ? ' pointer-events-none' : ''}`}
-              fill={v != null ? rampColor(v, max, p) : p.surface} fillOpacity={v != null ? 0.92 : 0.5}
+              fill={v != null ? rampColor(v, max, p) : p.surface} fillOpacity={layer === 'none' ? (v != null ? 0.92 : 0.5) : (v != null && v > 0 ? 0.6 : 0)}
               vectorEffect="non-scaling-stroke"
               tabIndex={drawing ? -1 : 0} role="button"
               aria-label={`${f.nameEn} · ${f.nameBn}${v != null ? ` · ${v}` : ''}`}
@@ -272,6 +282,11 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
           {values?.[hovered.id] != null && <> · <span className="num">{values[hovered.id]}</span></>}
         </div>
       )}
+      <div className="absolute top-2 right-2 z-20 flex gap-0.5 rounded-[6px] border border-line bg-surface/90 p-0.5 text-xs shadow-sm" role="radiogroup" aria-label="Map background">
+        {LAYERS.map(([l, label]) => <button key={l} type="button" role="radio" aria-checked={layer === l} onClick={() => pickLayer(l)}
+          className="rounded-[4px] px-2 py-1 text-muted hover:text-ink aria-checked:bg-surface-2 aria-checked:font-semibold aria-checked:text-ink">{label}</button>)}
+      </div>
+      {layer !== 'none' && <p className="pointer-events-none absolute bottom-1 left-2 z-20 rounded-[4px] bg-surface/80 px-1.5 text-[11px] text-muted">{LAYERS.find(([l]) => l === layer)![2]}</p>}
       <div aria-hidden className="pointer-events-none absolute inset-0 z-30 grid place-items-center bg-ink/30 text-sm font-medium text-on-ink transition-opacity duration-200"
         style={{ opacity: hint ? 1 : 0 }}>Hold Ctrl to zoom the map</div>
     </div>

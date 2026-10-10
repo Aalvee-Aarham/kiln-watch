@@ -47,6 +47,17 @@ export interface Harmonization {
   loso_pooled: { model: 'M0' | 'M1'; n: number; covered: CI }
   seam: { d_raw: number; d_harm: number; ratio: number; chow_p_raw: number; chow_p_harm: number }
   sp_nrt_ratio?: CI
+  /** Aqua MODIS vs S-NPP VIIRS on district-months both saw (validate.overlap_agreement): VIIRS/Aqua total ratio and Lin's CCC, raw vs harmonized */
+  overlap?: { period: 'calibration' | 'held_out'; seasons: string; n_months: number; n_districts: number
+              ratio_raw: CI; ratio_harm: CI; ccc_raw: CI; ccc_harm: CI }[]
+}
+
+/** outlook.json: the two-week unusual-fire outlook per district and its backtest (validate.outlook). Optional file. */
+export interface Outlook {
+  rule: string; start: string; step_days: number; window_days: number; weeks: number
+  backtest: { seasons: string; n: number; n_districts: number; baseline: string; base_rate: number; brier_skill: CI }
+  ships: boolean
+  districts: Record<string, { clim: (number | null)[]; if_recent: (number | null)[]; if_quiet: (number | null)[] }>  // one value per week from `start`; null = no estimate
 }
 
 export interface Validation {
@@ -116,3 +127,10 @@ export interface TransferCountry {
 }
 
 export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }
+
+/** ask.json: cached Ask Kiln Watch answers (kilnwatch/ask.py build_cache). Optional file. */
+export interface AskCache {
+  model: string; generated_at: string; data_build: string | null
+  answers: { question: string; lang: 'en' | 'bn'; answer: string | null; blocked: boolean; reason?: string; unsupported?: number[]
+             tools: { name: string; input: Record<string, string>; result: Record<string, unknown> }[] }[]
+}
