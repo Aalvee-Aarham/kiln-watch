@@ -1,6 +1,6 @@
 # Kiln Watch documentation
 
-Bangladesh burning + brick-kiln seasons from 23 years of NASA satellite data. Python pipeline, static React site, pre-registered tests.
+One fire record from MODIS and VIIRS: a burning-activity calendar for any area, with an AI agent. Bangladesh is the first region; crop burning windows and brick-kiln seasons are extensions. Python pipeline, static React site, pre-registered tests.
 
 ## Living documentation
 

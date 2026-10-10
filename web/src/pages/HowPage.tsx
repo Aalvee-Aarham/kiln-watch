@@ -205,7 +205,8 @@ function Challenge() {
     ['Critical periods', 'The busiest weeks of each area’s normal year', '/explore', 'Full explorer'],
     ['Early warning', 'This season against the normal range, refreshed daily from NASA near-real-time data', '/season', 'This season'],
     ['A selected area of interest', 'Search, tap the map, use your location, or draw a box', '/area', 'My area'],
-    ['Our addition', 'Brick-kiln seasons from NASA night lights, because fire satellites can’t see kilns', '/kilns', 'Kiln planner'],
+    ['Extension 1: crops', 'Each area’s burning split into the Aman and Boro rice-harvest windows, for farm officers', '/area', 'My area'],
+    ['Extension 2: kilns', 'Brick-kiln seasons from NASA night lights, because fire satellites can’t see kilns', '/kilns', 'Kiln planner'],
   ]
   return (
     <section className="space-y-4" aria-label="Does it answer the challenge?">

@@ -55,7 +55,7 @@ export function SeasonBanner() {
 
 /** Per-page browser title, so tabs, history and bookmarks say where they lead. */
 export function useTitle(title?: string) {
-  useEffect(() => { document.title = title ? `${title} · Kiln Watch` : 'Kiln Watch — Bangladesh burning calendar' }, [title])
+  useEffect(() => { document.title = title ? `${title} · Kiln Watch` : 'Kiln Watch · One fire record from MODIS and VIIRS' }, [title])
 }
 /** Optional kiln-activity layer (Amendment 1); a missing file means "no layer". */
 export function useKilnActivity() { return useJson<KilnActivity>('kiln_activity.json') }
@@ -138,8 +138,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showKilns = useKilnsVisible()
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
-  // The fire calendar leads; the kiln extension sits after the proof (docs/roadmap.md F1).
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
@@ -164,13 +164,13 @@ export function AppShell({ children }: { children: ReactNode }) {
             <CalStrip className="h-3.5 w-7 rounded-[2px]" />
             <span className="h-display text-[19px]">Kiln Watch</span>
           </NavLink>
-          <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-1 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
+          <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-0 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
             {tabs.map(([to, k, short]) => {
               const on = (isActive: boolean) => isActive || (to === '/experts' && expertPage)
               return (
                 <NavLink key={to} to={to + q} aria-current={to === '/experts' && expertPage ? 'page' : undefined}
-                  className={({ isActive }) => `relative shrink-0 rounded-[4px] px-1.5 py-1.5 text-[14px] min-[900px]:px-2.5 min-[900px]:text-[15px] transition-colors duration-150 ${on(isActive) ? 'font-semibold text-ink after:absolute after:inset-x-1.5 min-[900px]:after:inset-x-2.5 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
-                  {short ? <><span className="min-[1100px]:hidden">{t(short)}</span><span className="max-[1099px]:hidden">{t(k)}</span></> : t(k)}
+                  className={({ isActive }) => `relative shrink-0 rounded-[4px] px-1 py-1.5 text-[14px] min-[900px]:px-2 min-[900px]:text-[15px] transition-colors duration-150 ${on(isActive) ? 'font-semibold text-ink after:absolute after:inset-x-1 min-[900px]:after:inset-x-2 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
+                  {short ? <><span className="min-[1200px]:hidden">{t(short)}</span><span className="max-[1200px]:hidden">{t(k)}</span></> : t(k)}
                 </NavLink>)
             })}
           </nav>
@@ -187,7 +187,7 @@ export function AppShell({ children }: { children: ReactNode }) {
       <footer className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-end gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted">
           <div className="space-y-0.5">
-            <p>NASA Space Apps 2026: harmonizing MODIS and VIIRS hot spots over Bangladesh.</p>
+            <p>NASA Space Apps 2026: one fire record from MODIS and VIIRS. Bangladesh is the first region.</p>
             <p>Data build <span className="code">{meta?.git_sha ?? '…'}</span>{meta && <>, generated {fmtDate(meta.generated_at)}</>}. Outputs are inspection leads, not findings of illegality.</p>
             <p>Real NASA and ESA satellite data. <a className="underline" href="https://github.com/Aalvee-Aarham/kiln-watch">Open source code</a> · <NavLink className="underline" to={'/experts' + q}>For experts</NavLink></p>
           </div>
