@@ -261,6 +261,7 @@ function SonifyButton({ data }: { data: number[] }) {
       return
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
     ctxRef.current = ctx
     setPlaying(true)
@@ -301,7 +302,7 @@ function SonifyButton({ data }: { data: number[] }) {
   useEffect(() => {
     return () => {
       if (ctxRef.current) {
-        try { ctxRef.current.close() } catch { }
+        try { ctxRef.current.close() } catch { /* ignore */ }
       }
     }
   }, [])

@@ -46,7 +46,7 @@ export function SeasonBanner() {
         </span>
       )}
       <p>Today is Day <span className="font-semibold">{dayNumber}</span> of the {nrt.season} burning season. <span className="font-semibold">{unusualCount}</span> districts have had unusual fire activity.</p>
-      <button className="ml-auto p-1 opacity-60 hover:opacity-100 sm:ml-4" aria-label="Dismiss banner" onClick={() => { setDismissed(true); try { sessionStorage.setItem('banner-dismissed', '1') } catch { } }}>
+      <button className="ml-auto p-1 opacity-60 hover:opacity-100 sm:ml-4" aria-label="Dismiss banner" onClick={() => { setDismissed(true); try { sessionStorage.setItem('banner-dismissed', '1') } catch { /* ignore */ } }}>
         <Icon name="cross" />
       </button>
     </div>

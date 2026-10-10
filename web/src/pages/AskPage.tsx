@@ -76,6 +76,7 @@ function LiveChat({ apiKey }: { apiKey: string }) {
       } else {
         setAns(text)
       }
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
       setAns(<StatusMessage kind="error">Failed to connect: {e.message}</StatusMessage>)
     } finally {
@@ -110,7 +111,7 @@ export default function AskPage() {
     try { return localStorage.getItem('kw-gemini-key') ?? import.meta.env.VITE_GEMINI_KEY ?? '' }
     catch { return import.meta.env.VITE_GEMINI_KEY ?? '' }
   })
-  useEffect(() => { try { localStorage.setItem('kw-gemini-key', apiKey) } catch { } }, [apiKey])
+  useEffect(() => { try { localStorage.setItem('kw-gemini-key', apiKey) } catch { /* ignore */ } }, [apiKey])
 
   return (
     <div className="space-y-8">
