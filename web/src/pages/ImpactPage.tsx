@@ -53,8 +53,7 @@ const trend = (f: Facts) => f.early != null && f.late != null
 const unusualText = (f: Facts) => {
   if (f.unusual == null) return 'No live data for this district today.'
   if (f.unusual === 0) return `Normal so far this season (${f.season}): no unusual days.`
-  const pop = ((f.id.charCodeAt(4) || 65) % 3 + 1.5) // deterministic proxy pop ~1.5 to 3.5m since real pop is missing from GeoJSON 
-  return `${f.unusual} unusual ${f.unusual === 1 ? 'day' : 'days'} this season (${f.season}), estimated to affect ${(f.unusual * 24 * pop).toFixed(1)} million breathing hours in ${f.name}.`
+  return `${f.unusual} unusual ${f.unusual === 1 ? 'day' : 'days'} this season (${f.season}).`
 }
 
 const PERSONAS: Persona[] = [
