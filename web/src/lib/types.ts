@@ -47,6 +47,9 @@ export interface Harmonization {
   loso_pooled: { model: 'M0' | 'M1'; n: number; covered: CI }
   seam: { d_raw: number; d_harm: number; ratio: number; chow_p_raw: number; chow_p_harm: number }
   sp_nrt_ratio?: CI
+  /** Aqua MODIS vs S-NPP VIIRS on district-months both saw (validate.overlap_agreement): VIIRS/Aqua total ratio and Lin's CCC, raw vs harmonized */
+  overlap?: { period: 'calibration' | 'held_out'; seasons: string; n_months: number; n_districts: number
+              ratio_raw: CI; ratio_harm: CI; ccc_raw: CI; ccc_harm: CI }[]
 }
 
 export interface Validation {

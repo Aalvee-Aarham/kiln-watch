@@ -1,6 +1,6 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Icon, SegmentedToggle, useKilnActivity, useMeta, useTitle } from '../components/ui'
-import { Gloss, PageHead, TryLink } from '../components/plain'
+import { Gloss, PageHead, Provenance, TryLink } from '../components/plain'
 import { EChart } from '../components/EChart'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
@@ -129,6 +129,8 @@ export default function TrustPage() {
             </li>))}
         </ul>
       </section>
+
+      {harm?.overlap && harm.overlap.length > 0 && <Agreement rows={harm.overlap} />}
 
       {ka?.transfer && ka.transfer.countries.length > 1 && <Abroad countries={ka.transfer.countries} />}
 
@@ -273,5 +275,34 @@ function Rows({ tests }: { tests: TransferChannel['tests'] }) {
         return <li key={k} className="flex gap-2"><Icon name={r.pass ? 'check' : 'cross'} className={`mt-0.5 h-4 w-4 ${r.pass ? 'text-ok' : 'text-err'}`} /><span>{label}{val}</span></li>
       })}
     </ul>
+  )
+}
+
+/** The overlap check: on months both cameras flew, does corrected VIIRS read on Aqua's scale? */
+function Agreement({ rows }: { rows: NonNullable<Harmonization['overlap']> }) {
+  const f = (v: number, d = 2) => v.toFixed(d)
+  const label = { calibration: 'Years used to fit the correction', held_out: 'Later years it never saw' } as const
+  return (
+    <section className="space-y-4" aria-label="Do the cameras agree after correction?">
+      <h2 className="h-display text-[clamp(1.6rem,3.5vw,2.2rem)]">Do the cameras agree after correction?</h2>
+      <p className="prose-measure text-muted">From 2012 the old <Gloss k="MODIS" /> camera on Aqua and the new <Gloss k="VIIRS" /> camera flew together, so both measured the same districts in the same months.
+        If the correction works, VIIRS should read on Aqua’s scale, and the two should agree month by month, including in years the correction was never fitted on.</p>
+      <div className="panel overflow-x-auto">
+        <table className="w-full min-w-[34rem] text-sm">
+          <caption className="sr-only">VIIRS against Aqua MODIS on district-months both saw, before and after correction</caption>
+          <thead className="text-left text-muted"><tr><th className="py-1.5 pr-3 font-normal">Seasons</th><th className="py-1.5 pr-3 font-normal">VIIRS reads … × Aqua<br />raw → corrected</th>
+            <th className="py-1.5 font-normal">Agreement (1 = identical)<br />raw → corrected</th></tr></thead>
+          <tbody>{rows.map((r) => (
+            <tr key={r.period} className="border-t border-line">
+              <td className="py-2 pr-3"><b className="block">{label[r.period]}</b><span className="text-muted">{r.seasons} · {r.n_districts} districts · {r.n_months.toLocaleString('en-US')} district-months</span></td>
+              <td className="num py-2 pr-3">{f(r.ratio_raw.p50, 1)}× → <b>{f(r.ratio_harm.p50)}×</b><span className="block text-xs text-muted">95%: {f(r.ratio_harm.lo)}–{f(r.ratio_harm.hi)}</span></td>
+              <td className="num py-2">{f(r.ccc_raw.p50)} → <b>{f(r.ccc_harm.p50)}</b><span className="block text-xs text-muted">95%: {f(r.ccc_harm.lo)}–{f(r.ccc_harm.hi)}</span></td>
+            </tr>))}</tbody>
+        </table>
+      </div>
+      <p className="prose-measure text-sm text-muted">Agreement is Lin’s concordance coefficient, which, unlike a plain correlation, drops when one camera reads on a different scale. Intervals come from resampling whole districts.
+        Only months in which both cameras saw at least 20% of the district through cloud on 5 or more days count.</p>
+      <Provenance file="harmonization.json" data="NASA FIRMS Aqua MODIS C6.1 and Suomi NPP VIIRS 375 m, Earth Engine MYD14A1 and VNP14A1 cloud-free fractions" />
+    </section>
   )
 }

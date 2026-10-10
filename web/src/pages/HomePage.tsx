@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useMeta, useTitle } from '../components/ui'
-import { Flow, Gloss, Ours, TryLink, useQ } from '../components/plain'
+import { Flow, Gloss, Ours, Provenance, TryLink, useQ } from '../components/plain'
 import Ledger from '../components/Ledger'
 import { useMemo } from 'react'
 import { useJson } from '../lib/data'
@@ -75,6 +75,8 @@ export default function HomePage() {
                 <span>Raw<Sparkline values={h.yearly.map((y) => y.raw_sum)} stroke="var(--color-raw)" /></span>
                 <span>Corrected<Sparkline values={h.yearly.map((y) => y.h.p50)} /></span>
               </div>
+              {(() => { const o = h.overlap?.find((x) => x.period === 'held_out'); return o && <p className="text-sm">In later years the correction never saw, raw VIIRS read <b>{o.ratio_raw.p50.toFixed(1)}×</b> Aqua; corrected, <b>{o.ratio_harm.p50.toFixed(2)}×</b>. <Link className="text-orbit underline" to={'/trust' + q}>See the check</Link></p> })()}
+              <Provenance file="harmonization.json" data="NASA FIRMS MODIS and VIIRS" />
               <div className="mt-auto"><TryLink to="/sensors">Try the sensor switch</TryLink></div>
             </article>)}</Loading>
           <article className="panel flex flex-col gap-3">

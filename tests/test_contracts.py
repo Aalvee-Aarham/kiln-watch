@@ -79,6 +79,11 @@ def test_harmonization(branch):
     has(h["seam"], ["d_raw", "d_harm", "ratio", "chow_p_raw", "chow_p_harm"])
     for b in h["betas"]:
         has(b, ["step", "division", "month", "pass", "loc", "beta", "rung_used", "n_celldays", "n_days"])
+    for o in h.get("overlap", []):
+        has(o, ["period", "seasons", "n_months", "n_districts", "ratio_raw", "ratio_harm", "ccc_raw", "ccc_harm"])
+        assert o["period"] in ("calibration", "held_out")
+        for k in ("ratio_raw", "ratio_harm", "ccc_raw", "ccc_harm"):
+            assert o[k]["lo"] <= o[k]["hi"]
 
 
 @pytest.mark.parametrize("branch", BRANCHES)

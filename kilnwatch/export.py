@@ -175,6 +175,7 @@ def write_public(out: Path = C.WEB_DATA) -> None:
             shutil.copyfile(p, dst)
     dv = {"firms": "FIRMS API SP+NRT, fetched " + pd.Timestamp.today().strftime("%Y-%m-%d"), "apad": "APAD IGP Brick Kilns BAN (accessed 2026-10-06)",
           "boundaries": "HDX COD-AB BGD v03 (2023-05-21)"}
+    add_overlap(out)
     _dump(meta(branch, dv), out / "meta.json")
     check_public_dir(out)
     errs = check_budgets(out)
@@ -274,6 +275,7 @@ def _fixture_set_real(d: Path, src: Path) -> None:
         shutil.rmtree(d)
     shutil.copytree(src, d)
     _dump(events_payload(), d / "events.json")  # curated data/static CSVs, not pipeline output: always current
+    add_overlap(d)  # derived from the public calendars alone, so it can be recomputed on the frozen release
     # kiln_activity season CIs from release c310275 predate the activity.py p50 fix (bootstrap median):
     # a CI that cannot bracket its median is treated as not estimable, the file's own convention for degenerate rows.
     ka_p = d / "kiln_activity.json"
@@ -297,6 +299,18 @@ def _fixture_set_real(d: Path, src: Path) -> None:
     if repairs:
         ka_p.write_text(json.dumps(ka, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
         log.info("real fixture: nulled %d non-bracketing season CIs in kiln_activity.json", repairs)
+
+
+def add_overlap(d: Path) -> None:
+    """harmonization.json gains `overlap`: Aqua vs VIIRS agreement on the months both flew (validate.overlap_agreement),
+    computed from the district calendars in the same export."""
+    from .validate import overlap_agreement
+
+    cals = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((d / "calendar").glob("*.json"))]
+    hp = d / "harmonization.json"
+    h = json.loads(hp.read_text(encoding="utf-8"))
+    h["overlap"] = overlap_agreement([c for c in cals if c.get("clear_frac")])
+    _dump(nan_to_none(h), hp)
 
 
 def events_payload() -> dict:
@@ -362,6 +376,7 @@ def _fixture_set(branch: str, d: Path) -> None:
           d / "nrt" / "current_season.json")
     _dump({"tile": "90_23", "day0": "2003-01-01", "rows": [[int(1136241 + i), int(4000 + i % 300), int(i % 6)] for i in range(500)]}, d / "grid" / "90_23.json")
     _dump(_fixture_kiln_activity(rng), d / "kiln_activity.json")
+    add_overlap(d)
 
 
 def _fixture_kiln_activity(rng):

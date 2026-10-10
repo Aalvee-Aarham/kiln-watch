@@ -17,6 +17,72 @@ def _ci(t):
     return {"p50": float(t[0]), "lo": float(t[1]), "hi": float(t[2])}
 
 
+def ccc(x, y) -> float:
+    """Lin's concordance correlation coefficient: 1 only when y equals x, so unlike Pearson's r it drops when one
+    sensor reads on a different scale (Lin 1989, Biometrics 45:255)."""
+    x, y = np.asarray(x, float), np.asarray(y, float)
+    mx, my = x.mean(), y.mean()
+    return float(2 * np.mean((x - mx) * (y - my)) / (x.var() + y.var() + (mx - my) ** 2))
+
+
+def _overlap_months(cal: dict) -> pd.DataFrame | None:
+    """District-months where Aqua MODIS and S-NPP VIIRS both saw >= 20% of the district cloud-free on >= 5 days:
+    mean Aqua rate (the reference), mean raw VIIRS rate and mean harmonized (VIIRS converted) rate."""
+    cf = cal.get("clear_frac") or {}
+    if "A" not in cf or "N" not in cf or "A" not in cal["raw"] or "N" not in cal["raw"]:
+        return None
+    n = len(cf["A"])
+    days = np.asarray(cal["days"], int)
+    keep = days < n
+
+    def dense(v):
+        out = np.zeros(n)
+        out[days[keep]] = np.asarray(v, float)[keep]
+        return out
+
+    dates = pd.Timestamp(cal["day0"]) + pd.to_timedelta(np.arange(n), "D")
+    from .metrics import SNPP_END, SNPP_START
+
+    both = (np.asarray(cf["A"]) >= 20) & (np.asarray(cf["N"]) >= 20) & (dates >= SNPP_START) & (dates < SNPP_END)
+    df = pd.DataFrame({"month": dates.to_period("M"), "aqua": dense(cal["raw"]["A"]), "viirs_raw": dense(cal["raw"]["N"]), "viirs_harm": dense(cal["h"])})[both]
+    m = df.groupby("month").agg(aqua=("aqua", "mean"), viirs_raw=("viirs_raw", "mean"), viirs_harm=("viirs_harm", "mean"), n=("aqua", "size"))
+    m = m[m.n >= 5].reset_index()
+    from .grid import season_series
+
+    m["season"] = season_series(m.month.dt.to_timestamp()).to_numpy()
+    return m.assign(unit_id=cal["unit_id"])
+
+
+def overlap_agreement(cals: list[dict], calib=None, rng=None, n_boot=200) -> list[dict]:
+    """Does VIIRS agree with Aqua MODIS on the months both flew? For the calibration seasons and the held-out
+    seasons after them: ratio of total VIIRS to total Aqua activity (1 = same scale) and Lin's CCC, raw vs
+    harmonized, with 95% intervals from a bootstrap over districts."""
+    calib = tuple(calib or C.CALIB_SEASONS)
+    rng = rng if rng is not None else C.rng("validate")
+    frames = [m for m in (_overlap_months(c) for c in cals) if m is not None and len(m)]
+    if not frames:
+        return []
+    allm = pd.concat(frames, ignore_index=True)
+    out = []
+    for period, sel in (("calibration", allm.season.isin(calib)), ("held_out", ~allm.season.isin(calib) & (allm.season > calib[-1]))):
+        d = allm[sel]
+        if d.unit_id.nunique() < 2:
+            continue
+        groups = [g for _, g in d.groupby("unit_id")]
+
+        def stats(x):
+            return {"ratio_raw": x.viirs_raw.sum() / x.aqua.sum(), "ratio_harm": x.viirs_harm.sum() / x.aqua.sum(),
+                    "ccc_raw": ccc(x.aqua, x.viirs_raw), "ccc_harm": ccc(x.aqua, x.viirs_harm)}
+
+        point = stats(d)
+        boots = [stats(pd.concat([groups[i] for i in rng.integers(0, len(groups), len(groups))])) for _ in range(n_boot)]
+        ci = {k: {"p50": round(float(point[k]), 4), "lo": round(float(np.nanquantile([b[k] for b in boots], 0.025)), 4),
+                  "hi": round(float(np.nanquantile([b[k] for b in boots], 0.975)), 4)} for k in point}
+        seasons = sorted(d.season.unique())
+        out.append({"period": period, "seasons": f"{seasons[0]}…{seasons[-1]}", "n_months": int(len(d)), "n_districts": len(groups), **ci})
+    return out
+
+
 def shape_all_seasons() -> list[dict] | None:
     """Layer 1: gate statistics on every season with footprint clear fractions (2012-13 → 2024-25 when cached)."""
     from .gates import unit_days, unit_stats
