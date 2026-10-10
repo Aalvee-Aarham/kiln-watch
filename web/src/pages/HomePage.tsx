@@ -43,11 +43,13 @@ export default function HomePage() {
       {lang === 'bn' && <p className="text-sm text-muted" lang="bn">{t('englishOnly')}</p>}
       <header className="space-y-6">
         <div className="hero-ground space-y-5">
-          <h1 className="h-display max-w-[20ch] text-[clamp(2.5rem,7vw,4.75rem)]">NASA satellites have watched Bangladesh burn for 23 years. We made their records agree.</h1>
-          <p className="prose-measure text-lg text-muted">Every winter, farmers burn crop leftovers and thousands of brick kilns fire up. Satellites have photographed it
-            since 2003, but their cameras changed over the years, so their records don’t line up. Kiln Watch fixes that, and shows what it means for <b className="text-ink">your area</b>.</p>
+          <h1 className="h-display max-w-[20ch] text-[clamp(2.5rem,7vw,4.75rem)]">One fire record from MODIS and VIIRS, from 2003 to today.</h1>
+          <p className="prose-measure text-lg text-muted">In 2012 NASA’s sharper VIIRS camera joined MODIS, and recorded fire jumped. Nothing new was burning: the camera had changed.
+            Kiln Watch puts the two cameras on one scale and turns the record into a burning calendar for <b className="text-ink">your area</b>: its normal season, its unusual days and its critical weeks.</p>
+          <p className="prose-measure text-muted">Ask the AI agent a question in plain words: it answers from our own tested code, with the data behind each figure. Bangladesh is the first region.</p>
           <div className="flex flex-wrap gap-2">
             <TryLink to="/area" primary>Check my area</TryLink>
+            <TryLink to="/ask">Ask the AI agent</TryLink>
             <TryLink to="/how">See how it works</TryLink>
           </div>
         </div>
@@ -57,7 +59,7 @@ export default function HomePage() {
 
       <section aria-label="How it works" className="space-y-5">
         <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">From space to your district, in six steps</h2>
-        <Flow items={[['Satellites watch', 'five NASA/NOAA cameras'], ['They spot heat', 'hot pixels, day and night'], ['One scale', 'old and new cameras agree'],
+        <Flow items={[['Satellites watch', 'MODIS and VIIRS cameras'], ['They spot heat', 'hot pixels, day and night'], ['One scale', 'old and new cameras agree'],
           ['A calendar', 'for every area'], ['People act', 'with dates, not guesses'], ['Extension: kilns', 'night lights, not fire']]} />
         <TryLink to="/how">Walk through the six steps with real data</TryLink>
       </section>
@@ -70,12 +72,12 @@ export default function HomePage() {
               <span className="big-num text-heat">{Math.round((1 - h.seam.ratio) * 100)}%</span>
               <h3 className="text-lg font-semibold leading-snug">of the 2012 “fire explosion” was a camera change, not more fire.</h3>
               <p className="text-sm text-muted">When the sharper <Gloss k="VIIRS" /> camera arrived, fire counts jumped. We <Gloss k="harmonize">converted</Gloss> every camera to one scale and the jump disappeared.
-                Suomi NPP stops sending data on 2 Nov 2026; NOAA-20 carries the record on, on the same scale.</p>
+                MODIS ends in 2027; on one scale, its 20+ years stay comparable with VIIRS.</p>
               <div className="flex items-end gap-4 text-xs text-muted">
                 <span>Raw<Sparkline values={h.yearly.map((y) => y.raw_sum)} stroke="var(--color-raw)" /></span>
                 <span>Corrected<Sparkline values={h.yearly.map((y) => y.h.p50)} /></span>
               </div>
-              {(() => { const o = h.overlap?.find((x) => x.period === 'held_out' && x.ratio_raw.p50 != null && x.ratio_harm.p50 != null); return o && <p className="text-sm">In later years the correction never saw, raw VIIRS read <b>{o.ratio_raw.p50.toFixed(1)}×</b> Aqua; corrected, <b>{o.ratio_harm.p50.toFixed(2)}×</b>. <Link className="text-orbit underline" to={'/trust' + q}>See the check</Link></p> })()}
+              {(() => { const o = h.overlap?.find((x) => x.period === 'held_out' && x.ratio_raw.p50 != null && x.ratio_harm.p50 != null); return o && <p className="text-sm">In later years the correction never saw, raw VIIRS read <b>{o.ratio_raw.p50.toFixed(1)}×</b> MODIS; corrected, <b>{o.ratio_harm.p50.toFixed(2)}×</b>. <Link className="text-orbit underline" to={'/trust' + q}>See the check</Link></p> })()}
               <Provenance file="harmonization.json" data="NASA FIRMS MODIS and VIIRS" />
               <div className="mt-auto"><TryLink to="/sensors">Try the sensor switch</TryLink></div>
             </article>)}</Loading>
@@ -87,6 +89,7 @@ export default function HomePage() {
             <div className="mt-auto"><TryLink to="/area">Check my area</TryLink></div>
           </article>
           <article className="panel flex flex-col gap-3">
+            <span className="tag self-start">Extension: kilns</span>
             <span className="big-num text-brick">{prev != null ? `${Math.round(prev * 100)}%` : '–'}</span>
             <h3 className="text-lg font-semibold leading-snug">of brick-kiln clusters glow brighter at night in kiln season, though fire satellites can’t see them.</h3>
             <p className="text-sm text-muted">Our extension. Kilns burn inside closed chambers, so fire cameras miss them and the fire calendar has no kiln heat to remove. NASA’s <Gloss k="nightLights" /> see them working.</p>
@@ -153,9 +156,9 @@ export default function HomePage() {
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {([
             ['Impact', 'Does it help many people?', <>Air pollution killed an estimated 78,000 to 88,000 people in Bangladesh in 2019 (<a className="underline" href="https://www.worldbank.org/en/news/press-release/2022/12/03/high-air-pollution-level-is-creating-physical-and-mental-health-hazards-in-bangladesh-world-bank" target="_blank" rel="noreferrer">World Bank, 2022</a>). Kiln Watch gives farm officers, families, inspectors and planners in all 64 districts dates to act on.</>, '/impact', 'Who benefits'],
-            ['Creativity', 'Is the approach new?', `Fire satellites can’t see brick kilns, so we found them with NASA night lights instead, after testing ${ka?.pilots.length ?? 'several'} space instruments.`, '/how', 'How it works'],
+            ['Creativity', 'Is the approach new?', `An exchange rate between the two cameras, learned on days both saw the same ground, and an AI agent that only states numbers our code returns. Extension: brick kilns read from NASA night lights, after testing ${ka?.pilots.length ?? 'several'} space instruments.`, '/how', 'How it works'],
             ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. The kiln extension was also tested abroad, with mixed results, all published. Open code and data.', '/trust', 'Can you trust it?'],
-            ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning, continued on NOAA-20 after Suomi NPP ends.', '/how', 'Challenge checklist'],
+            ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning, carried on by VIIRS after MODIS ends.', '/how', 'Challenge checklist'],
           ] as const).map(([k, qn, a, to, l]) => (
             <li key={k} className="panel flex flex-col gap-2"><span className="tag">{k}</span><b className="leading-snug">{qn}</b><span className="text-sm text-muted">{a}</span>
               <div className="mt-auto pt-1"><TryLink to={to}>{l}</TryLink></div></li>))}

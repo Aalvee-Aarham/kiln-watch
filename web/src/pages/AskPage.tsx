@@ -10,8 +10,8 @@ export default function AskPage() {
   return (
     <div className="space-y-8">
       <PageHead title="Ask Kiln Watch">
-        Questions answered in plain words by Claude, an AI model from Anthropic. The AI never works out a number: our own tested code does,
-        and an answer that states any number our code did not return is blocked. Open “The data behind this answer” to check every figure.
+        Questions answered in plain words by Claude, an AI model from Anthropic. For each question it chooses which of our five functions to call, in up to six steps.
+        The AI never works out a number: our own tested code does, and an answer that states any number our code did not return is blocked. Open “The data behind this answer” to check every figure.
       </PageHead>
       {ask.loading ? null : !ask.data ? <StatusMessage kind="info">No answers have been generated for this data build yet.
         The team creates them with <span className="code">python -m kilnwatch ask --build-cache</span>, and they are then stored here so this page works offline.</StatusMessage>
