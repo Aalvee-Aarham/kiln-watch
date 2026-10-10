@@ -30,7 +30,16 @@ export default function AreaPage() {
   const unit = units.find((u) => u.unit_id === unitId)
   useTitle(unit ? `${unit.name_en} · My area` : 'My area')
   const go = (id: string) => nav(`/area/${id}${q}`)
-  const values = nrt.data ? Object.fromEntries(Object.entries(nrt.data.districts).map(([id, d]) => [id, d.above_p90_days])) : undefined
+  // Time slider: one stop per week of this season, then "season so far" (the default and the last stop).
+  const nWeeks = Math.ceil((nrt.data?.national.h.length ?? 0) / 7)
+  const [wk, setWk] = useState<number | null>(null)
+  const weekLabel = (w: number) => {
+    const d0 = Date.parse(`${nrt.data!.day0}T00:00:00Z`) + w * 7 * 86_400_000
+    const f = (ms: number) => new Date(ms).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' })
+    return `${f(d0)} – ${f(d0 + 6 * 86_400_000)}`
+  }
+  const values = !nrt.data ? undefined : Object.fromEntries(Object.entries(nrt.data.districts).map(([id, d]) =>
+    [id, wk == null ? d.above_p90_days : Math.round(d.h.slice(wk * 7, wk * 7 + 7).reduce((a, b) => a + b, 0) * 100) / 100]))
 
   return (
     <div className="space-y-10">
@@ -50,7 +59,13 @@ export default function AreaPage() {
             <Suspense fallback={<Skeleton className="h-[440px] w-full rounded-[10px]" />}>
               <BdMap fc={f} selected={unitId ? districtOf(unitId) : undefined} onSelect={go} drawing={false} onBox={() => {}} values={values} labels />
             </Suspense>)}</Loading>
-          <p className="text-xs text-muted">Tap a district on the map. Colour: number of <Gloss k="unusual">unusual days</Gloss> so far this season (darker = more).</p>
+          {nWeeks > 0 && <label className="block text-sm font-semibold">{wk == null ? `Season so far (${nrt.data!.season})` : `Week of ${weekLabel(wk)}`}
+            <input type="range" className="mt-1 w-full accent-[var(--color-heat)]" min={0} max={nWeeks} step={1} value={wk ?? nWeeks}
+              aria-valuetext={wk == null ? 'Season so far' : `Week of ${weekLabel(wk)}`}
+              onChange={(e) => { const v = Number(e.target.value); setWk(v === nWeeks ? null : v) }} /></label>}
+          <p className="text-xs text-muted">Tap a district on the map. Colour: {wk == null
+            ? <>number of <Gloss k="unusual">unusual days</Gloss> so far this season</>
+            : <>fire activity in that week, live NASA data (provisional)</>} (darker = more). Slide back through the season week by week.</p>
         </aside>
 
         <section className="min-w-0 space-y-8">

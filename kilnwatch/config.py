@@ -120,7 +120,7 @@ CREDITS = [
     {"name": "geoBoundaries ADM0 Pakistan and India (Amendment 2 controls)", "url": "https://www.geoboundaries.org/", "licence": "ODbL 1.0 (Pakistan), CC0 1.0 (India)"},
     {"name": "OCHA HDX COD-AB Bangladesh & Pakistan", "url": "https://data.humdata.org/dataset/cod-ab-bgd", "licence": "CC BY-IGO"},
     {"name": "OpenAQ v3", "url": "https://openaq.org/", "licence": "CC BY 4.0"},
-    {"name": "CARTO Positron basemap / OpenStreetMap", "url": "https://carto.com/attributions", "licence": "ODbL / CC BY"},
+    {"name": "NASA GIBS map backgrounds: Blue Marble Next Generation and Black Marble 2016", "url": "https://nasa-gibs.github.io/gibs-api-docs/", "licence": "NASA open data"},
 ]
 
 NON_CLAIMS = [

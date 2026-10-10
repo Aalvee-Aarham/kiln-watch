@@ -6,7 +6,7 @@ A static single-page app: no server, no map library, no runtime backend. Everyth
 
 ## Stack
 
-React 19 · TypeScript · Vite 8 · Tailwind CSS v4 (whose `@theme` tokens also theme the charts) · Apache ECharts 6, tree-shaken via `echarts/core` · react-router 8 with **`HashRouter`** (deep links work on GitHub Pages) · fonts bundled via Fontsource (Anek Bangla variable + IBM Plex Mono). The map, `components/BdMap.tsx`, is a **self-contained SVG choropleth** — pan/zoom/draw-box with custom cursors, no third-party tiles or library.
+React 19 · TypeScript · Vite 8 · Tailwind CSS v4 (whose `@theme` tokens also theme the charts) · Apache ECharts 6, tree-shaken via `echarts/core` · react-router 8 with **`HashRouter`** (deep links work on GitHub Pages) · fonts bundled via Fontsource (Anek Bangla variable + IBM Plex Mono). The map, `components/BdMap.tsx`, is a **self-contained SVG choropleth** — pan/zoom/draw-box with custom cursors, no third-party tiles or library. Two NASA backgrounds can be switched on under it (Blue Marble Next Generation and Black Marble 2016): single GIBS WMS images of the analysis box in EPSG:4326, bundled from `src/assets/basemap/`, which line up with the equirectangular projection by their corners and work offline. On My area a slider steps the map through this season week by week (live NASA data), ending on "season so far".
 
 ## Build modes (`vite.config.ts`)
 
