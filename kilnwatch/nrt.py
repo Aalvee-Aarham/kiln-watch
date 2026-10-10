@@ -33,9 +33,13 @@ def fetch(days: int) -> pd.DataFrame:
             d0 = date.today() - timedelta(days=start + min(5, days - start) - 1)
             w, so, e, n = C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N
             r = s.get(f"{FIRMS}/api/area/csv/{C.FIRMS_MAP_KEY}/{src}/{w},{so},{e},{n}/{min(5, days - start)}/{d0}", timeout=120)
-            if r.status_code == 404 or not r.text.strip() or not r.text.startswith("latitude"):
+            if r.status_code == 404 or (r.ok and not r.text.strip()):
                 log.info("%s %s: empty (%s)", src, d0, r.status_code)
                 continue
+            if not (r.ok and r.text.startswith("latitude")):
+                # quota page, invalid key or server error: fail the job so the last good deploy stays live,
+                # never publish it as a fire-free season (the URL carries the key, so it is not logged)
+                raise RuntimeError(f"FIRMS {src} {d0}: HTTP {r.status_code}, not CSV: {r.text[:80]!r}")
             raw = pd.read_csv(io.StringIO(r.text), dtype={"acq_date": str, "acq_time": str, "confidence": str, "satellite": str})
             if len(raw):
                 frames.append(normalise(raw, src))

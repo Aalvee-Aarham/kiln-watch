@@ -5,7 +5,7 @@
 ## Local setup
 
 - **Website:** Git + Node 20.19+ (`npm install` in `web/`, then `npm run dev` — serves the `nokiln` fixture set, a verbatim offline copy of the real export; the site banners this).
-- **Pipeline:** Python 3.11+; `pip install -r requirements.txt` (pinned); `cp .env.example .env`; `earthengine authenticate` once.
+- **Pipeline:** Python 3.11+; `pip install -r requirements.txt` (minimum versions, not pinned); `cp .env.example .env`; `earthengine authenticate` once.
 
 `.env` keys (gitignored, never committed):
 
@@ -27,7 +27,7 @@ Test rules that CI enforces: `tests/test_isolation.py` fails if any test referen
 
 ## Daily deploy (`.github/workflows/deploy.yml`)
 
-Triggers: push to `main` (or `redesign`), **cron 03:00 UTC**, manual dispatch.
+Triggers: push to `main`, **cron 03:00 UTC**, manual dispatch.
 
 1. **`nrt` job** — downloads the `data-current` GitHub Release asset into `web/public/data` (district normals), restores the `data/nrt` cache, runs `python -m kilnwatch nrt` (fetch FIRMS NRT, label with the frozen classifier, convert with the frozen calibration → `nrt/current_season.json`, always `provisional: true`), runs `pytest tests/test_export.py`, uploads the NRT output as a workflow artifact. **Nothing is committed to `main`.**
 2. **`deploy` job** (needs `nrt`; runs when it succeeded or was skipped) — re-downloads the release + artifact, `DATA_SRC=real npm run build`, both safety checks, deploy `web/dist` to GitHub Pages.
@@ -56,4 +56,4 @@ Either failing blocks the export and the deployment.
 
 ## Governance documents
 
-`docs/PREREGISTRATION.md` is the authority for every pre-registered threshold and is never edited; deviations and additions are dated amendments in `docs/PREREGISTRATION_AMENDMENTS.md`, each written before the data it governs. `docs/BLOCKERS.md` is the escalation log (currently one open row: the LOSO coverage FAIL is published as a conservative-interval result and wants a human sign-off in `docs/VERIFICATION.md`).
+`docs/PREREGISTRATION.md` is the authority for every pre-registered threshold and is never edited; deviations and additions are dated amendments in `docs/PREREGISTRATION_AMENDMENTS.md`, each written before the data it governs. `docs/BLOCKERS.md` is the escalation log (two rows await human sign-off: the A2 cell-count bound, replaced by an area-derived check, and the LOSO coverage FAIL, published as a conservative-interval result).

@@ -156,7 +156,7 @@ def check_budgets(path: Path) -> list[str]:
                 errs.append(f"{prefix}{p.name}: {gz} gz > {lim}")
     total = sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
     if total > 100_000_000:
-        errs.append(f"total {total} > 100 MB: rerun with --downscale upazila2012, then --downscale upazilaweekly")
+        errs.append(f"total {total} > 100 MB")
     return errs
 
 
@@ -525,7 +525,7 @@ def _fixture_validation(branch, rng):
     return v
 
 
-def run(regulator=False, fixtures=False, check_public=None, publish_=False, downscale="none") -> None:
+def run(regulator=False, fixtures=False, check_public=None, publish_=False) -> None:
     if fixtures:
         write_fixtures()
         return

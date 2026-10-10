@@ -19,8 +19,8 @@ export default function ExpertsPage() {
   ]
   const outside: [string, string, string][] = [
     [REPO, 'Source code', 'The full pipeline (Python) and site (React + TypeScript), MIT licence.'],
-    [`${REPO}/blob/main/PREREGISTRATION.md`, 'Pre-registration', 'Committed before any analysis; thresholds never edited.'],
-    [`${REPO}/blob/main/PREREGISTRATION_AMENDMENTS.md`, 'Amendment 1', 'The night-light and radar kiln tests, written before the confirmatory run.'],
+    [`${REPO}/blob/main/docs/PREREGISTRATION.md`, 'Pre-registration', 'Committed before any analysis; thresholds never edited.'],
+    [`${REPO}/blob/main/docs/PREREGISTRATION_AMENDMENTS.md`, 'Amendment 1', 'The night-light and radar kiln tests, written before the confirmatory run.'],
     [`${REPO}/releases/tag/data-current`, 'Public data release', 'The whole public export as one archive (area-level only).'],
     [`${REPO}/tree/main/reports`, 'Reports', 'Machine-written reports for every stage: gates, harmonization, kiln activity.'],
   ]

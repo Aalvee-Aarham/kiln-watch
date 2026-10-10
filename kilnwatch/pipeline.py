@@ -16,6 +16,11 @@ PUB = C.INTERIM / "public"
 DAY0 = pd.Timestamp("2003-01-01")
 
 
+class VerifyFailed(AssertionError):
+    """A VERIFY-S result check failed after the stage wrote all its outputs: the stage still exits non-zero,
+    but `all` may run the stages that do not depend on the failed check (they read the outputs, not the verdict)."""
+
+
 def grid_stage() -> None:
     det = pd.read_parquet(C.INTERIM / "detections.parquet")
     det = det[det.conf_class.isin(C.CONF_KEEP)]
@@ -110,8 +115,10 @@ def harmonize_stage() -> None:
         log.error("A6d FAILED: pooled LOSO coverage %.3f outside (%.2f, %.2f)", cov, lo, hi)
     if not ok_seam:
         log.error("A6e FAILED: seam criterion %s", seam)
-    assert lo <= cov <= hi, f"A6d: pooled coverage {cov:.3f} outside {C.LOSO_COVERAGE_TARGET}"
-    assert ok_seam, f"A6e: seam criterion not met: {seam}"
+    failed = ([f"A6d: pooled coverage {cov:.3f} outside {C.LOSO_COVERAGE_TARGET}"] if not lo <= cov <= hi else []) + \
+             ([f"A6e: seam criterion not met: {seam}"] if not ok_seam else [])
+    if failed:
+        raise VerifyFailed("; ".join(failed))
 
 
 def _beta_ci(draws, r):

@@ -13,7 +13,7 @@ Conventions shared by every file:
 
 ## Files and budgets
 
-Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export (total > 100 MB names the `--downscale` flag).
+Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export, as does a total over 100 MB.
 
 | File | Content | Budget |
 |---|---|---|
@@ -22,7 +22,7 @@ Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export 
 | `aoi/districts.geojson` · `aoi/upazilas.geojson` | Simplified boundaries; properties = `UnitProps` (`unit_id`, names en/bn, division, kiln count/share) | 400 KB · 1.5 MB |
 | `calendar/{unit_id}.json` | One `Calendar` per unit (~560): sparse `days`, per-sensor `raw`, harmonized `h`, `split[]`, optional `index`, `nodata`, `clear_frac` (districts), weekly CI, `normal` p10/p50/p90, `unusual`, `critical`, `seasons[]` with CIs | 150 KB gz each |
 | `grid/{tile}.json` | 1° × 1° tiles of sparse `[cell, day, sensor_pass]` rows for drawn boxes — totals only, no source labels | 1 MB gz each |
-| `harmonization.json` | `Harmonization`: selected model, `yearly` raw vs harmonized, `betas` (chain step, stratum, CI, rung, counts), `loso_by_season` / `loso_pooled`, `seam`, `sp_nrt_ratio` | 200 KB |
+| `harmonization.json` | `Harmonization`: selected model, `yearly` raw vs harmonized, `betas` (chain step, stratum, CI, rung, counts), `loso_by_season` / `loso_pooled`, `seam`, optional `sp_nrt_ratio` (synthetic fixtures only: the real export has no SP/NRT overlap to compute it) | 200 KB |
 | `validation.json` | `Validation`: gate rows, plateau/spike profiles, radius sweep, classifier (PR curve/AUC, importance, four holdouts, label-set comparison, ablation), controls, candidates, TROPOMI, PM2.5 lags, transfer, closure, `skipped` | 500 KB |
 | `kiln_activity.json` | `KilnActivity` (Amendment 1 + transfer, below). **Optional file: absent means "no kiln layer"** and the site hides kiln pages | 1.5 MB |
 | `nrt/current_season.json` | `NrtSeason`: season-to-date national + per-district harmonized activity, `provisional: true`, `above_p90_days` | 300 KB |
@@ -45,7 +45,7 @@ Area-level only, never per kiln or per cluster:
 | `pilots` | The six disclosed pilot channels (P1–P6), readings verbatim |
 | `tests` / `pass` | GL and GS confirmatory rows: criterion, value, threshold, p, pass |
 | `contamination` | Fire detections on kiln vs control footprints (the 0.15% upper bound) |
-| `national` / `areas` | Kiln-season summaries: monthly excess series with CIs, plus per-season onset/end/duration/peak with bootstrap CIs. Areas need ≥ 5 clusters |
+| `national` / `areas` | Kiln-season summaries: excess series with CIs (half-monthly for night lights, monthly for radar — see `cadence`), plus per-season onset/end/duration/peak with bootstrap CIs. Areas need ≥ 5 clusters |
 | `national_check` | The independent Sentinel-1 national check series |
 | `transfer` | **Amendments 2–4**, country-level only (below) |
 

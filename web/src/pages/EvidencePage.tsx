@@ -4,7 +4,7 @@ import { Pm25LagChart, PRCurveChart, RadiusSweepChart, TropomiChart } from '../c
 import { useJson } from '../lib/data'
 import type { Harmonization, KilnActivity, Validation } from '../lib/types'
 
-const AMENDMENT_URL = 'https://github.com/Aalvee-Aarham/kiln-watch/blob/main/PREREGISTRATION_AMENDMENTS.md'
+const AMENDMENT_URL = 'https://github.com/Aalvee-Aarham/kiln-watch/blob/main/docs/PREREGISTRATION_AMENDMENTS.md'
 
 const pct = (v: number) => `${(v * 100).toFixed(1)}%`
 

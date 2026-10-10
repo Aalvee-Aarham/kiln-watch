@@ -57,7 +57,7 @@ The header nav (`AppShell`) shows How / Area / Kilns (when the kiln layer exists
 
 ## Accessibility, theming, offline
 
-ARIA on every chart with a summary sentence; colour-blind-safe palette + decal patterns; keyboard-reachable controls with search as the map alternative; reduced-motion and forced-colors fallbacks (both e2e-tested); day/night theme booted before first paint (`index.html`). The site is fully offline-capable except nothing — the map is basemap-free SVG, fonts are bundled, so `npm run preview` serves the whole thing with no network.
+ARIA on every chart with a summary sentence; colour-blind-safe palette + decal patterns; keyboard-reachable controls with search as the map alternative; reduced-motion and forced-colors fallbacks (both e2e-tested); day/night theme booted before first paint (`index.html`). The site is fully offline-capable: the map is basemap-free SVG, fonts are bundled, so `npm run preview` serves the whole thing with no network.
 
 ## Tests
 

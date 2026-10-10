@@ -14,14 +14,14 @@ One Python package, `kilnwatch/`, turns raw NASA/ESA satellite data into the sta
 | `grid.py` | Pure grid math: `cell_id` / `cell_center` (0.01° grid, origin 20.0°N 68.0°E, 1500×3000), `pixel_radius_m`, `season_of` (July–June season year), `to_celldays`, `unit_cells`, `unit_rates` (rate per 1,000 clear cells, `min_clear = 0.2`) |
 | `kilns.py` | Inventory reconciliation (150 m cross-match), DBSCAN clustering with the 5 km diameter cap and 2% share cap, `measure_eps` (median VIIRS half-diagonal → `DBSCAN_EPS_M`), 3 matched controls per cluster (WorldCover-matched, ladder with `rung_used`), detection linking by per-detection pixel radius |
 | `gates.py` | Pre-registered feasibility gates G0–GN on `GATE_SEASON`, permutation + Mann–Whitney evaluation, `branch()` → `GATE_BRANCH` in `config_derived.json`; writes `reports/gate_report.md` |
-| `harmonize.py` | The calibration engine: chain Aqua ← S-NPP ← NOAA-20 ← NOAA-21, strata = division × month × pass × location class, pooling ladder, ratio fit (M0) and Poisson GLM (M1), season-block bootstrap betas, leave-one-season-out with the coverage target, Chow seam test at 2011-12, SP/NRT ratio for NOAA-20 |
+| `harmonize.py` | The calibration engine: chain Aqua ← S-NPP ← NOAA-20 ← NOAA-21, strata = division × month × pass × location class, pooling ladder, ratio fit (M0) and Poisson GLM (M1), season-block bootstrap betas, leave-one-season-out with the coverage target, Chow seam test at 2011-12. The NOAA-20 → NOAA-21 step is fitted but not yet used by the calendars or the NRT job; the NOAA-20 SP/NRT ratio is not computable yet (FIRMS SP and NRT do not overlap) |
 | `classify.py` | Weakly supervised VIIRS source classifier: leakage-free features (`p5`/`p30` persistence from past detections only), footprint labels (+ optional `type=2` augmentation), HGB vs logistic vs rule baseline, thresholds frozen for precision ≥ 0.8, four holdouts (spatial, temporal, cross-sensor N→J1 and J1→J2), label-set comparison, persistence ablation, candidate unmapped kilns, and the frozen-model transfer test on Faisalabad |
 | `metrics.py` | Season metrics (onset/peak/duration, block bootstrap), normals (p10/p50/p90 per day of season), unusual/critical flags, activity index (HKFI/HBI by branch), clear climatology, harvest windows from `crop_calendar.csv`, sensor-era handling (S-NPP ends 2026-11-02, then chained NOAA-20) |
 | `validate.py` | Validation layers, strongest first: shape across all seasons, Sentinel-2 chips and two-rater score, TROPOMI NO₂ difference-in-differences, Dhaka PM2.5 lags, closure cases |
 | `activity.py` | **Amendment 1.** Kiln activity from non-fire channels: GL = Black Marble VNP46A2 night lights (half-monthly, 2012–), GS = Sentinel-1 radar yard-minus-ring (monthly, 2015–), each vs the cluster's matched controls; four confirmatory criteria on held-out clusters (season 2022-23); area-level kiln-season summaries (≥ 5 clusters per area) |
 | `transfer.py` | **Amendments 2–4.** The night-light method abroad: per country (PK, IN, AF) kilns → clusters → seeded 2,000-cluster sample (400 calibration) → distance-ring controls → night lights (+ radar on a nested subsample); tests with Bangladesh's months (TL/TS) and locally learned months (LL/LS); design A2 = first test, A4 = retest with controls ≥ 6 km from every mapped kiln. Country-level output only |
 | `nrt.py` | Daily near-real-time update for CI: FIRMS NRT fetch, `data/nrt/season.csv` maintenance, frozen classifier + thresholds, harvest-key split under `nokiln`, β-weighted harmonized rates per district and national → `web/public/data/nrt/current_season.json` |
-| `export.py` | The public / regulator / fixtures / publish tiers; name and value safety checks; per-file size budgets; `--downscale` fallbacks |
+| `export.py` | The public / regulator / fixtures / publish tiers; name and value safety checks; per-file size budgets |
 | `stats.py` | `bootstrap_ci` (block), stratified `perm_test`, `wilson`, `chow_test` |
 | `pipeline.py` | Stage glue behind `grid`, `harmonize`, `metrics`: record assembly, national series, per-unit calendars, AOI GeoJSON, grid tiles, `events.json`, money-shot figures, `reports/baseline.json` |
 | `__main__.py` | The CLI (below) |
@@ -38,16 +38,16 @@ python -m kilnwatch <stage> [flags]
 | `gee` | `--dataset clear\|worldcover\|water\|s5p\|era5` · `--units admin\|footprints\|transfer` · `--sensor T\|A\|N\|J1\|J2` · `--from DATE` | Slow, resumable; per-month cache under `data/raw/gee/` |
 | `grid` | — | Cell-days, unit cells, rates |
 | `kilns` | — | Reconcile, cluster, controls, linking |
-| `gates` | `--gate G0\|G1\|G2\|G3\|GN` | Writes `GATE_BRANCH` to `config_derived.json` |
+| `gates` | — | All gates; writes `GATE_BRANCH` to `config_derived.json` |
 | `harmonize` | — | Chain, LOSO, seam |
-| `classify` | `--transfer` | Classifier + holdouts; `--transfer` = the Faisalabad frozen-model test |
+| `classify` | — | Classifier + holdouts, then the Faisalabad frozen-model transfer test (skipped with a warning if it cannot run) |
 | `metrics` | — | Calendars and season metrics |
-| `validate` | `--only shape\|s2chips\|s2score\|tropomi\|pm25\|closure` | |
+| `validate` | — | Every available layer; unavailable ones are listed under `skipped` |
 | `activity` | `--extract ntl\|s1\|all` | Amendment 1; `--extract` pulls the Earth Engine cache first (slow, resumable) |
 | `transfer` | `--countries PK IN AF` · `--kinds ntl s1` · `--no-extract` · `--prepare-only` · `--design A2\|A4` | Amendments 2–4; `--prepare-only` builds samples and controls without outcome data |
-| `export` | `--regulator` · `--fixtures` · `--check-public DIR` · `--publish` · `--downscale none\|upazila2012\|upazilaweekly` | |
+| `export` | `--regulator` · `--fixtures` · `--check-public DIR` · `--publish` | |
 | `nrt` | `--days 5` | The daily update run by CI |
-| `all` | — | ingest → grid → kilns → gates → harmonize → classify → metrics → validate → activity (cache only) → export. **Excludes `gee`** (fails fast with exit 2 if `data/raw/gee/clear/admin` is missing) **and `transfer`** (run it separately) |
+| `all` | — | ingest → grid → kilns → gates → harmonize → classify → metrics → validate → activity (cache only) → export. **Excludes `gee`** (fails fast with exit 2 if `data/raw/gee/clear/admin` is missing) **and `transfer`** (run it separately). If harmonize's result checks fail (A6d LOSO coverage, A6e seam), its outputs are already written, so `all` runs the remaining stages and then exits 1 naming the failed checks; any other stage failure stops `all` at once |
 
 ## Stage inputs and outputs
 
@@ -60,7 +60,7 @@ python -m kilnwatch <stage> [flags]
 | `gates` | celldays, links, clear | `GATE_BRANCH` (derived); `reports/gate_report.md` |
 | `harmonize` | rates, clear | β chain, `data/models/harm_draws.parquet`, harmonization payload; `reports/harmonization_report.md` |
 | `classify` | detections, links | labels, `data/models/kiln_clf.joblib`, `data/models/thresholds.json`; `reports/classifier_report.md` |
-| `metrics` | series, betas, clear climatology | per-unit calendars, `aoi/*.geojson`, `grid/*.json`, `events.json`, normals; `reports/baseline.json`, figures |
+| `metrics` | series, betas, clear climatology | per-unit calendars, `aoi/*.geojson`, `grid/*.json`, `events.json`, normals. `reports/baseline.json` and the figures come from `pipeline.write_baseline()` and `pipeline.figures()`, which no stage calls: run them by hand after `metrics` and `validate` |
 | `validate` | series, S5P, OpenAQ | validation payload; `reports/validation_report.md` |
 | `activity` | clusters, controls, GEE cache | kiln-activity payload (public block); `reports/kiln_activity_report.md` |
 | `transfer` | APAD PK/IN, SentinelKilnDB, geoBoundaries, GEE cache | transfer block of the kiln-activity payload; `reports/transfer_report.md` |

@@ -161,7 +161,7 @@ def pm25_lags() -> list[dict] | None:
     return out
 
 
-def run(only=None) -> dict:
+def run() -> dict:
     from .export import _dump, nan_to_none
 
     gates = json.loads((C.INTERIM / "gates.json").read_text(encoding="utf-8"))

@@ -93,7 +93,7 @@ flowchart LR
 |---|---|---|
 | Analyst machine | Full pipeline including Earth Engine, gates, training, validation and export; `export --publish` uploads the public export as the `data-current` release asset | Whenever data or a parameter changes |
 | GitHub Action `nrt` | Downloads `data-current` (for district normals), fetches FIRMS NRT, grids, labels with the frozen classifier, converts with the frozen calibration, writes `nrt/current_season.json`, uploads it as a **workflow artifact**. `season.csv` persists in `actions/cache`. **Nothing is committed.** | Daily cron and manual dispatch |
-| GitHub Action `deploy` | Downloads `data-current` into `web/public/data/`, then the NRT artifact into `web/public/data/nrt/`, builds, runs both safety checks, deploys to Pages | After `nrt`, and on push to `main` or `redesign` |
+| GitHub Action `deploy` | Downloads `data-current` into `web/public/data/`, then the NRT artifact into `web/public/data/nrt/`, builds, runs both safety checks, deploys to Pages | After `nrt`, and on push to `main` |
 | Browser | React SPA: loads static JSON, renders map and charts, computes drawn-box aggregates client-side | Demo and public use |
 
 ---
@@ -386,7 +386,7 @@ Ranked by evidential strength; the pitch leads with the strongest. Only rank 1's
 - **Two safety checks, both required, both run before anything leaves the machine and again in CI:**
   - **Name check** — `assert_public_safe` refuses any field named `kiln_id`, `cluster_id`, `candidate`, `kiln_lat` or `kiln_lon`.
   - **Value check** — `check_public_dir` refuses any point geometry outside the admin boundary set other than unit centroids, and any array whose length equals the number of clusters or kilns. A name check catches the leak you anticipated; a value check catches the one you did not.
-- Size budgets per file are enforced in `kilnwatch/export.py` (see [data-contracts.md](data-contracts.md)). If the total exceeds 100 MB the stage fails and names the `--downscale` flag to use (`upazila2012`, then `upazilaweekly`).
+- Size budgets per file are enforced in `kilnwatch/export.py` (see [data-contracts.md](data-contracts.md)). If the total exceeds 100 MB the stage fails.
 
 **Publication.** `python -m kilnwatch export --publish` runs both safety checks, packages `web/public/data/` (excluding `nrt/`) as `public-data.tar.gz`, uploads it with `--clobber` to the `data-current` GitHub Release, and creates an immutable `data-<short_sha>` release for provenance. The real public export never enters git history.
 
@@ -516,7 +516,7 @@ Full detail in [web-frontend.md](web-frontend.md); design rationale in [redesign
 |---|---|
 | Hosting | GitHub Pages serving `web/dist`, deployed by `actions/upload-pages-artifact` + `actions/deploy-pages` |
 | `ci.yml` (push, PR) | `python`: Ruff + pytest — synthetic tests only; `test_isolation.py` fails if any test references `data/`. `web-fixtures`: `npm ci`, ESLint, `tsc --noEmit`, Vitest, **a `DATA_SRC=fixtures` build for each of the five fixture branches**, both safety checks, bundle-size report. |
-| `deploy.yml` (push to `main` or `redesign`, cron 03:00 UTC, dispatch) | `nrt` job → workflow artifact. `deploy` job (`needs: nrt`, runs if it succeeded or was skipped) → download `data-current` → download the NRT artifact → `DATA_SRC=real` build → both safety checks → Pages. |
+| `deploy.yml` (push to `main`, cron 03:00 UTC, dispatch) | `nrt` job → workflow artifact. `deploy` job (`needs: nrt`, runs if it succeeded or was skipped) → download `data-current` → download the NRT artifact → `DATA_SRC=real` build → both safety checks → Pages. |
 | Real public data | GitHub Release asset `data-current` (`public-data.tar.gz`), uploaded by `export --publish`; immutable `data-<short_sha>` releases for history. Never in git. |
 | Secrets | `FIRMS_MAP_KEY` only. Earth Engine credentials never enter CI. |
 | Safety gate | Both workflows run the name grep **and** `python -m kilnwatch export --check-public web/dist/data`; either failing blocks deployment |

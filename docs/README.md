@@ -12,6 +12,7 @@ Bangladesh burning + brick-kiln seasons from 23 years of NASA satellite data. Py
 | [web-frontend.md](web-frontend.md) | The site: stack, routes, pages, libs, theming, i18n, tests |
 | [operations.md](operations.md) | Setup, CI, the daily NRT deploy, publishing, dual-tier release, governance |
 | [../README.md](../README.md) | Project overview, quick start, results |
+| [../CLAUDE.md](../CLAUDE.md) | Living rules for coding agents (invariants, conventions, when blocked) |
 
 ## Canonical records (never rewritten)
 
@@ -19,7 +20,7 @@ Bangladesh burning + brick-kiln seasons from 23 years of NASA satellite data. Py
 |---|---|
 | [PREREGISTRATION.md](PREREGISTRATION.md) | Pre-registered rules — the authority for every threshold; committed before analysis |
 | [PREREGISTRATION_AMENDMENTS.md](PREREGISTRATION_AMENDMENTS.md) | Dated amendments 1–4, each written before the data it governs |
-| [BLOCKERS.md](BLOCKERS.md) | Escalation log (open: LOSO coverage FAIL wants a human sign-off) |
+| [BLOCKERS.md](BLOCKERS.md) | Escalation log (two rows await human sign-off: the A2 cell-count bound and the LOSO coverage FAIL) |
 | [VERIFICATION.md](VERIFICATION.md) | Human sign-off log — rows signed only by people |
 
 ## Historical records (describe the build as planned; content untouched)

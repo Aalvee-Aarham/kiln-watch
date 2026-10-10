@@ -146,7 +146,7 @@ export default function TrustPage() {
       </section>}
 
       <div className="flex flex-wrap gap-2">
-        <a className="btn btn-primary min-h-11 px-4" href={`${REPO}/blob/main/PREREGISTRATION.md`} target="_blank" rel="noreferrer">Read the pre-registration<Icon name="chevron" className="h-3.5 w-3.5" /></a>
+        <a className="btn btn-primary min-h-11 px-4" href={`${REPO}/blob/main/docs/PREREGISTRATION.md`} target="_blank" rel="noreferrer">Read the pre-registration<Icon name="chevron" className="h-3.5 w-3.5" /></a>
         <TryLink to="/evidence">Full evidence (for experts)</TryLink>
       </div>
     </div>
