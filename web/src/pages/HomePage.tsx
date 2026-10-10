@@ -1,10 +1,12 @@
 import { Link } from 'react-router'
 import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useTitle } from '../components/ui'
-import { Gloss, Ours, TryLink, useQ } from '../components/plain'
+import { Flow, Gloss, Ours, TryLink, useQ } from '../components/plain'
 import Ledger from '../components/Ledger'
+import { useMemo } from 'react'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
-import { meanDuration, typicalSeason, whenText, monthOfSeasonDay } from '../lib/plain'
+import { busyMonths, meanDuration, SEASON_MONTHS, typicalSeason, whenText, monthOfSeasonDay } from '../lib/plain'
+import { seasonMean } from '../lib/calendar'
 import type { Calendar, Events, FC, Harmonization, NrtSeason } from '../lib/types'
 
 export default function HomePage() {
@@ -25,6 +27,7 @@ export default function HomePage() {
   const typ = typicalSeason(rows)
   const early = meanDuration(rows, '2012-13', '2014-15'), late = meanDuration(rows, '2022-23', '2024-25')
   const prev = ka?.tests.find((r) => r.test === 'GL' && r.criterion.startsWith('Prevalence'))?.value
+  const fire = useMemo(() => (cal.data ? busyMonths(seasonMean(cal.data)) : null), [cal.data])
 
   return (
     <div className="space-y-20">
@@ -36,12 +39,19 @@ export default function HomePage() {
             since 2003, but their cameras changed over the years, so their records don’t line up. Kiln Watch fixes that, and shows what it means for <b className="text-ink">your area</b>.</p>
           <div className="flex flex-wrap gap-2">
             <TryLink to="/area" primary>Check my area</TryLink>
-            <TryLink to="/impact">Who can use this</TryLink>
+            <TryLink to="/how">See how it works</TryLink>
           </div>
         </div>
         <Loading state={cal} skeleton={<Skeleton className="h-[290px] w-full" />}>{(c) =>
           <Ledger cal={c} events={events.data} caption={`Every day since 2003 in ${name(top)}, the district with the most fire this season. Each row is a year; darker means more fire.`} />}</Loading>
       </header>
+
+      <section aria-label="How it works" className="space-y-5">
+        <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">From space to your district, in six steps</h2>
+        <Flow items={[['Satellites watch', 'five NASA/NOAA cameras'], ['They spot heat', 'hot pixels, day and night'], ['One scale', 'old and new cameras agree'],
+          ['Find the kilns', 'night lights, not fire'], ['A calendar', 'for every area'], ['People act', 'with dates, not guesses']]} />
+        <TryLink to="/how">Walk through the six steps with real data</TryLink>
+      </section>
 
       <section aria-label="Three findings" className="space-y-6">
         <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">Three things we found</h2>
@@ -102,16 +112,46 @@ export default function HomePage() {
         </div>}
       </section>
 
-      <section className="space-y-5 border-t border-line pt-10">
-        <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">Who can use this?</h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          {[['Environment inspectors', 'Know when kilns in each district are actually working.'],
-            ['Families and health workers', 'Know which months bring burning season to your area.'],
-            ['Farm officers', 'Time crop-residue advice to each area’s real burning weeks.'],
-            ['Scientists worldwide', 'Keep 20-year fire records going after the old MODIS satellites retire in 2027.']].map(([a, b]) => (
-            <li key={a} className="panel"><b className="block">{a}</b><span className="text-sm text-muted">{b}</span></li>))}
+      <section className="space-y-5 border-t border-line pt-10" aria-label="What people do with it">
+        <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">What people do with it</h2>
+        <p className="prose-measure text-muted">Real questions, answered with real NASA data, turned into a step someone can take this season.</p>
+        <ul className="grid gap-4 md:grid-cols-2">
+          {([
+            ['inspector', 'Environment inspector', 'When should we inspect kilns?',
+              typ ? <>Kilns work {whenText(typ.onset)} to {whenText(typ.end)}{typ.peak != null && <>, busiest in {monthOfSeasonDay(typ.peak)}</>}.</> : null,
+              typ?.peak != null ? <>Put the main inspection round in {monthOfSeasonDay(typ.peak)}.</> : <>Time visits to the kiln season.</>],
+            ['farm', 'Agriculture officer', `When do fields burn in ${name(top) ?? 'my district'}?`,
+              fire ? <>Usually {SEASON_MONTHS[fire.first]} to {SEASON_MONTHS[fire.last]}, busiest in {SEASON_MONTHS[fire.peak]}.</> : null,
+              fire ? <>Start the straw campaign in {SEASON_MONTHS[(fire.first + 11) % 12]}, a month before burning begins.</> : <>Start campaigns before burning begins.</>],
+            ['families', 'Parent or school', 'Is this a bad burning year here?',
+              nrt.data ? <>{unusual.length} of {Object.keys(nrt.data.districts).length} districts have had unusual days this season.</> : null,
+              <>Look up your district and mark its burning months on the school calendar.</>],
+            ['policy', 'Policy maker', 'Is kiln policy working?',
+              early != null && late != null ? <>The kiln season grew from about {Math.round(early / 30.44)} to about {Math.round(late / 30.44)} months.</> : null,
+              <>Track kiln-season length every year as a progress number.</>],
+          ] as const).map(([id, who, qn, ans, act]) => (
+            <li key={id}><Link to={`/impact/${id}${top ? `/${top}` : ''}${q}`} className="panel group grid h-full gap-2 hover:bg-surface-2">
+              <span className="flex items-center justify-between"><span className="tag">{who}</span><Icon name="chevron" className="h-4 w-4 text-muted group-hover:text-ink" /></span>
+              <b className="text-lg leading-snug">“{qn}”</b>
+              {ans && <span className="ours text-sm"><span className="tag">Kiln Watch shows</span><span className="block">{ans}</span></span>}
+              <span className="flex gap-2 text-sm"><Icon name="check" className="mt-0.5 h-4 w-4 text-ok" /><span><b>Action:</b> {act}</span></span>
+            </Link></li>))}
         </ul>
-        <TryLink to="/impact">See how each one benefits</TryLink>
+        <TryLink to="/impact" primary>Build a plan for your role and district</TryLink>
+      </section>
+
+      <section className="space-y-5 border-t border-line pt-10" aria-label="For judges">
+        <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">Four questions judges ask</h2>
+        <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {([
+            ['Impact', 'Does it help many people?', 'Air pollution killed an estimated 78,000 to 88,000 people in Bangladesh in 2019 (World Bank). Kiln Watch gives inspectors, farm officers, families and planners in all 64 districts dates to act on.', '/impact', 'Who benefits'],
+            ['Creativity', 'Is the approach new?', `Fire satellites can’t see brick kilns, so we found them with NASA night lights instead, after testing ${ka?.pilots.length ?? 'several'} space instruments.`, '/how', 'How it works'],
+            ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. The kiln method was retested in Pakistan, India and Afghanistan. Open code and data.', '/trust', 'Can you trust it?'],
+            ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning.', '/how', 'Challenge checklist'],
+          ] as const).map(([k, qn, a, to, l]) => (
+            <li key={k} className="panel flex flex-col gap-2"><span className="tag">{k}</span><b className="leading-snug">{qn}</b><span className="text-sm text-muted">{a}</span>
+              <div className="mt-auto pt-1"><TryLink to={to}>{l}</TryLink></div></li>))}
+        </ul>
       </section>
 
       <p className="border-t border-line pt-6 text-sm text-muted">Everything on this site comes from real NASA and European satellite data, processed by our open-source pipeline.

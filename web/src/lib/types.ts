@@ -97,6 +97,22 @@ export interface KilnActivity {
   national?: KilnArea
   areas?: Record<string, KilnArea>
   national_check?: { channel: 's1'; periods: string[]; e: Series; lo: Series; hi: Series }
+  transfer?: { countries: TransferCountry[] }  // Amendment 2: the method in other countries; country-level only
+}
+
+export type TransferTest = 'TL' | 'LL' | 'TS' | 'LS'  // night lights / radar × Bangladesh's months (T) / locally learned months (L)
+export interface TransferChannel {
+  learned: { core: number[]; off: number[] }        // calendar months (1-12), July-to-June order
+  profile: { months: number[]; p50: Series; lo: Series; hi: Series; n_clusters: number }  // median kiln excess per month
+  n_calibration?: number; n_confirmation?: number
+  tests: { test: TransferTest; criterion: string; value: number | null; threshold: string; p?: number | null; pass: boolean }[]
+  pass: Partial<Record<TransferTest, boolean>>
+}
+export interface TransferCountry {
+  code: string; name: string; source?: string; n_kilns?: number; n_clusters: number; n_sampled?: number; n_dropped?: number; evaluable?: boolean
+  channels: Partial<Record<'ntl' | 's1', TransferChannel>>
+  design?: string            // 'A2' first test (Amendments 2-3), 'A4' retest
+  retest?: TransferCountry   // Amendment 4: fresh clusters, controls >= 6 km from every kiln
 }
 
 export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }

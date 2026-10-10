@@ -13,6 +13,8 @@ const KilnPlannerPage = lazy(() => import('./pages/KilnPlannerPage'))
 const SensorsPage = lazy(() => import('./pages/SensorsPage'))
 const TimelinePage = lazy(() => import('./pages/TimelinePage'))
 const ImpactPage = lazy(() => import('./pages/ImpactPage'))
+const HowPage = lazy(() => import('./pages/HowPage'))
+const TrustPage = lazy(() => import('./pages/TrustPage'))
 const ExpertsPage = lazy(() => import('./pages/ExpertsPage'))
 const StoryPage = lazy(() => import('./pages/StoryPage'))
 const ExplorerPage = lazy(() => import('./pages/ExplorerPage'))
@@ -32,7 +34,9 @@ function App() {
             <Route path="/kilns/:unitId?" element={<KilnPlannerPage />} />
             <Route path="/sensors" element={<SensorsPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
-            <Route path="/impact" element={<ImpactPage />} />
+            <Route path="/how" element={<HowPage />} />
+            <Route path="/impact/:who?/:unitId?" element={<ImpactPage />} />
+            <Route path="/trust" element={<TrustPage />} />
             <Route path="/experts" element={<ExpertsPage />} />
             <Route path="/story" element={<StoryPage />} />
             <Route path="/explore" element={<ExplorerPage />} />

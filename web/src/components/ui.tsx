@@ -106,8 +106,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const headerRef = useRef<HTMLElement>(null)
   const showKilns = useKilnsVisible()
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
-  const tabs: [string, Key, Key?][] = [['/area', 'area', 'areaShort'], ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []),
-    ['/sensors', 'sensors', 'sensorsShort'], ['/timeline', 'timeline', 'timelineShort'], ['/impact', 'impact', 'impactShort'], ['/experts', 'experts', 'expertsShort']]
+  // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []),
+    ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'], ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.
