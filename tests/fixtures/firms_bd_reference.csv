@@ -1,0 +1,20 @@
+# Independent published reference for Bangladesh active fires, 2012-2025.
+# Source: AURSEE country fire history (https://aursee.org/region/bangladesh/), built from the
+# NASA FIRMS VIIRS S-NPP 375 m active-fire product (0.01-degree cells, complete years 2012-2025).
+# Columns: year (calendar), detected_km2 (area with >=1 detection), fire_days (unique cell-days).
+# Used only as a published reference for a rank-correlation assertion; not pipeline output.
+year,detected_km2,fire_days
+2012,6090,7137
+2013,7550,9014
+2014,8530,10762
+2015,5750,6695
+2016,4830,5409
+2017,4600,5047
+2018,5580,6746
+2019,6280,7735
+2020,6460,7815
+2021,6850,8437
+2022,4570,5246
+2023,6740,8047
+2024,4930,5673
+2025,5450,6360

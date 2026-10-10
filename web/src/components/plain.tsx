@@ -111,7 +111,7 @@ export function windowLevels(onset: number, end: number, peak: number | null): n
 }
 
 /** The approach as a chain: satellite → … → benefit. Wraps on phones; arrows are decoration only. */
-export function Flow({ items, active, onPick }: { items: [title: string, text?: string][]; active?: number; onPick?: (i: number) => void }) {
+export function Flow({ items, active, onPick }: { items: [title: string, text?: ReactNode][]; active?: number; onPick?: (i: number) => void }) {
   return (
     <ol className="flex flex-wrap items-stretch gap-x-1 gap-y-2" aria-label="How it works, step by step">
       {items.map(([title, text], i) => {

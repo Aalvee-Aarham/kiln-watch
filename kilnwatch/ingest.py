@@ -79,9 +79,13 @@ def _pace(s, every=20, ceiling=4300) -> None:
             time.sleep(60)
 
 
-def area_window(source: str, start: date, s, bbox=None, days=5, force=False) -> Path:
-    """One 5-day FIRMS Area API window, cached per (source, start). A header-only response is empty, not an error."""
-    path = FIRMS_DIR / "api" / source / f"{start.isoformat()}.csv"
+def area_window(source: str, start: date, s, bbox=None, days=5, force=False, root: Path = FIRMS_DIR) -> Path:
+    """One 5-day FIRMS Area API window, cached per (source, start). A header-only response is empty, not an error.
+
+    `root` lets an independent caller cache under its own directory (used by verify_firms) without
+    touching the pipeline cache.
+    """
+    path = root / "api" / source / f"{start.isoformat()}.csv"
     if path.exists() and not force:
         return path
     _pace(s)
@@ -103,7 +107,7 @@ def area_window(source: str, start: date, s, bbox=None, days=5, force=False) -> 
     raise RuntimeError(f"FIRMS quota not recovered for {source} {start}")
 
 
-def backfill(source: str, start: date, end: date, workers=4, force_recent_days=0) -> int:
+def backfill(source: str, start: date, end: date, workers=4, force_recent_days=0, root: Path = FIRMS_DIR) -> int:
     s = session()
     starts = []
     d = start
@@ -114,7 +118,7 @@ def backfill(source: str, start: date, end: date, workers=4, force_recent_days=0
 
     def job(st):
         try:
-            return area_window(source, st, s, force=force_recent_days > 0 and st + timedelta(days=5) >= recent)
+            return area_window(source, st, s, force=force_recent_days > 0 and st + timedelta(days=5) >= recent, root=root)
         except Exception as e:  # missing windows are retried on the next run (cache is per window)
             log.error("%s %s failed: %s", source, st, e)
 

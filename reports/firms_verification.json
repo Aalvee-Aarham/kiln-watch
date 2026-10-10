@@ -1,0 +1,1002 @@
+{
+ "season_by_sensor": [
+  {
+   "season": "2011-12",
+   "sensor": "A",
+   "count": 11312,
+   "fire_days": 10884,
+   "count_nh": 11002,
+   "fire_days_nh": 10588
+  },
+  {
+   "season": "2011-12",
+   "sensor": "N",
+   "count": 40867,
+   "fire_days": 26779,
+   "count_nh": 38162,
+   "fire_days_nh": 25222
+  },
+  {
+   "season": "2011-12",
+   "sensor": "T",
+   "count": 1251,
+   "fire_days": 1214,
+   "count_nh": 1167,
+   "fire_days_nh": 1132
+  },
+  {
+   "season": "2012-13",
+   "sensor": "A",
+   "count": 9595,
+   "fire_days": 9243,
+   "count_nh": 9351,
+   "fire_days_nh": 9011
+  },
+  {
+   "season": "2012-13",
+   "sensor": "N",
+   "count": 45546,
+   "fire_days": 30762,
+   "count_nh": 41225,
+   "fire_days_nh": 28073
+  },
+  {
+   "season": "2012-13",
+   "sensor": "T",
+   "count": 1398,
+   "fire_days": 1349,
+   "count_nh": 1313,
+   "fire_days_nh": 1270
+  },
+  {
+   "season": "2013-14",
+   "sensor": "A",
+   "count": 9709,
+   "fire_days": 9324,
+   "count_nh": 9390,
+   "fire_days_nh": 9019
+  },
+  {
+   "season": "2013-14",
+   "sensor": "N",
+   "count": 55797,
+   "fire_days": 36752,
+   "count_nh": 48990,
+   "fire_days_nh": 32628
+  },
+  {
+   "season": "2013-14",
+   "sensor": "T",
+   "count": 1636,
+   "fire_days": 1598,
+   "count_nh": 1499,
+   "fire_days_nh": 1464
+  },
+  {
+   "season": "2014-15",
+   "sensor": "A",
+   "count": 8017,
+   "fire_days": 7673,
+   "count_nh": 7760,
+   "fire_days_nh": 7433
+  },
+  {
+   "season": "2014-15",
+   "sensor": "N",
+   "count": 39536,
+   "fire_days": 26565,
+   "count_nh": 35690,
+   "fire_days_nh": 24550
+  },
+  {
+   "season": "2014-15",
+   "sensor": "T",
+   "count": 1411,
+   "fire_days": 1377,
+   "count_nh": 1307,
+   "fire_days_nh": 1274
+  },
+  {
+   "season": "2015-16",
+   "sensor": "A",
+   "count": 7712,
+   "fire_days": 7443,
+   "count_nh": 7493,
+   "fire_days_nh": 7235
+  },
+  {
+   "season": "2015-16",
+   "sensor": "N",
+   "count": 33074,
+   "fire_days": 22255,
+   "count_nh": 30436,
+   "fire_days_nh": 20798
+  },
+  {
+   "season": "2015-16",
+   "sensor": "T",
+   "count": 725,
+   "fire_days": 702,
+   "count_nh": 673,
+   "fire_days_nh": 650
+  },
+  {
+   "season": "2016-17",
+   "sensor": "A",
+   "count": 6267,
+   "fire_days": 6012,
+   "count_nh": 6061,
+   "fire_days_nh": 5816
+  },
+  {
+   "season": "2016-17",
+   "sensor": "N",
+   "count": 29745,
+   "fire_days": 20825,
+   "count_nh": 28190,
+   "fire_days_nh": 19855
+  },
+  {
+   "season": "2016-17",
+   "sensor": "T",
+   "count": 658,
+   "fire_days": 644,
+   "count_nh": 609,
+   "fire_days_nh": 597
+  },
+  {
+   "season": "2017-18",
+   "sensor": "A",
+   "count": 7981,
+   "fire_days": 7696,
+   "count_nh": 7724,
+   "fire_days_nh": 7447
+  },
+  {
+   "season": "2017-18",
+   "sensor": "J1",
+   "count": 6750,
+   "fire_days": 4988,
+   "count_nh": 6256,
+   "fire_days_nh": 4645
+  },
+  {
+   "season": "2017-18",
+   "sensor": "N",
+   "count": 31440,
+   "fire_days": 21361,
+   "count_nh": 29543,
+   "fire_days_nh": 20355
+  },
+  {
+   "season": "2017-18",
+   "sensor": "T",
+   "count": 698,
+   "fire_days": 685,
+   "count_nh": 639,
+   "fire_days_nh": 626
+  },
+  {
+   "season": "2018-19",
+   "sensor": "A",
+   "count": 8544,
+   "fire_days": 8198,
+   "count_nh": 8282,
+   "fire_days_nh": 7947
+  },
+  {
+   "season": "2018-19",
+   "sensor": "J1",
+   "count": 37506,
+   "fire_days": 26421,
+   "count_nh": 34772,
+   "fire_days_nh": 24889
+  },
+  {
+   "season": "2018-19",
+   "sensor": "N",
+   "count": 37203,
+   "fire_days": 25607,
+   "count_nh": 34725,
+   "fire_days_nh": 24227
+  },
+  {
+   "season": "2018-19",
+   "sensor": "T",
+   "count": 936,
+   "fire_days": 909,
+   "count_nh": 870,
+   "fire_days_nh": 843
+  },
+  {
+   "season": "2019-20",
+   "sensor": "A",
+   "count": 9477,
+   "fire_days": 9140,
+   "count_nh": 9127,
+   "fire_days_nh": 8806
+  },
+  {
+   "season": "2019-20",
+   "sensor": "J1",
+   "count": 38481,
+   "fire_days": 27167,
+   "count_nh": 34516,
+   "fire_days_nh": 24792
+  },
+  {
+   "season": "2019-20",
+   "sensor": "N",
+   "count": 39131,
+   "fire_days": 26888,
+   "count_nh": 35456,
+   "fire_days_nh": 24704
+  },
+  {
+   "season": "2019-20",
+   "sensor": "T",
+   "count": 1298,
+   "fire_days": 1256,
+   "count_nh": 1195,
+   "fire_days_nh": 1155
+  },
+  {
+   "season": "2020-21",
+   "sensor": "A",
+   "count": 10528,
+   "fire_days": 10113,
+   "count_nh": 10177,
+   "fire_days_nh": 9785
+  },
+  {
+   "season": "2020-21",
+   "sensor": "J1",
+   "count": 47515,
+   "fire_days": 32293,
+   "count_nh": 42594,
+   "fire_days_nh": 29556
+  },
+  {
+   "season": "2020-21",
+   "sensor": "N",
+   "count": 47597,
+   "fire_days": 31211,
+   "count_nh": 43028,
+   "fire_days_nh": 28741
+  },
+  {
+   "season": "2020-21",
+   "sensor": "T",
+   "count": 1805,
+   "fire_days": 1763,
+   "count_nh": 1692,
+   "fire_days_nh": 1654
+  },
+  {
+   "season": "2021-22",
+   "sensor": "A",
+   "count": 5526,
+   "fire_days": 5328,
+   "count_nh": 5357,
+   "fire_days_nh": 5163
+  },
+  {
+   "season": "2021-22",
+   "sensor": "J1",
+   "count": 31669,
+   "fire_days": 22086,
+   "count_nh": 29343,
+   "fire_days_nh": 20788
+  },
+  {
+   "season": "2021-22",
+   "sensor": "N",
+   "count": 32230,
+   "fire_days": 21875,
+   "count_nh": 29849,
+   "fire_days_nh": 20526
+  },
+  {
+   "season": "2021-22",
+   "sensor": "T",
+   "count": 978,
+   "fire_days": 961,
+   "count_nh": 898,
+   "fire_days_nh": 882
+  },
+  {
+   "season": "2022-23",
+   "sensor": "A",
+   "count": 8431,
+   "fire_days": 8094,
+   "count_nh": 8144,
+   "fire_days_nh": 7818
+  },
+  {
+   "season": "2022-23",
+   "sensor": "J1",
+   "count": 41860,
+   "fire_days": 28483,
+   "count_nh": 38004,
+   "fire_days_nh": 26254
+  },
+  {
+   "season": "2022-23",
+   "sensor": "N",
+   "count": 42566,
+   "fire_days": 28991,
+   "count_nh": 37801,
+   "fire_days_nh": 26311
+  },
+  {
+   "season": "2022-23",
+   "sensor": "T",
+   "count": 1322,
+   "fire_days": 1293,
+   "count_nh": 1200,
+   "fire_days_nh": 1174
+  },
+  {
+   "season": "2023-24",
+   "sensor": "A",
+   "count": 6879,
+   "fire_days": 6644,
+   "count_nh": 6666,
+   "fire_days_nh": 6437
+  },
+  {
+   "season": "2023-24",
+   "sensor": "J1",
+   "count": 30798,
+   "fire_days": 21581,
+   "count_nh": 27658,
+   "fire_days_nh": 19710
+  },
+  {
+   "season": "2023-24",
+   "sensor": "J2",
+   "count": 26087,
+   "fire_days": 18316,
+   "count_nh": 23324,
+   "fire_days_nh": 16549
+  },
+  {
+   "season": "2023-24",
+   "sensor": "N",
+   "count": 31638,
+   "fire_days": 21554,
+   "count_nh": 28632,
+   "fire_days_nh": 19890
+  },
+  {
+   "season": "2023-24",
+   "sensor": "T",
+   "count": 737,
+   "fire_days": 722,
+   "count_nh": 676,
+   "fire_days_nh": 662
+  },
+  {
+   "season": "2024-25",
+   "sensor": "A",
+   "count": 8432,
+   "fire_days": 8111,
+   "count_nh": 8165,
+   "fire_days_nh": 7854
+  },
+  {
+   "season": "2024-25",
+   "sensor": "J1",
+   "count": 39237,
+   "fire_days": 26987,
+   "count_nh": 35814,
+   "fire_days_nh": 25112
+  },
+  {
+   "season": "2024-25",
+   "sensor": "J2",
+   "count": 36982,
+   "fire_days": 25899,
+   "count_nh": 33161,
+   "fire_days_nh": 23810
+  },
+  {
+   "season": "2024-25",
+   "sensor": "N",
+   "count": 40218,
+   "fire_days": 27055,
+   "count_nh": 36578,
+   "fire_days_nh": 25144
+  },
+  {
+   "season": "2024-25",
+   "sensor": "T",
+   "count": 1621,
+   "fire_days": 1585,
+   "count_nh": 1546,
+   "fire_days_nh": 1512
+  },
+  {
+   "season": "2025-26",
+   "sensor": "A",
+   "count": 4486,
+   "fire_days": 4372,
+   "count_nh": 4333,
+   "fire_days_nh": 4223
+  },
+  {
+   "season": "2025-26",
+   "sensor": "J1",
+   "count": 27114,
+   "fire_days": 19178,
+   "count_nh": 24974,
+   "fire_days_nh": 17907
+  },
+  {
+   "season": "2025-26",
+   "sensor": "J2",
+   "count": 24005,
+   "fire_days": 17242,
+   "count_nh": 22306,
+   "fire_days_nh": 16254
+  },
+  {
+   "season": "2025-26",
+   "sensor": "N",
+   "count": 25184,
+   "fire_days": 17594,
+   "count_nh": 23347,
+   "fire_days_nh": 16514
+  },
+  {
+   "season": "2025-26",
+   "sensor": "T",
+   "count": 531,
+   "fire_days": 518,
+   "count_nh": 508,
+   "fire_days_nh": 496
+  },
+  {
+   "season": "2026-27",
+   "sensor": "A",
+   "count": 18,
+   "fire_days": 16,
+   "count_nh": 16,
+   "fire_days_nh": 14
+  },
+  {
+   "season": "2026-27",
+   "sensor": "J1",
+   "count": 209,
+   "fire_days": 162,
+   "count_nh": 206,
+   "fire_days_nh": 159
+  },
+  {
+   "season": "2026-27",
+   "sensor": "J2",
+   "count": 202,
+   "fire_days": 157,
+   "count_nh": 200,
+   "fire_days_nh": 156
+  },
+  {
+   "season": "2026-27",
+   "sensor": "N",
+   "count": 180,
+   "fire_days": 125,
+   "count_nh": 175,
+   "fire_days_nh": 120
+  },
+  {
+   "season": "2026-27",
+   "sensor": "T",
+   "count": 12,
+   "fire_days": 11,
+   "count_nh": 10,
+   "fire_days_nh": 9
+  }
+ ],
+ "year_by_sensor": [
+  {
+   "year": 2012,
+   "sensor": "A",
+   "count": 11495,
+   "fire_days": 11066,
+   "count_nh": 11169,
+   "fire_days_nh": 10754
+  },
+  {
+   "year": 2012,
+   "sensor": "N",
+   "count": 42805,
+   "fire_days": 28308,
+   "count_nh": 39944,
+   "fire_days_nh": 26635
+  },
+  {
+   "year": 2012,
+   "sensor": "T",
+   "count": 1280,
+   "fire_days": 1243,
+   "count_nh": 1191,
+   "fire_days_nh": 1156
+  },
+  {
+   "year": 2013,
+   "sensor": "A",
+   "count": 9543,
+   "fire_days": 9189,
+   "count_nh": 9306,
+   "fire_days_nh": 8965
+  },
+  {
+   "year": 2013,
+   "sensor": "N",
+   "count": 45313,
+   "fire_days": 30587,
+   "count_nh": 41025,
+   "fire_days_nh": 27920
+  },
+  {
+   "year": 2013,
+   "sensor": "T",
+   "count": 1411,
+   "fire_days": 1362,
+   "count_nh": 1310,
+   "fire_days_nh": 1267
+  },
+  {
+   "year": 2014,
+   "sensor": "A",
+   "count": 9809,
+   "fire_days": 9423,
+   "count_nh": 9488,
+   "fire_days_nh": 9115
+  },
+  {
+   "year": 2014,
+   "sensor": "N",
+   "count": 56740,
+   "fire_days": 37565,
+   "count_nh": 49848,
+   "fire_days_nh": 33375
+  },
+  {
+   "year": 2014,
+   "sensor": "T",
+   "count": 1639,
+   "fire_days": 1601,
+   "count_nh": 1507,
+   "fire_days_nh": 1472
+  },
+  {
+   "year": 2015,
+   "sensor": "A",
+   "count": 7960,
+   "fire_days": 7618,
+   "count_nh": 7702,
+   "fire_days_nh": 7377
+  },
+  {
+   "year": 2015,
+   "sensor": "N",
+   "count": 39020,
+   "fire_days": 26199,
+   "count_nh": 35246,
+   "fire_days_nh": 24238
+  },
+  {
+   "year": 2015,
+   "sensor": "T",
+   "count": 1398,
+   "fire_days": 1364,
+   "count_nh": 1298,
+   "fire_days_nh": 1265
+  },
+  {
+   "year": 2016,
+   "sensor": "A",
+   "count": 7757,
+   "fire_days": 7485,
+   "count_nh": 7540,
+   "fire_days_nh": 7279
+  },
+  {
+   "year": 2016,
+   "sensor": "N",
+   "count": 33158,
+   "fire_days": 22248,
+   "count_nh": 30537,
+   "fire_days_nh": 20802
+  },
+  {
+   "year": 2016,
+   "sensor": "T",
+   "count": 736,
+   "fire_days": 713,
+   "count_nh": 685,
+   "fire_days_nh": 662
+  },
+  {
+   "year": 2017,
+   "sensor": "A",
+   "count": 6149,
+   "fire_days": 5898,
+   "count_nh": 5948,
+   "fire_days_nh": 5707
+  },
+  {
+   "year": 2017,
+   "sensor": "N",
+   "count": 29214,
+   "fire_days": 20354,
+   "count_nh": 27642,
+   "fire_days_nh": 19385
+  },
+  {
+   "year": 2017,
+   "sensor": "T",
+   "count": 659,
+   "fire_days": 644,
+   "count_nh": 618,
+   "fire_days_nh": 605
+  },
+  {
+   "year": 2018,
+   "sensor": "A",
+   "count": 8131,
+   "fire_days": 7843,
+   "count_nh": 7865,
+   "fire_days_nh": 7585
+  },
+  {
+   "year": 2018,
+   "sensor": "J1",
+   "count": 9991,
+   "fire_days": 7733,
+   "count_nh": 9247,
+   "fire_days_nh": 7195
+  },
+  {
+   "year": 2018,
+   "sensor": "N",
+   "count": 32591,
+   "fire_days": 22370,
+   "count_nh": 30672,
+   "fire_days_nh": 21338
+  },
+  {
+   "year": 2018,
+   "sensor": "T",
+   "count": 737,
+   "fire_days": 723,
+   "count_nh": 673,
+   "fire_days_nh": 659
+  },
+  {
+   "year": 2019,
+   "sensor": "A",
+   "count": 8421,
+   "fire_days": 8078,
+   "count_nh": 8169,
+   "fire_days_nh": 7837
+  },
+  {
+   "year": 2019,
+   "sensor": "J1",
+   "count": 35973,
+   "fire_days": 25101,
+   "count_nh": 33411,
+   "fire_days_nh": 23700
+  },
+  {
+   "year": 2019,
+   "sensor": "N",
+   "count": 36013,
+   "fire_days": 24585,
+   "count_nh": 33608,
+   "fire_days_nh": 23255
+  },
+  {
+   "year": 2019,
+   "sensor": "T",
+   "count": 897,
+   "fire_days": 872,
+   "count_nh": 835,
+   "fire_days_nh": 810
+  },
+  {
+   "year": 2020,
+   "sensor": "A",
+   "count": 9475,
+   "fire_days": 9139,
+   "count_nh": 9121,
+   "fire_days_nh": 8801
+  },
+  {
+   "year": 2020,
+   "sensor": "J1",
+   "count": 38971,
+   "fire_days": 27596,
+   "count_nh": 34964,
+   "fire_days_nh": 25190
+  },
+  {
+   "year": 2020,
+   "sensor": "N",
+   "count": 39360,
+   "fire_days": 27112,
+   "count_nh": 35676,
+   "fire_days_nh": 24927
+  },
+  {
+   "year": 2020,
+   "sensor": "T",
+   "count": 1315,
+   "fire_days": 1270,
+   "count_nh": 1210,
+   "fire_days_nh": 1167
+  },
+  {
+   "year": 2021,
+   "sensor": "A",
+   "count": 10571,
+   "fire_days": 10156,
+   "count_nh": 10217,
+   "fire_days_nh": 9825
+  },
+  {
+   "year": 2021,
+   "sensor": "J1",
+   "count": 47518,
+   "fire_days": 32242,
+   "count_nh": 42559,
+   "fire_days_nh": 29487
+  },
+  {
+   "year": 2021,
+   "sensor": "N",
+   "count": 47673,
+   "fire_days": 31279,
+   "count_nh": 43045,
+   "fire_days_nh": 28767
+  },
+  {
+   "year": 2021,
+   "sensor": "T",
+   "count": 1803,
+   "fire_days": 1764,
+   "count_nh": 1680,
+   "fire_days_nh": 1645
+  },
+  {
+   "year": 2022,
+   "sensor": "A",
+   "count": 5505,
+   "fire_days": 5306,
+   "count_nh": 5330,
+   "fire_days_nh": 5135
+  },
+  {
+   "year": 2022,
+   "sensor": "J1",
+   "count": 31658,
+   "fire_days": 22000,
+   "count_nh": 29400,
+   "fire_days_nh": 20749
+  },
+  {
+   "year": 2022,
+   "sensor": "N",
+   "count": 32442,
+   "fire_days": 21975,
+   "count_nh": 30104,
+   "fire_days_nh": 20652
+  },
+  {
+   "year": 2022,
+   "sensor": "T",
+   "count": 1002,
+   "fire_days": 984,
+   "count_nh": 921,
+   "fire_days_nh": 904
+  },
+  {
+   "year": 2023,
+   "sensor": "A",
+   "count": 8395,
+   "fire_days": 8059,
+   "count_nh": 8121,
+   "fire_days_nh": 7796
+  },
+  {
+   "year": 2023,
+   "sensor": "J1",
+   "count": 41297,
+   "fire_days": 28108,
+   "count_nh": 37456,
+   "fire_days_nh": 25890
+  },
+  {
+   "year": 2023,
+   "sensor": "N",
+   "count": 41910,
+   "fire_days": 28500,
+   "count_nh": 37192,
+   "fire_days_nh": 25857
+  },
+  {
+   "year": 2023,
+   "sensor": "T",
+   "count": 1285,
+   "fire_days": 1257,
+   "count_nh": 1168,
+   "fire_days_nh": 1143
+  },
+  {
+   "year": 2024,
+   "sensor": "A",
+   "count": 6910,
+   "fire_days": 6674,
+   "count_nh": 6688,
+   "fire_days_nh": 6458
+  },
+  {
+   "year": 2024,
+   "sensor": "J1",
+   "count": 31426,
+   "fire_days": 22123,
+   "count_nh": 28196,
+   "fire_days_nh": 20184
+  },
+  {
+   "year": 2024,
+   "sensor": "J2",
+   "count": 28250,
+   "fire_days": 20135,
+   "count_nh": 25339,
+   "fire_days_nh": 18261
+  },
+  {
+   "year": 2024,
+   "sensor": "N",
+   "count": 32170,
+   "fire_days": 22008,
+   "count_nh": 29089,
+   "fire_days_nh": 20300
+  },
+  {
+   "year": 2024,
+   "sensor": "T",
+   "count": 738,
+   "fire_days": 722,
+   "count_nh": 681,
+   "fire_days_nh": 666
+  },
+  {
+   "year": 2025,
+   "sensor": "A",
+   "count": 8410,
+   "fire_days": 8090,
+   "count_nh": 8151,
+   "fire_days_nh": 7841
+  },
+  {
+   "year": 2025,
+   "sensor": "J1",
+   "count": 39441,
+   "fire_days": 27151,
+   "count_nh": 35995,
+   "fire_days_nh": 25252
+  },
+  {
+   "year": 2025,
+   "sensor": "J2",
+   "count": 36932,
+   "fire_days": 25854,
+   "count_nh": 33146,
+   "fire_days_nh": 23788
+  },
+  {
+   "year": 2025,
+   "sensor": "N",
+   "count": 40279,
+   "fire_days": 27120,
+   "count_nh": 36641,
+   "fire_days_nh": 25193
+  },
+  {
+   "year": 2025,
+   "sensor": "T",
+   "count": 1594,
+   "fire_days": 1559,
+   "count_nh": 1526,
+   "fire_days_nh": 1493
+  },
+  {
+   "year": 2026,
+   "sensor": "A",
+   "count": 4383,
+   "fire_days": 4267,
+   "count_nh": 4233,
+   "fire_days_nh": 4121
+  },
+  {
+   "year": 2026,
+   "sensor": "J1",
+   "count": 24864,
+   "fire_days": 17292,
+   "count_nh": 22909,
+   "fire_days_nh": 16165
+  },
+  {
+   "year": 2026,
+   "sensor": "J2",
+   "count": 22094,
+   "fire_days": 15625,
+   "count_nh": 20506,
+   "fire_days_nh": 14720
+  },
+  {
+   "year": 2026,
+   "sensor": "N",
+   "count": 23264,
+   "fire_days": 15989,
+   "count_nh": 21558,
+   "fire_days_nh": 15014
+  },
+  {
+   "year": 2026,
+   "sensor": "T",
+   "count": 523,
+   "fire_days": 509,
+   "count_nh": 499,
+   "fire_days_nh": 486
+  }
+ ],
+ "shape_vs_committed": {
+  "N": {
+   "n": 15,
+   "spearman_vs_committed": 0.839,
+   "fresh_total": 571772,
+   "committed_total": 890.7
+  },
+  "A": {
+   "n": 15,
+   "spearman_vs_committed": 0.818,
+   "fresh_total": 122896,
+   "committed_total": 259.1
+  }
+ },
+ "sensor_ordering": {
+  "median_fresh_N_over_A": 4.75
+ },
+ "reference": {
+  "n": 14,
+  "spearman": 0.908,
+  "fresh_fire_days_total": 370210,
+  "reference_fire_days_total": 100123
+ },
+ "meta": {
+  "sources": [
+   "MODIS_SP",
+   "MODIS_NRT",
+   "VIIRS_SNPP_SP",
+   "VIIRS_SNPP_NRT",
+   "VIIRS_NOAA20_SP",
+   "VIIRS_NOAA20_NRT",
+   "VIIRS_NOAA21_NRT"
+  ],
+  "start": null,
+  "end": null,
+  "cached_only": true,
+  "n_detections": 1100298,
+  "bbox": [
+   88.0,
+   20.5,
+   92.8,
+   26.7
+  ]
+ }
+}

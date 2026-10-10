@@ -240,7 +240,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
           const sel = f.id === selected
           return (
             <path key={f.id} d={f.d} className={`bd-feat${sel ? ' bd-sel map-sel' : ''}${drawing ? ' pointer-events-none' : ''}`}
-              fill={v != null ? rampColor(v, max, p) : p.surface} fillOpacity={layer === 'none' ? (v != null ? 0.92 : 0.5) : (v != null && v > 0 ? 0.6 : 0)}
+              fill={v != null ? rampColor(v, max, p) : p.surface} fillOpacity={layer === 'none' ? (v != null ? 0.92 : 0.5) : 0}
               vectorEffect="non-scaling-stroke"
               tabIndex={drawing ? -1 : 0} role="button"
               aria-label={`${f.nameEn} · ${f.nameBn}${v != null ? ` · ${v}` : ''}`}
