@@ -1,5 +1,7 @@
 # Kiln Watch: Project Proposal
 
+> *Historical record — the pre-code planning proposal (5–6 Oct 2026), written before any code existed. Current documentation: [docs/README.md](README.md).*
+
 **A harmonized MODIS–VIIRS burning-activity calendar for Bangladesh that separates brick-kiln heat from vegetation fires**
 
 | | |

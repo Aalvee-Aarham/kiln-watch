@@ -1,5 +1,7 @@
 # Design
 
+> *Historical design record (6–7 Oct 2026). `web/src/index.css` and `web/src/lib/theme.ts` remain the source of truth they cite. Current documentation: [docs/README.md](README.md).*
+
 Source of truth: `web/src/index.css` (`@theme` + `:root[data-theme="night"]`). Charts read the same tokens at runtime via `web/src/lib/theme.ts` (`palette()`) and `ensureChartTheme()`.
 
 ## Theme

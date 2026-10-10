@@ -2,12 +2,12 @@
 
 **Event:** NASA Space Apps Challenge 2026 (14–15 Nov 2026)
 **Challenge:** Harmonization of MODIS and VIIRS Hot Spots
-**Document version:** 2.0 — 6 October 2026. Supersedes architecture v1.0. Synced to `implementation_plan.md` v2.1 and closes every finding in `Architecture_FileStructure_Audit.txt`.
-**Companion docs:** [implementation_plan.md](implementation_plan.md) · [file_structure.md](file_structure.md) · [CLAUDE.md](CLAUDE.md)
+**Document version:** 3.0 — 10 October 2026. Supersedes v2.0 (6 Oct). Records the system as built on `main`: the `nokiln` gate outcome, the Amendment-1 kiln-activity stage, the Amendments 2–4 transfer stage, and the plain-language site redesign.
+**Companion docs:** [pipeline.md](pipeline.md) · [data-contracts.md](data-contracts.md) · [web-frontend.md](web-frontend.md) · [operations.md](operations.md) · [PREREGISTRATION.md](PREREGISTRATION.md) + [PREREGISTRATION_AMENDMENTS.md](PREREGISTRATION_AMENDMENTS.md)
 
-> **Authority.** `implementation_plan.md` v2.1 is authoritative. Where this document disagrees with it, the plan wins and this document has a bug. This document explains *what the system is and why*; the plan specifies *exactly what to build and how to verify it*.
+> **Authority.** The [pre-registration](PREREGISTRATION.md) is authoritative for every threshold; this document is the reference for what the system *is and why*. Stage-by-stage commands and I/O: [pipeline.md](pipeline.md). Interfaces: [data-contracts.md](data-contracts.md).
 
-> **Audit references.** Tags such as `FA-D4` cite `docs/history/Kiln_Watch_Flaw_Audit.txt` (the 47-finding audit of Proposal v2). They record which finding produced each design decision.
+> **Audit references.** Tags such as `FA-D4` cite the 47-finding flaw audit of Proposal v2 (preserved in git history). They record which finding produced each design decision.
 
 ---
 
@@ -17,7 +17,7 @@
 
 **Why now.** All remaining S-NPP science products, VIIRS included, cease on **2 November 2026 at 1300 UTC**; NOAA designates NOAA-21 as primary and NOAA-20 as secondary. Terra and Aqua are both drifting from their designed orbits and are due to begin shutting down in late 2026 or early 2027. Any comparison of a future season with a past one now crosses at least one sensor change.
 
-**Product.** A harmonized burning-activity calendar for any area of interest in Bangladesh. The core is calibrated across sensors and carries uncertainty bands. Each VIIRS detection carries a source label (kiln-like, vegetation-like or unknown), and the calendar is extended with kiln-area firing seasons, validation evidence and a current-season tracker.
+**Product.** A harmonized burning-activity calendar for any area of interest in Bangladesh, calibrated across sensors and carrying uncertainty bands. Under the actual `nokiln` gate outcome, the public calendar splits burning by harvest window (Aman / Boro / other) and carries the Harmonized Burning Index; the kiln firing calendar comes from **night lights and radar** (Amendment 1), not fire detections. The method was then tested abroad (Amendments 2–4: Pakistan, India, Afghanistan), and a current-season tracker updates daily.
 
 **What the raw record gets wrong twice, and how each is fixed.**
 
@@ -31,19 +31,19 @@
 ## 2. Design principles
 
 1. **Precompute everything; serve static files.** No backend runs at demo time. GitHub Pages serves JSON and GeoJSON, so nothing cold-starts. (FA-F1)
-2. **Pre-register, then measure.** Gate thresholds and the other choices in implementation_plan §12 are committed in `PREREGISTRATION.md` *before* any data is analysed. The git history is the proof. (FA-D2)
+2. **Pre-register, then measure.** Gate thresholds and the other pre-registered choices are committed in [PREREGISTRATION.md](PREREGISTRATION.md) *before* any data is analysed. The git history is the proof. (FA-D2)
 3. **Never pool raw counts across sensors.** Every count is kept per sensor and per day/night pass, normalised by that sensor's cloud-free observation opportunities, and only then converted to the common unit. (FA-D4, FA-D14)
 4. **Earth Engine supplies fractions, never counts.** The numerator (cell-days) and the denominator (clear cells) must share one cell set. Earth Engine reduces over its own grid, so it contributes only a clear *fraction*; the cell count comes from our own grid.
 5. **Clusters are the public default; sites are never public.** Public views show district, upazila and pooled-cluster aggregates. Per-cluster leads exist only in an offline regulator export that is never hosted. (FA-C4, FA-G2)
 6. **Every number carries its uncertainty.** Values come from a bootstrap or Monte Carlo, and the interval travels with the value into the JSON and onto the chart. (FA-D16)
 7. **Every constant has one kind and one source of truth.** Constants in `kilnwatch/config.py` are one of three kinds:
-   - **PRE-REGISTERED** — truth lives in `PREREGISTRATION.md`; `config.py` copies it and a test asserts equality.
+   - **PRE-REGISTERED** — truth lives in [PREREGISTRATION.md](PREREGISTRATION.md); `config.py` copies it and a test asserts equality.
    - **DERIVED** — truth is produced by a named pipeline step, written to `kilnwatch/config_derived.json`, and asserted against its source.
    - **FIXED** — an engineering choice, changed by ordinary review.
 
    Values shared with the browser — the grid geometry, the split labels, the activity index — are published in `meta.json`, and the browser reads them from there. Nothing is hard-coded twice.
-8. **Tests never touch real data.** Unit tests run on synthetic input in CI. Checks that need real data are stage assertions that run inside the pipeline stage and fail it. (implementation_plan §10)
-9. **Boring, minimal stack.** Python with pandas, GeoPandas, scikit-learn and the Earth Engine API; a React + TypeScript single-page app built by Vite, with react-leaflet and ECharts. Full list in implementation_plan §3–5.
+8. **Tests never touch real data.** Unit tests run on synthetic input in CI. Checks that need real data are stage assertions that run inside the pipeline stage and fail it. (see [operations.md](operations.md))
+9. **Boring, minimal stack.** Python with pandas, GeoPandas, scikit-learn and the Earth Engine API; a React + TypeScript single-page app built by Vite, with ECharts and a self-contained SVG map — no map library, no tiles. Details in [web-frontend.md](web-frontend.md).
 
 ---
 
@@ -53,10 +53,10 @@
 flowchart LR
   subgraph Sources
     FIRMS[NASA FIRMS<br/>MODIS C6.1 + VIIRS 375 m<br/>archive + Area API<br/>+ Static Thermal Anomalies mask]
-    GEE[Google Earth Engine<br/>MOD14A1 / MYD14A1 / VNP14A1<br/>S5P NO2/SO2, WorldCover, ERA5-Land, S2]
+    GEE[Google Earth Engine<br/>MOD14A1 / MYD14A1 / VNP14A1<br/>S5P NO2/SO2, WorldCover, ERA5-Land,<br/>Black Marble VNP46A2, Sentinel-1]
     ED[NASA Earthdata<br/>VJ114A1 / VJ214A1]
-    INV[Kiln inventories<br/>Lee et al. 2021, APAD IGP,<br/>SentinelKilnDB (validation only)]
-    AUX[Boundaries, OpenAQ PM2.5,<br/>EOG VIIRS Nightfire, OSM,<br/>crop calendar, policy events]
+    INV[Kiln inventories: APAD IGP<br/>Bangladesh / Pakistan / India,<br/>SentinelKilnDB (AF + validation)]
+    AUX[Boundaries, OpenAQ PM2.5,<br/>geoBoundaries ADM0 PK/IN,<br/>crop calendar, policy + satellite events]
   end
   subgraph Pipeline["Python pipeline: python -m kilnwatch"]
     ING[ingest] --> GRID[grid + cell-days]
@@ -70,6 +70,8 @@ flowchart LR
     MET --> VAL[validate]
     MET --> EXP[export]
     VAL --> EXP
+    ACT1[activity: night lights + radar<br/>kiln seasons — Amendment 1] --> EXP
+    ACT2[transfer: PK / IN / AF<br/>Amendments 2–4] --> EXP
   end
   FIRMS --> ING
   ED --> ING
@@ -82,7 +84,7 @@ flowchart LR
   ACT[GitHub Action daily<br/>nrt.py] -->|workflow artifact| DEP[deploy job]
   REL --> DEP
   DEP --> BUILD[Vite build → web/dist] --> SITE[GitHub Pages]
-  SITE --> USER[Browser: React SPA<br/>react-leaflet + ECharts]
+  SITE --> USER[Browser: React SPA<br/>SVG map + ECharts]
 ```
 
 **Runtime split**
@@ -91,7 +93,7 @@ flowchart LR
 |---|---|---|
 | Analyst machine | Full pipeline including Earth Engine, gates, training, validation and export; `export --publish` uploads the public export as the `data-current` release asset | Whenever data or a parameter changes |
 | GitHub Action `nrt` | Downloads `data-current` (for district normals), fetches FIRMS NRT, grids, labels with the frozen classifier, converts with the frozen calibration, writes `nrt/current_season.json`, uploads it as a **workflow artifact**. `season.csv` persists in `actions/cache`. **Nothing is committed.** | Daily cron and manual dispatch |
-| GitHub Action `deploy` | Downloads `data-current` into `web/public/data/`, then the NRT artifact into `web/public/data/nrt/`, builds, runs both safety checks, deploys to Pages | After `nrt`, and on push to `main` |
+| GitHub Action `deploy` | Downloads `data-current` into `web/public/data/`, then the NRT artifact into `web/public/data/nrt/`, builds, runs both safety checks, deploys to Pages | After `nrt`, and on push to `main` or `redesign` |
 | Browser | React SPA: loads static JSON, renders map and charts, computes drawn-box aggregates client-side | Demo and public use |
 
 ---
@@ -110,16 +112,20 @@ flowchart LR
 | 8 | ESA WorldCover `ESA/WorldCover/v200` | Control matching; `WATER_CHECK_UNIT` water fraction | Earth Engine | 2021 | CC BY 4.0, credit ESA |
 | 9 | ERA5-Land daily aggregates | Weather covariates, validation layer 5 | Earth Engine | 2003– | Copernicus C3S |
 | 10 | Sentinel-2 SR harmonized | Rater image chips | Earth Engine | 2017– | Copernicus |
-| 11 | Kiln inventory: Lee et al. 2021 (PNAS) | Primary candidate | Paper data release — **availability is Phase 0.2** | Ground truth Oct 2018–May 2019 | Confirm at Phase 0.2 and record |
-| 12 | APAD "IGP Brick Kilns Bangladesh" (and the transfer region) | Primary candidate; agreement analysis; transfer test | AWS Open Data, anonymous | Vintage recorded at download | **CC BY 4.0 — attribution required** |
-| 13 | SentinelKilnDB (NeurIPS 2025) | **Validation only**: independent check of candidate unmapped kilns | HuggingFace | ~2023–24 Sentinel-2 | **CC BY-NC 4.0 — non-commercial; cannot be primary under the pre-registered rule** |
+| 11 | Kiln inventory: Lee et al. 2021 (PNAS) | Primary candidate | Paper data release | Ground truth Oct 2018–May 2019 | **Not used: the pre-registered rule selected APAD** (open licence, more kilns, window covering a complete season) |
+| 12 | APAD "IGP Brick Kilns Bangladesh" (and the transfer region) | Primary candidate; agreement analysis; transfer test | AWS Open Data, anonymous | Vintage recorded at download | **CC BY 4.0 — attribution required.** Also APAD Pakistan and APAD India for Amendments 2–4 |
+| 13 | SentinelKilnDB (NeurIPS 2025) | **Validation only** in Bangladesh (independent check of candidate unmapped kilns); **the Afghanistan inventory for Amendment 3** | HuggingFace | ~2023–24 Sentinel-2 | **CC BY-NC 4.0 — non-commercial; cannot be primary for Bangladesh under the pre-registered rule** |
 | 14 | Bangladesh boundaries, ADM2 district and ADM3 upazila (HDX COD-AB) | Areas of interest and aggregation | HDX CKAN | Current | As stated on HDX; recorded at download |
 | 15 | **Transfer-region boundary** (one IGP district) | Transfer test (Should tier) | That country's HDX COD-AB preferred; GADM as fallback | Current | Recorded at download. **GADM restricts redistribution and commercial use**, so a GADM geometry is used for computation only and never published |
-| 16 | EOG VIIRS Nightfire (VNF) daily | Gate GN only | EOG registration | 2012– | EOG terms; credit Payne Institute |
+| 16 | EOG VIIRS Nightfire (VNF) daily | Gate GN only | EOG registration | 2012– | EOG terms; credit Payne Institute. **GN was skipped in the gate run (no EOG credentials; EOG keys unused by the current pipeline)** |
 | 17 | OpenAQ v3 (US Embassy Dhaka; DoE CAMS where listed) | Validation layer 5 | OpenAQ API key | ~2016– | Per provider |
-| 18 | OSM Bangladesh (Geofabrik) schools and hospitals; BANBEIS school counts | Proximity components and OSM completeness — regulator export only (Could tier) | Download | Current | ODbL; credit OSM contributors |
-| 19 | Crop calendar (Aman and Boro harvest windows) | Harvest shading on the shape figure | `data/static/crop_calendar.csv`, hand-built | Static | Each row cited |
+| 18 | OSM Bangladesh (Geofabrik) schools and hospitals; BANBEIS school counts | Proximity components and OSM completeness — regulator export only (Could tier) | Download | Current | ODbL; credit OSM contributors. **Not configured in the current build** |
+| 19 | Crop calendar (Aman and Boro harvest windows) | Harvest shading on the shape figure; the `nokiln` calendar split | `data/static/crop_calendar.csv`, hand-built | Static | Each row cited |
 | 20 | Policy events: 2013 Act, 2019 amendment, DoE drives | Timeline markers, closure case studies | `data/static/policy_events.csv`, hand-built | Static | Each row cited |
+| 21 | Satellite milestones (launches, planned end dates) | Timeline markers | `data/static/satellite_events.csv`, hand-built | Static | Each row cited |
+| 22 | **NASA Black Marble VNP46A2 night lights** | **Amendment 1 GL** (kiln seasons) and the transfer TL/LL tests | Earth Engine | 2012– | NASA open data; Román et al. 2018 |
+| 23 | **Copernicus Sentinel-1 SAR GRD** | **Amendment 1 GS** (independent check) and the transfer TS/LS tests | Earth Engine | 2015– | Copernicus open licence |
+| 24 | geoBoundaries ADM0 Pakistan / India | Amendment 2: land-only mask for control selection | geoBoundaries | Current | ODbL 1.0 (Pakistan), CC0 1.0 (India) |
 
 **The `type` field.** FIRMS documents `type` (0 presumed vegetation fire, 1 active volcano, 2 other static land source, 3 offshore) for MODIS standard-processing data only. Whether the VIIRS standard-processing archive carries it is resolved in Phase 0.4 and logged in step A1a. The architecture works either way: the classifier is needed because NRT data has no `type`, and because if kilns appear as `type=0` the field cannot separate them.
 
@@ -195,7 +201,7 @@ a[A,d,s,p]         = Σ_{c∈A} F[c,d,s,p] / clear_cells[A,d,s]
 
 ### 5.3 Kiln geometry (`kilns.py`)
 
-1. **Inventory reconciliation (FA-E7, FA-E8, FA-B2).** Load Lee, APAD and SentinelKilnDB. Cross-match within 150 m (BallTree, haversine) and report pairwise agreement and the gap between the DoE register (about 7,000–7,500 kilns) and the detected inventories. The **primary inventory** is chosen by the pre-registered rule in implementation_plan §12, which runs in one direction only:
+1. **Inventory reconciliation (FA-E7, FA-E8, FA-B2).** Load Lee, APAD and SentinelKilnDB. Cross-match within 150 m (BallTree, haversine) and report pairwise agreement and the gap between the DoE register (about 7,000–7,500 kilns) and the detected inventories. The **primary inventory** is chosen by the pre-registered rule in [PREREGISTRATION.md](PREREGISTRATION.md), which runs in one direction only:
    1. open licence — CC BY-NC does not qualify;
    2. a documented ground-truth or imagery window containing at least one complete dry season (1 Nov – 31 May) from 2012-13 onward;
    3. among qualifying inventories, the most kilns inside Bangladesh.
@@ -220,7 +226,7 @@ a[A,d,s,p]         = Σ_{c∈A} F[c,d,s,p] / clear_cells[A,d,s]
 
 ### 5.4 Feasibility gates (`gates.py`)
 
-The gate season is derived as in §5.3. Rules are copied verbatim from `PREREGISTRATION.md` (implementation_plan §12). The unit of analysis is a cluster or a control.
+The gate season is derived as in §5.3. Rules are copied verbatim from [PREREGISTRATION.md](PREREGISTRATION.md). The unit of analysis is a cluster or a control.
 
 | Statistic | Definition |
 |---|---|
@@ -240,7 +246,9 @@ A kiln fires continuously for months, so it scores **high S and low P**. A harve
 | G3 | MODIS (plus VIIRS if `type` is present) | `type` distribution of kiln-linked detections; STA overlap detail | Descriptive |
 | GN | VIIRS Nightfire | The same three criteria | PASS/FAIL, and whether it beats G1 |
 
-Permutation tests shuffle kiln/control labels 10,000 times within district strata; shape tests use a one-sided Mann–Whitney. The per-cluster `DR` distribution is always reported, not only the mean (FA-D15). `gates.py` writes `reports/gate_report.md`; the five-way branch logic is in implementation_plan §13 and its outcome is written to `GATE_BRANCH` in `config_derived.json`.
+Permutation tests shuffle kiln/control labels 10,000 times within district strata; shape tests use a one-sided Mann–Whitney. The per-cluster `DR` distribution is always reported, not only the mean (FA-D15). `gates.py` writes `reports/gate_report.md`; the five-way branch logic is `kilnwatch.gates.branch`, and its outcome is written to `GATE_BRANCH` in `config_derived.json`.
+
+> **Outcome (gate season 2023-24).** G1 **FAIL** — DR ratio 0.46×, permutation p = 0.96, across 3,653 clusters and 10,959 matched controls. G2 **FAIL** — 0.73×. GN skipped (no EOG credentials). `GATE_BRANCH = "nokiln"`: the calendar ships in full with the Aman/Boro/other split and the HBI index, and kilns are pursued through non-fire channels instead (§5.11).
 
 ### 5.5 Harmonization engine (`harmonize.py`) — the technical core
 
@@ -295,6 +303,8 @@ Every β carries `rung_used`, `n_celldays` and `n_days`, and all three are publi
 
 **Output.** `harmonization.json`: the selected model; β with CIs, rung and counts per stratum and chain step; leave-one-season-out results per season and pooled; the seam block; the SP/NRT ratio; and season-level raw versus harmonized totals for the jump chart. Bootstrap draws are frozen in `data/models/harm_draws.parquet`.
 
+> **Outcome.** M0 selected. Seam **PASS**: d_raw 55.1 → d_harm 1.6 (ratio 2.9% ≤ 25%); Chow p 6×10⁻⁵ raw, 0.29 harmonized. Leave-one-season-out pooled coverage **0.985 — FAIL** against the pre-registered (0.90, 0.97) in the *conservative* direction (intervals too wide, not too narrow); published as-is and logged in [BLOCKERS.md](BLOCKERS.md). The harmonized 2012-13 value (23.4 [21.8–24.9]) matches the unchanged Aqua camera's own reading (23.7).
+
 ### 5.6 Source classifier (`classify.py`) — weak supervision on VIIRS
 
 **Unit:** one VIIRS detection.
@@ -331,6 +341,8 @@ The frozen model is applied in near-real time to NOAA-20 and NOAA-21, which it w
 **Candidate unmapped kilns.** 0.01° cells more than 1 km from any inventory kiln with at least 5 kiln-like detection-days in each of at least 2 seasons. Checked automatically against SentinelKilnDB (a match within 300 m counts as confirmed) and manually by two raters on Sentinel-2 (§5.8, layer 3). Candidates go only to the regulator export; the public site shows district counts.
 
 **Artifacts:** `data/models/kiln_clf.joblib` and `data/models/thresholds.json`, committed because the NRT job needs them.
+
+> **Outcome.** HistGradientBoosting ships (PR-AUC 0.218). Under `nokiln` its labels are not used in the public calendar (the harvest split replaces them), but it still labels NRT detections daily. The frozen-model transfer test on Faisalabad, Pakistan **failed** (PR-AUC 0.05 [0.02–0.14] at prevalence 0.03) — expected, since G1/G2 had already shown fire satellites cannot see enclosed kilns; the failure stays published, and the night-light method was tested abroad instead (§5.12).
 
 ### 5.7 Metrics (`metrics.py`)
 
@@ -374,9 +386,11 @@ Ranked by evidential strength; the pitch leads with the strongest. Only rank 1's
 - **Two safety checks, both required, both run before anything leaves the machine and again in CI:**
   - **Name check** — `assert_public_safe` refuses any field named `kiln_id`, `cluster_id`, `candidate`, `kiln_lat` or `kiln_lon`.
   - **Value check** — `check_public_dir` refuses any point geometry outside the admin boundary set other than unit centroids, and any array whose length equals the number of clusters or kilns. A name check catches the leak you anticipated; a value check catches the one you did not.
-- Size budgets per file are in implementation_plan §7.3. If the total exceeds 100 MB the stage fails and names the `--downscale` flag to use.
+- Size budgets per file are enforced in `kilnwatch/export.py` (see [data-contracts.md](data-contracts.md)). If the total exceeds 100 MB the stage fails and names the `--downscale` flag to use (`upazila2012`, then `upazilaweekly`).
 
 **Publication.** `python -m kilnwatch export --publish` runs both safety checks, packages `web/public/data/` (excluding `nrt/`) as `public-data.tar.gz`, uploads it with `--clobber` to the `data-current` GitHub Release, and creates an immutable `data-<short_sha>` release for provenance. The real public export never enters git history.
+
+**Fixtures.** `export --fixtures` writes a synthetic set for each of the five gate branches into `web/fixtures/`. The `nokiln` set is instead a **verbatim offline copy of the real export**, flagged in `meta.demo` (`mode: 'real-offline-copy'`, source SHA) — so the repo demos on real data with no pipeline run, and CI checks every branch's contract.
 
 **Regulator tier** → `regulator/` (gitignored, never hosted), via `export --regulator`:
 - per-cluster season metrics and current-season `DR` with CIs;
@@ -396,6 +410,29 @@ A path guard refuses any regulator write inside `web/`.
 4. Grid, build features using `season.csv` history for `p5`/`p30`, label with the frozen classifier and thresholds (subject to the cross-sensor rule in §5.6), and convert with the frozen `harm_draws`.
 5. Denominators are provisional: the climatological median clear fraction for each unit and day of year, from `data/models/clear_clim.parquet`. Output is flagged `"provisional": true` and badged in the UI.
 6. Write `web/public/data/nrt/current_season.json`, run `tests/test_export.py`, and upload `nrt/` and `season.csv` as a **workflow artifact**. The `deploy` job builds from the release asset plus this artifact. **Nothing is committed to `main`.**
+
+### 5.11 Kiln activity from non-fire channels (`activity.py`) — Amendment 1
+
+The gates said fire satellites cannot see enclosed kilns, so kiln seasons are measured with channels that can:
+
+- **GL — NASA Black Marble VNP46A2 night lights**, half-monthly 2012–: kilns run all night with lamps and workers on site.
+- **GS — Copernicus Sentinel-1 radar**, monthly 2015–: fresh brick stacks pile up in the kiln yards (VV yard-minus-ring).
+
+Each cluster's representative kiln site is compared with its three matched A4c controls (the control footprint is the cluster footprint translated, so area is identical by construction). The signal is the **amplitude**: core months minus off months, with the four pre-registered criteria — contrast, prevalence, replication, placebo — run on the clusters the 400-cluster Dhaka pilot never touched, on season 2022-23. The placebo swaps each cluster's first control in as a pseudo-kiln; a real signal must vanish. Six pilot channels were all disclosed (P1–P6: FIRMS night, ECOSTRESS, Landsat, TROPOMI, night lights, radar); only the last two proceeded.
+
+> **Outcome.** GL **PASS**: median seasonal excess +0.195 nW/cm²/sr (p < 10⁻³⁰⁰), 72% of 3,253 clusters > 0, 13 of 13 seasons replicate, placebo p = 0.58. GS **PASS**: +0.30 dB (p = 3×10⁻⁵⁸), 62% of clusters > 0, 9 of 10 seasons, placebo p = 0.12. Contamination upper bound: 0.15% of dry-season fire detections fall on kiln footprints, the same as on farmland.
+
+**Output.** Area-level kiln-season summaries only (≥ 5 clusters per area; onset/end/duration/peak with bootstrap CIs) in `kiln_activity.json` — an optional file whose absence means "no kiln layer" and hides the kiln pages. The public layer is night lights; radar is the independent national check. Earth Engine extraction is cached under `data/raw/gee/activity*` and resumable.
+
+### 5.12 The method abroad (`transfer.py`) — Amendments 2–4
+
+Does the night-light method survive outside Bangladesh? Per country — Pakistan and India from APAD inventories, Afghanistan from SentinelKilnDB (Amendment 3) — kilns are clustered, a seeded 2,000-cluster sample is split into 400 calibration and 1,600 confirmation clusters, and each cluster gets three distance-ring controls matched on WorldCover class, inside the country's ADM0 outline. Night lights run everywhere; radar runs on a nested subsample (about 3× the Earth Engine cost). The four criteria are evaluated twice: with **Bangladesh's months** (TL/TS, strict) and with **months learned on the calibration clusters only** (LL/LS, local). A Bangladesh self-check must recover Dec–Apr / Jul–Oct from the pilot clusters alone.
+
+**Design A2 → A4.** The first Pakistan test failed on its **placebo only**: farmland 3–6 km from kilns also brightens in kiln season (light spill), and the nearest-rung control was rarely the placebo's first. Amendment 4 pre-registered a retest — design A4 — on fresh clusters with controls **≥ 6 km from every mapped kiln** (APAD + SentinelKilnDB), searched out to 40 km, and each cluster's controls in random order.
+
+> **Outcome.** Pakistan: **PASS after the A4 retest** (TL and LL; LL +0.19, 76% of clusters, 13/13 seasons, placebo p = 0.09). India: **PASS on LL** (the primary; +0.19, 68%, 13/13, placebo p = 0.08); TL fails its placebo (p = 0.02). Afghanistan: **no signal** (contrast +0.002, p = 0.75) — the method does not work there, and the site says so. Radar passes in both Pakistan and India with clean placebos.
+
+**Output.** Country-level only — no kiln, cluster or coordinate leaves `data/interim`: the `transfer` block of `kiln_activity.json` plus `reports/transfer_report.md`. `python -m kilnwatch all` does **not** run this stage.
 
 ---
 
@@ -417,11 +454,13 @@ A path guard refuses any regulator write inside `web/`.
 
 Bootstrap draws are not an interim table: they are a frozen model artifact, `data/models/harm_draws.parquet` (`chain_step, division, month, pass, loc_class, draw, beta`).
 
+The Amendment-1 and transfer stages (§5.11–§5.12) keep their raw series in Earth Engine caches (`data/raw/gee/activity*`, `data/raw/gee/transfer`) rather than in new interim tables; their outputs go directly into the public payload and `reports/`.
+
 ---
 
 ## 7. Static data contracts (`web/public/data/`)
 
-These files are the "API" between the pipeline and the UI. The authoritative interfaces are in implementation_plan §7.3 (`web/src/lib/types.ts`), **frozen at the end of build step S3**. A day index counts days since 2003-01-01. Daily series are **sparse**: only non-zero days are listed, and unobserved days are given as runs.
+These files are the "API" between the pipeline and the UI. The authoritative interface is `web/src/lib/types.ts`, asserted by `tests/test_contracts.py` under all five gate branches; per-file detail in [data-contracts.md](data-contracts.md). A day index counts days since 2003-01-01. Daily series are **sparse**: only non-zero days are listed, and unobserved days are given as runs.
 
 | File | Content | Budget |
 |---|---|---|
@@ -432,6 +471,7 @@ These files are the "API" between the pipeline and the UI. The authoritative int
 | `grid/{tile}.json` | 1° × 1° tiles of sparse `[cell, day, sensor_pass]` fire cell-days for drawn boxes. **Totals only, no source label** — equivalent to public FIRMS data | < 1 MB gz each |
 | `harmonization.json` | Selected model; β with CIs, rung and counts; leave-one-season-out per season and pooled; seam block; SP/NRT ratio; season raw vs harmonized | < 200 KB |
 | `validation.json` | Gate rows (G0–GN); plateau-vs-spike profiles (pooled); radius sweep; classifier PR curve, importance, four holdouts, label-set comparison, ablation; control drop and rung counts; candidate precision; TROPOMI with `treatment`; PM2.5 lags; transfer; closure cases; `skipped` | < 500 KB |
+| `kiln_activity.json` | Amendment 1 (optional file): pilots P1–P6, GL/GS tests, contamination bound, area-level kiln-season summaries, national radar check; `transfer` block (Amendments 2–4, country-level). **Absent file = no kiln layer** | < 1.5 MB |
 | `nrt/current_season.json` | Season-to-date national and per-district MYD-eq, the split, `provisional: true`, `updated_at` | < 300 KB |
 
 **Why `split[]`.** Category names are not known until the gate decides the branch: `nokiln` splits into Aman harvest, Boro harvest and other, not kiln, vegetation and unknown. The contract therefore carries `split: {key, values}[]` with labels in `meta.split_labels`, so the decision changes data, never code.
@@ -442,29 +482,31 @@ These files are the "API" between the pipeline and the UI. The authoritative int
 
 ## 8. Frontend architecture (`web/`)
 
-Component-level specs are in implementation_plan §8. In summary:
+Full detail in [web-frontend.md](web-frontend.md); design rationale in [redesign_plan.md](redesign_plan.md). In summary:
 
-- **Stack.** React 19 + TypeScript built by Vite into static `web/dist`. `HashRouter` makes deep links work on Pages. Leaflet via react-leaflet; Apache ECharts tree-shaken through `echarts/core`. Tailwind CSS v4, whose `@theme` tokens ECharts also reads, so UI and charts share one palette; `theme.ts` carries literal fallback colours for when `getComputedStyle` returns empty strings.
-- **Data source.** Vite's `publicDir` is chosen at build time: `DATA_SRC=fixtures` serves `web/fixtures/<FIXTURE_BRANCH>/` (default `full`); `DATA_SRC=real` serves `web/public/`. No copying, so fixtures can never overwrite real data.
-- **State lives in the URL.** Route params (`/explore/:level/:unitId`, `/explore/box/:w,:s,:e,:n`) and search params (`mode`, `layout`, `season`, `lang`, `split`) carry the whole view. No global store.
+- **Stack.** React 19 + TypeScript built by Vite into static `web/dist`. `HashRouter` makes deep links work on Pages. Apache ECharts tree-shaken through `echarts/core`. Tailwind CSS v4, whose `@theme` tokens ECharts also reads, so UI and charts share one palette; `theme.ts` carries literal fallback colours for when `getComputedStyle` returns empty strings. Fonts are bundled (Anek Bangla variable, IBM Plex Mono). The map is a **self-contained SVG choropleth** (`BdMap.tsx`) — pan, zoom, click-select, box drawing — with no map library and no tiles.
+- **Data source.** Vite's `publicDir` is chosen at build time: `DATA_SRC=fixtures` serves `web/fixtures/<FIXTURE_BRANCH>/` (default `nokiln` — a verbatim offline copy of the real export, so dev shows real data); `DATA_SRC=real` serves `web/public/`. No copying, so fixtures can never overwrite real data.
+- **State lives in the URL.** Route params (`/area/:unitId`, `/kilns/:unitId`, `/impact/:who/:unitId`, `/explore/:level/:unitId`, `/explore/box/:w,:s,:e,:n`) and search params (`mode`, `layout`, `season`, `lang`, `split`) carry the whole view. No global store.
   - **Box URLs** use a canonical form: four values to exactly 4 decimal places, W,S,E,N order, `w < e`, `s < n`, inside the BBOX, area ≥ 100 km². Anything else renders a `StatusMessage`.
   - **An unknown `split` key falls back to `all`**, so a link shared under one branch still opens after a rebuild under another.
-- **Data loading.** A `useJson<T>` hook with an in-memory cache reads §7 files from `${BASE_URL}data/`. `box.ts` reads the grid from `meta.grid` and contains **no grid literals**. `SourceStackChart` renders `split[]` against `meta.split_labels`; there is **no branch special-casing anywhere in the UI** — only routes are hidden by `gate_branch`.
-- **Pages:**
+- **Data loading.** A `useJson<T>` hook with an in-memory cache reads §7 files from `${BASE_URL}data/`. `box.ts` reads the grid from `meta.grid` and contains **no grid literals**. `SourceStackChart` renders `split[]` against `meta.split_labels`; there is **no branch special-casing anywhere in the UI** — only routes are hidden by `gate_branch` or the absence of `kiln_activity.json` (`useKilnsVisible`).
+- **Pages, organised around the four judging questions** (redesign v2):
 
-| Page (route) | Content |
-|---|---|
-| **Story** (`#/`) | `FindingCard` (headline with CI); `JumpChart` (raw vs harmonized, CI band, Aqua check line); `PlateauSpikeChart` (kiln vs controls, day/night, harvest shading). The money shots, from two JSON files. |
-| **Explorer** (`#/explore/...`) | `AreaPicker` (`UnitSearch`, level toggle, box mode), `FireMap`, `ViewControls`, `CalendarHeatmap`, `NormalBandChart`, `SourceStackChart`, `SeasonMetricsTable`, `DownloadButtons` |
-| **Kiln seasons** (`#/kilns`) | `SeasonDurationChart` per upazila with policy markers; pooled data only. Hidden under `partial` and `nokiln`. |
-| **This season** (`#/season`) | `ProvisionalBadge`, `SeasonToDateChart`, `DistrictAnomalyTable` |
-| **Evidence** (`#/evidence`) | `GateTable`, `SeamCard`, `LosoTable` (per season, pooled figure marked as gated), `HoldoutTable`, `LabelsetCard`, `ControlsCard`, `RadiusSweepChart`, `NightContrastChart`, `PRCurveChart`, `CandidateCard`, `TropomiChart`, `Pm25LagChart`, `TransferCard`, `ClosureCases`. Each has a plain-language summary. |
-| **Method** (`#/method`) | `NonClaimsList`, `ReleasePolicy`, `CreditsList`, method links |
+  | Page (route) | Judging question | Content |
+  |---|---|---|
+  | **Home** (`#/`) | All four | Three findings, the `Ledger` hero (raw vs harmonized), today's NASA data, the judge guide |
+  | **How it works** (`#/how`) | Creativity, Relevance | The whole approach in six walked steps, each on real data |
+  | **My area** (`#/area/:unitId?`) | Impact | Search / tap map / geolocation (matched on-device) → burning season, this-season verdict, kiln season, typical year; compare areas |
+  | **Kiln planner** (`#/kilns/:unitId?`) | Impact | 2012 → today season slider; start/busiest/end per area; longest and fastest-growing seasons |
+  | **Who benefits** (`#/impact/:who?/:unitId?`) | Impact | Person × district playbook: their real question, the data there, dated actions, the limits; printable with its own URL |
+  | **Can you trust it?** (`#/trust`) | Validity | Every pre-registered test in plain words, failures included; honesty practices; non-claims; the transfer country switch |
+  | **Sensor switch · Timeline** (`#/sensors`, `#/timeline`) | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 events with sources (linked from the pages above) |
+  | **For experts** (`#/experts` + legacy routes) | Validity | Hub to `#/story`, `#/explore[...]`, `#/experts/kilns[...]` (gated by `useKilnsVisible`), `#/season`, `#/evidence`, `#/method` — kept so shared links survive |
 
-- **Performance.** First meaningful paint under 1.5 s on 4G; initial payload under 1.5 MB gz. Leaflet, Evidence and Kiln seasons are lazy chunks.
-- **Accessibility.** Colour-blind-safe palette plus ECharts decal patterns, ECharts ARIA on, a summary sentence under every chart, keyboard-reachable controls, and `UnitSearch` as the accessible alternative to clicking the map.
-- **Offline.** `npm run preview` or `python -m http.server -d web/dist`. A system font stack covers Bangla with no web-font fetch. Basemap tiles are the only network-dependent layer, and the map degrades to polygons without them.
-- **Bangla.** `lib/i18n.ts` with `{en, bn}` strings and `Intl.NumberFormat('bn-BD')` (Could tier).
+- **Performance.** Everything except Home is a lazy chunk; first meaningful paint under 1.5 s on 4G and initial payload under 1.5 MB gz remain the targets.
+- **Accessibility.** Colour-blind-safe palette plus ECharts decal patterns, ECharts ARIA on, a summary sentence under every chart, keyboard-reachable controls, search as the accessible alternative to clicking the map, reduced-motion and forced-colors fallbacks (all e2e-tested).
+- **Offline.** `npm run preview`. The map is basemap-free SVG and fonts are bundled, so the whole site works with no network.
+- **Bangla.** `lib/i18n.ts` with `{en, bn}` UI chrome (`?lang=bn`), `Intl.NumberFormat('bn-BD')`, bilingual split labels / non-claims / event labels / unit names from the pipeline data. Long-form prose stays English with a visible note.
 
 ---
 
@@ -473,8 +515,8 @@ Component-level specs are in implementation_plan §8. In summary:
 | Item | Choice |
 |---|---|
 | Hosting | GitHub Pages serving `web/dist`, deployed by `actions/upload-pages-artifact` + `actions/deploy-pages` |
-| `ci.yml` (push, PR) | `python`: Ruff + pytest — synthetic tests only; `test_isolation.py` fails if any test references `data/`. `web-fixtures`: `npm ci`, ESLint, `tsc --noEmit`, Vitest, `DATA_SRC=fixtures` build, both safety checks, bundle size. `web-real`: the same with `DATA_SRC=real`, only when `web/public/data/` is present. |
-| `deploy.yml` (push to `main`, cron 03:00 UTC, dispatch) | `nrt` job → workflow artifact. `deploy` job (`needs: nrt`, runs if it succeeded or was skipped) → download `data-current` → download the NRT artifact → `DATA_SRC=real` build → both safety checks → Pages. |
+| `ci.yml` (push, PR) | `python`: Ruff + pytest — synthetic tests only; `test_isolation.py` fails if any test references `data/`. `web-fixtures`: `npm ci`, ESLint, `tsc --noEmit`, Vitest, **a `DATA_SRC=fixtures` build for each of the five fixture branches**, both safety checks, bundle-size report. |
+| `deploy.yml` (push to `main` or `redesign`, cron 03:00 UTC, dispatch) | `nrt` job → workflow artifact. `deploy` job (`needs: nrt`, runs if it succeeded or was skipped) → download `data-current` → download the NRT artifact → `DATA_SRC=real` build → both safety checks → Pages. |
 | Real public data | GitHub Release asset `data-current` (`public-data.tar.gz`), uploaded by `export --publish`; immutable `data-<short_sha>` releases for history. Never in git. |
 | Secrets | `FIRMS_MAP_KEY` only. Earth Engine credentials never enter CI. |
 | Safety gate | Both workflows run the name grep **and** `python -m kilnwatch export --check-public web/dist/data`; either failing blocks deployment |
@@ -508,15 +550,14 @@ The reason for two tiers: a public per-site ranking of private businesses, built
 
 ## 11. Quality and reproducibility
 
-- **Pinned environments.** `requirements.txt` pins exact versions for Python 3.11; `web/package-lock.json` pins JavaScript packages. Both are fixed at build step S1.
+- **Pinned environments.** `requirements.txt` pins exact versions for Python 3.11; `web/package-lock.json` pins JavaScript packages.
 - **One command per direction.** After documented downloads, `python -m kilnwatch gee` then `python -m kilnwatch all` produce `web/public/data`, and `npm run build` produces the site. Downloads are scripted where APIs allow and documented in the README where they need email or a login. The Earth Engine cache in `data/raw/gee/` is part of the reproduction bundle.
 - **Determinism.** Every stochastic call — bootstraps, permutation tests, control sampling, splits, model training — takes a seed derived from `config.SEED` through `SEED_OFFSETS`. Two consecutive runs produce byte-identical `harm_draws.parquet` and `labels.parquet`.
-- **Three kinds of verification** (implementation_plan §10):
+- **Three kinds of verification** (see [operations.md](operations.md)):
   - **Unit tests** (pytest, Vitest) — synthetic input only, run in CI, each asserting against a stated value, a closed-form property or a published reference, never against current output. Grid-math parity between Python and TypeScript runs through `tests/fixtures/grid_cases.json`, and `box.test.ts` proves the browser reads `meta.grid` by altering it.
   - **Stage assertions** — real data, inside the pipeline stage, non-zero exit on failure.
-  - **Human checks** — rows in `VERIFICATION.md`, signed and dated by a person; an agent never ticks one.
-- **Evidence trail.** `reports/` holds the generated gate, harmonization, classifier and validation reports and figures; it replaces notebooks. `reports/baseline.json` freezes the accepted headline numbers at integration step I1, and the clean-clone check (I3) asserts against it.
-- **Scope contingency.** If pre-event work is not permitted (Phase 0.1), the build follows the Event-only tier in implementation_plan §14.1. The architecture above is unchanged; only its extent is reduced.
+  - **Human checks** — rows in [VERIFICATION.md](VERIFICATION.md), signed and dated by a person; an agent never ticks one.
+- **Evidence trail.** `reports/` holds the generated gate, harmonization, classifier, validation, kiln-activity and transfer reports and figures; it replaces notebooks. `reports/baseline.json` freezes the accepted headline numbers, and the clean-clone check asserts against it.
 
 ---
 

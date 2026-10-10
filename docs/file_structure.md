@@ -1,5 +1,7 @@
 # Kiln Watch: File Structure
 
+> *Historical record — the tree as planned on 6 Oct 2026; the repository has since gained `kilnwatch/transfer.py`, the redesigned `web/src/pages/`, and this `docs/` layout. Current documentation: [docs/README.md](README.md).*
+
 **Version:** 3.0 — 6 October 2026. Supersedes v2.0. Synced to `implementation_plan.md` v2.1 and closes every finding in `Architecture_FileStructure_Audit.txt`.
 **Companion docs:** [architecture.md](architecture.md) · [implementation_plan.md](implementation_plan.md) · [CLAUDE.md](CLAUDE.md)
 

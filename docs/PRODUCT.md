@@ -1,5 +1,7 @@
 # Product
 
+> *Historical design record (6–7 Oct 2026). The built site is documented in [web-frontend.md](web-frontend.md); index: [docs/README.md](README.md).*
+
 ## Register
 
 product

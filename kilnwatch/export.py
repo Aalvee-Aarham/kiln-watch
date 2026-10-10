@@ -46,10 +46,19 @@ def _git_sha(path=None) -> str:
         return "unknown"
 
 
+def _first_sha(path: str) -> str:
+    # The commit that created the file: prereg provenance must not drift to a later move commit.
+    try:
+        out = subprocess.check_output(["git", "log", "--reverse", "--format=%h", "--", path], cwd=C.ROOT, text=True).split()
+        return out[0] if out else "unknown"
+    except Exception:
+        return "unknown"
+
+
 def meta(branch: str, data_versions=None, params=None) -> dict:
     return {
         "generated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"),
-        "git_sha": _git_sha(), "prereg_sha": _git_sha("PREREGISTRATION.md"),
+        "git_sha": _git_sha(), "prereg_sha": _first_sha("PREREGISTRATION.md"),
         "params": params or {"GATE_SEASON": C.GATE_SEASON, "MIN_SNPP_CELLDAYS": C.MIN_SNPP_CELLDAYS, "MIN_PAIRED_DAYS": C.MIN_PAIRED_DAYS,
                              "SEAM_RATIO_MAX": C.SEAM_RATIO_MAX, "DBSCAN_EPS_M": C.DBSCAN_EPS_M, "CALIB_SEASONS": f"{C.CALIB_SEASONS[0]}…{C.CALIB_SEASONS[-1]}"},
         "data_versions": data_versions or {},

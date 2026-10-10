@@ -1,5 +1,7 @@
 # Kiln Watch: page ground and cursor plan
 
+> *Historical design record — built on 6 Oct 2026 as noted inside. The cursor assets it specifies still live in `web/src/assets/cursors/`. Index: [docs/README.md](README.md).*
+
 **Date:** 6 Oct 2026. **Status:** built on 6 Oct 2026 (see §7).
 
 **Extends:** `ui_ux_plan.md` §4 (direction) and §9 (cursor). **Written against:** `ff1bf72`, which includes the SVG `BdMap` that replaced Leaflet.

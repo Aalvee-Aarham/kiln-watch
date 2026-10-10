@@ -9,10 +9,10 @@ PRE = ["FIRING_MONTHS", "MONSOON_MONTHS", "CONF_KEEP", "MIN_SNPP_CELLDAYS", "MIN
 
 
 def test_preregistered_constants_match():
-    text = (C.ROOT / "PREREGISTRATION.md").read_text(encoding="utf-8")
+    text = (C.ROOT / "docs" / "PREREGISTRATION.md").read_text(encoding="utf-8")
     for name in PRE:
         m = re.search(rf"^{name} = (.+)$", text, re.M)
-        assert m, f"{name} missing from PREREGISTRATION.md"
+        assert m, f"{name} missing from docs/PREREGISTRATION.md"
         assert eval(m.group(1)) == getattr(C, name), name
 
 
@@ -28,6 +28,8 @@ def test_prereg_commit_precedes_reports():
         out = subprocess.run(["git", "log", "--reverse", "--format=%ct", "--", path], cwd=C.ROOT, capture_output=True, text=True).stdout.split()
         return int(out[0]) if out else None
 
+    # History stays on the original root path: its first commit is the pre-registration's creation,
+    # which must keep preceding reports/ even after the file moved to docs/.
     pre, rep = first("PREREGISTRATION.md"), first("reports")
     assert pre is not None
     assert rep is None or pre <= rep

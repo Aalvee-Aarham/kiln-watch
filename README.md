@@ -41,7 +41,7 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
    - ❌ **TROPOMI air pollution (SO₂, NO₂):** each pixel covers too much ground, so kiln smoke gets mixed in with every other source.
    - ✅ **NASA Black Marble night lights:** kilns run all night with lamps and workers on site.
    - ✅ **Sentinel-1 radar:** stacks of fresh bricks pile up in the kiln yards.
-3. **Test it fairly.** We wrote the pass rules down in advance ([Amendment 1](PREREGISTRATION_AMENDMENTS.md)) and tested on 3,253 kiln clusters and a season the trial never touched. Both checks passed:
+3. **Test it fairly.** We wrote the pass rules down in advance ([Amendment 1](docs/PREREGISTRATION_AMENDMENTS.md)) and tested on 3,253 kiln clusters and a season the trial never touched. Both checks passed:
    - **Night lights:** **72%** of kiln clusters glow brighter in kiln season than nearby farmland. The result holds in **13 of 13 years**, and ordinary farmland shows nothing.
    - **Radar:** passes as an independent second check.
 
@@ -56,7 +56,7 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 
 ## The website
 
-Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`redesign_plan.md`](redesign_plan.md), §9 for this version).
+Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`docs/redesign_plan.md`](docs/redesign_plan.md), §9 for this version).
 
 The pages are organised around the four things Space Apps judges score.
 
@@ -78,7 +78,7 @@ Everything is computed in the browser from the public, area-level export. "Use m
 | Test (pre-registered) | Result |
 |---|---|
 | **Seam:** harmonized 2012 jump ≤ 25% of raw; break in raw (p < 0.01) and none after (p > 0.05) | **PASS**: 55.1 → 1.6 (**2.9%**); Chow p 6×10⁻⁵ raw, 0.29 harmonized |
-| **Leave-one-season-out:** pooled 95% coverage 0.90–0.97 | **FAIL (conservative)**: 0.985 [0.982–0.987]. Intervals are too wide, not too narrow. See BLOCKERS.md |
+| **Leave-one-season-out:** pooled 95% coverage 0.90–0.97 | **FAIL (conservative)**: 0.985 [0.982–0.987]. Intervals are too wide, not too narrow. See [docs/BLOCKERS.md](docs/BLOCKERS.md) |
 | **G1, kilns visible to VIIRS:** DR(kiln)/DR(control) ≥ 3, perm p < 0.01, plus shape and seasonality | **FAIL**: 0.46×, p = 0.96 across 3,653 clusters and 10,959 matched controls |
 | **G2, kilns visible to MODIS** | **FAIL**: 0.73× |
 | **Transfer, fire-satellite kiln classifier in Faisalabad, Pakistan** (frozen model, APAD Pakistan labels) | **FAIL**: PR-AUC 0.05 [0.02–0.14] against a prevalence of 0.03. Expected after G1/G2: fire satellites cannot see enclosed kilns. The night-light method was then tested abroad (Amendments 2–4, below) |
@@ -191,7 +191,6 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 |---|---|
 | Blank page at `localhost:5173` | Add `/kiln-watch/` to the address |
 | `Port 5173 is in use` | `npm run dev -- --port 5174`, or stop the other server |
-| The map has no background | The basemap tiles come from the internet; the data still works offline |
 | `npm run e2e` cannot find a browser | `npx playwright install chromium` |
 | `python -m kilnwatch all` stops at once | Run the two `gee` commands first: `all` fails fast without their cache |
 | Earth Engine `not registered` error | Register the Cloud project for Earth Engine and set `EE_PROJECT` |
@@ -220,10 +219,10 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 ## How it is built
 
 - **Pipeline:** Python 3.11+ · pandas · GeoPandas · scikit-learn · Earth Engine (`kilnwatch/`, one module per stage)
-- **Site:** React 19 + TypeScript + Vite + Tailwind CSS v4 + ECharts + Leaflet (`web/`). Static, no server; deep links via `HashRouter`.
+- **Site:** React 19 + TypeScript + Vite + Tailwind CSS v4 + ECharts + a self-contained SVG map (`web/`). Static, no server; deep links via `HashRouter`.
 - **Contract:** `web/src/lib/types.ts` (Python writes it, TypeScript reads it). It is tested under all five gate branches.
 - **Daily updates:** `.github/workflows/deploy.yml` fetches FIRMS near-real-time data, labels it with the frozen model and redeploys.
-- **Pre-registration:** [`PREREGISTRATION.md`](PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited. Later additions are dated amendments in [`PREREGISTRATION_AMENDMENTS.md`](PREREGISTRATION_AMENDMENTS.md), each written before the data it governs were analysed.
+- **Pre-registration:** [`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) was committed before any analysis. Its thresholds are never edited. Later additions are dated amendments in [`docs/PREREGISTRATION_AMENDMENTS.md`](docs/PREREGISTRATION_AMENDMENTS.md), each written before the data it governs were analysed.
 - **Knowledge graph:** `graphify-out/` holds a graph of the design docs (`graphify query "<question>"`).
 
 ## Responsible release
