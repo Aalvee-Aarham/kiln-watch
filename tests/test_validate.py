@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from kilnwatch.validate import ccc, overlap_agreement
+from kilnwatch.validate import ccc, outlook, overlap_agreement
 
 
 def test_ccc_closed_form():
@@ -35,3 +35,25 @@ def test_cloudy_days_are_left_out():
     c = _cal("D0", 0)
     c["clear_frac"]["A"] = [10] * len(c["clear_frac"]["A"])  # Aqua never saw the ground
     assert overlap_agreement([c, _cal("D1", 1)], rng=np.random.default_rng(0), n_boot=5) == []  # one district left: no estimate
+
+
+def _unusual_cal(uid, unusual, n=8400):
+    return {"unit_id": uid, "day0": "2003-01-01", "days": [n - 1], "h": [0.0], "raw": {}, "nodata": [], "unusual": sorted(unusual)}
+
+
+def test_outlook_ships_when_unusual_spells_persist():
+    rng = np.random.default_rng(1)
+    cals = []
+    for i in range(6):  # unusual days come in 30-day spells, so a recent one predicts the next fortnight
+        starts = rng.choice(np.arange(0, 8300, 60), size=40, replace=False)
+        cals.append(_unusual_cal(f"D{i}", {int(s + j) for s in starts for j in range(30)}))
+    o = outlook(cals, rng=np.random.default_rng(0), n_boot=50)
+    assert o["ships"] and o["backtest"]["brier_skill"]["lo"] > 0
+    d = o["districts"]["D0"]
+    assert len(d["clim"]) == o["weeks"] and np.mean(d["if_recent"]) > np.mean(d["if_quiet"])
+
+
+def test_outlook_does_not_ship_without_persistence():
+    rng = np.random.default_rng(2)  # isolated unusual days: the last fortnight says nothing about the next
+    cals = [_unusual_cal(f"D{i}", set(rng.choice(8370, size=300, replace=False).tolist())) for i in range(6)]
+    assert not outlook(cals, rng=np.random.default_rng(0), n_boot=50)["ships"]

@@ -278,3 +278,10 @@ test('trust: the country switch shows each tested country on its own data', asyn
     await expect(page.getByText(new RegExp(`^(Passed in|Did not pass in|Not tested)`)).first()).toBeVisible()
   }
 })
+
+test('my area: the two-week outlook says when it opens before the burning season', async ({ page }) => {
+  await page.goto('#/area/BD3026')
+  // the offline NRT snapshot is from early October, before the 1 November start of the outlook window
+  await expect(page.getByText('Next two weeks')).toBeVisible()
+  await expect(page.getByText(/two-week outlook starts on 1 November/)).toBeVisible()
+})

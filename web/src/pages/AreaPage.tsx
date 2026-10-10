@@ -9,7 +9,8 @@ import { seasonMean } from '../lib/calendar'
 import { districtOf, unitAt } from '../lib/geo'
 import { busyMonths, monthOfSeasonDay, MONTHS, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
 import { palette, useTheme } from '../lib/theme'
-import type { Calendar, Events, FC, NrtSeason, UnitProps } from '../lib/types'
+import type { Calendar, Events, FC, NrtSeason, Outlook, UnitProps } from '../lib/types'
+import { outlookFor } from '../lib/outlook'
 
 const BdMap = lazy(() => import('../components/BdMap'))
 
@@ -131,6 +132,9 @@ function AreaAnswers({ unit, nrt, onClose }: { unit: UnitProps; nrt?: NrtSeason;
   const kilnArea = ka?.areas?.[unit.unit_id] ?? ka?.areas?.[dist]
   const kilnFromDistrict = !ka?.areas?.[unit.unit_id] && !!ka?.areas?.[dist] && unit.level === 'upazila'
   const kiln = kilnArea ? typicalSeason(kilnArea.seasons) : null
+  const ol = useJson<Outlook>('outlook.json').data // optional: absent when its backtest is not estimable
+  const distCal = useJson<Calendar>(nrt && ol?.ships ? `calendar/${dist}.json` : null).data // live data are by district
+  const next = ol?.ships && nrt && distCal ? outlookFor(ol, dist, nrt, distCal.normal.p90) : null
   return (
     <article className="space-y-5">
       {onClose && <div className="flex items-center justify-between"><h2 className="h-section">{unit.name_en}</h2><button className="btn btn-quiet" onClick={onClose}><Icon name="cross" />Remove</button></div>}
@@ -155,6 +159,15 @@ function AreaAnswers({ unit, nrt, onClose }: { unit: UnitProps; nrt?: NrtSeason;
                   : <p className="text-lg text-muted">No live data for this district today.</p>}
                 <p className="text-xs text-muted">{unit.level === 'upazila' ? 'Live data are by district: this is the whole district’s figure. ' : ''}Updated daily from NASA; provisional.</p>
               </div>
+              {next && <div className="panel space-y-1 sm:col-span-2">
+                <span className="tag">Next two weeks</span>
+                {next.state === 'on' ? <>
+                  <p className="text-lg">Chance of at least one <Gloss k="unusual">unusual day</Gloss>: <b className={next.p > next.clim ? 'text-heat' : ''}>{Math.round(next.p * 100)}%</b>
+                    {' '}(usual for this time of year: {Math.round(next.clim * 100)}%).</p>
+                  <p className="text-xs text-muted">{next.recent ? 'The last two weeks had an unusual day' : 'The last two weeks had no unusual day'} (data to {next.asOf}{unit.level === 'upazila' ? ', whole district' : ''}).
+                    Tested on past seasons: a modest gain over the usual chance. Provisional. <Link className="text-orbit underline" to="/trust">How we tested it</Link></p>
+                </> : <p className="text-lg text-muted">{next.state === 'before' ? `The two-week outlook starts on ${next.opens}, when the burning season begins.` : 'The two-week outlook runs from 1 November to mid-May; it returns next season.'}</p>}
+              </div>}
               <div className="panel space-y-1 sm:col-span-2">
                 <span className="tag">Brick kilns</span>
                 {kiln ? <>

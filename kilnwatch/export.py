@@ -16,7 +16,7 @@ from . import config as C
 
 log = logging.getLogger("kilnwatch.export")
 BUDGET = {"meta.json": 50_000, "events.json": 50_000, "harmonization.json": 200_000, "validation.json": 500_000,
-          "aoi/districts.geojson": 400_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000,
+          "aoi/districts.geojson": 400_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "outlook.json": 200_000,
           "kiln_activity.json": 1_500_000}
 BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000}
 SPLITS = {
@@ -302,8 +302,8 @@ def _fixture_set_real(d: Path, src: Path) -> None:
 
 
 def add_overlap(d: Path) -> None:
-    """harmonization.json gains `overlap`: Aqua vs VIIRS agreement on the months both flew (validate.overlap_agreement),
-    computed from the district calendars in the same export."""
+    """harmonization.json gains `overlap` (Aqua vs VIIRS on the months both flew) and `outlook.json` is written (the
+    backtested two-week unusual-fire outlook): both from the district calendars in the same export."""
     from .validate import overlap_agreement
 
     cals = [json.loads(p.read_text(encoding="utf-8")) for p in sorted((d / "calendar").glob("*.json"))]
@@ -311,6 +311,11 @@ def add_overlap(d: Path) -> None:
     h = json.loads(hp.read_text(encoding="utf-8"))
     h["overlap"] = overlap_agreement([c for c in cals if c.get("clear_frac")])
     _dump(nan_to_none(h), hp)
+    from .validate import outlook
+
+    o = outlook([c for c in cals if c.get("clear_frac")])  # districts: the NRT job publishes districts only
+    if o:
+        _dump(nan_to_none(o), d / "outlook.json")
 
 
 def events_payload() -> dict:

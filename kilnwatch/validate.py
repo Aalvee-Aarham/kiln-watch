@@ -83,6 +83,80 @@ def overlap_agreement(cals: list[dict], calib=None, rng=None, n_boot=200) -> lis
     return out
 
 
+OUTLOOK_FROM, OUTLOOK_STEPS, OUTLOOK_DAYS, OUTLOOK_SHRINK = (11, 1), 28, 14, 5  # 1 Nov, weekly to mid-May, 14-day windows
+
+
+def _outlook_rows(cals: list[dict]) -> pd.DataFrame:
+    """One row per district × season × week of the firing window: s = any unusual day (above the day's p90 normal)
+    in the 14 days before, t = any unusual day in the 14 days after."""
+    rows = []
+    day0 = pd.Timestamp(cals[0]["day0"]) if cals else pd.Timestamp("2003-01-01")
+    for c in cals:
+        n = max(c["days"][-1] if c["days"] else 0, max((e for _, e in c["nodata"]), default=0)) + 1  # calendar length
+        u = np.zeros(n, int)
+        u[np.asarray(c["unusual"], int)] = 1
+        cu = np.r_[0, np.cumsum(u)]
+        for y in range(day0.year, (day0 + pd.Timedelta(days=n)).year):
+            start = pd.Timestamp(y, *OUTLOOK_FROM)
+            for k in range(OUTLOOK_STEPS):
+                i = (start - day0).days + 7 * k
+                if i - OUTLOOK_DAYS < 0 or i + OUTLOOK_DAYS > n:
+                    continue
+                rows.append((c["unit_id"], f"{y}-{(y + 1) % 100:02d}", k, cu[i] - cu[i - OUTLOOK_DAYS] >= 1, cu[i + OUTLOOK_DAYS] - cu[i] >= 1))
+    return pd.DataFrame(rows, columns=["unit_id", "season", "week", "s", "t"])
+
+
+def _outlook_probs(train: pd.DataFrame, keys: pd.DataFrame) -> tuple[np.ndarray, np.ndarray]:
+    """Climatology b = P(t | district, week) and the outlook p = P(t | district, week, s), shrunk towards b."""
+    clim = train.groupby(["unit_id", "week"]).t.mean()
+    b = clim.reindex(pd.MultiIndex.from_frame(keys[["unit_id", "week"]])).to_numpy()
+    g = train.groupby(["unit_id", "week", "s"]).t
+    idx = pd.MultiIndex.from_frame(keys[["unit_id", "week", "s"]])
+    pc, nc = g.mean().reindex(idx).to_numpy(), g.size().reindex(idx).fillna(0).to_numpy()
+    return (nc * np.nan_to_num(pc) + OUTLOOK_SHRINK * b) / (nc + OUTLOOK_SHRINK), b
+
+
+def outlook(cals: list[dict], rng=None, n_boot=200) -> dict | None:
+    """Two-week unusual-fire outlook per district, and its leave-one-season-out backtest against the district ×
+    week climatology (Brier skill score, district bootstrap). `ships` only when the lower 95% bound is above 0.
+    Exploratory, not pre-registered: the rule and the shrinkage were fixed before the first backtest run."""
+    df = _outlook_rows(cals)
+    if df.empty or df.unit_id.nunique() < 2:
+        return None
+    rng = rng if rng is not None else C.rng("validate")
+    p, b = np.empty(len(df)), np.empty(len(df))
+    for s in df.season.unique():
+        te = (df.season == s).to_numpy()
+        p[te], b[te] = _outlook_probs(df[~te], df[te])
+    df = df.assign(p=p, b=b)
+    ok = np.isfinite(df.b)
+    df = df[ok]
+
+    def bss(x):
+        with np.errstate(invalid="ignore", divide="ignore"):  # a resample with no unusual day has no skill to score
+            return 1 - np.mean((x.p - x.t) ** 2) / np.mean((x.b - x.t) ** 2)
+
+    groups = [g for _, g in df.groupby("unit_id")]
+    if not np.isfinite(bss(df)):  # no unusual days to score against: the backtest is not estimable, publish nothing
+        return None
+    boots = [bss(pd.concat([groups[i] for i in rng.integers(0, len(groups), len(groups))])) for _ in range(n_boot)]
+    if not np.isfinite(boots).any():
+        return None
+    skill = {"p50": round(float(bss(df)), 4), "lo": round(float(np.nanquantile(boots, 0.025)), 4), "hi": round(float(np.nanquantile(boots, 0.975)), 4)}
+    allrows = _outlook_rows(cals)
+    table = {}
+    for uid in sorted(allrows.unit_id.unique()):
+        k = pd.DataFrame({"unit_id": uid, "week": np.repeat(np.arange(OUTLOOK_STEPS), 2), "s": np.tile([True, False], OUTLOOK_STEPS)})
+        pk, bk = _outlook_probs(allrows, k)
+        table[uid] = {"clim": [round(float(x), 3) for x in bk[::2]], "if_recent": [round(float(x), 3) for x in pk[::2]], "if_quiet": [round(float(x), 3) for x in pk[1::2]]}
+    seasons = sorted(df.season.unique())
+    return {"rule": "Chance of at least one unusual day (above the day's 90th-percentile normal) in the next 14 days, given whether the last 14 days had one",
+            "start": f"{OUTLOOK_FROM[0]:02d}-{OUTLOOK_FROM[1]:02d}", "step_days": 7, "window_days": OUTLOOK_DAYS, "weeks": OUTLOOK_STEPS,
+            "backtest": {"seasons": f"{seasons[0]}…{seasons[-1]}", "n": int(len(df)), "n_districts": len(groups), "baseline": "district × week climatology",
+                         "base_rate": round(float(df.t.mean()), 4), "brier_skill": skill},
+            "ships": bool(skill["lo"] > 0), "districts": table}
+
+
 def shape_all_seasons() -> list[dict] | None:
     """Layer 1: gate statistics on every season with footprint clear fractions (2012-13 → 2024-25 when cached)."""
     from .gates import unit_days, unit_stats

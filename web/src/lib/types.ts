@@ -52,6 +52,14 @@ export interface Harmonization {
               ratio_raw: CI; ratio_harm: CI; ccc_raw: CI; ccc_harm: CI }[]
 }
 
+/** outlook.json: the two-week unusual-fire outlook per district and its backtest (validate.outlook). Optional file. */
+export interface Outlook {
+  rule: string; start: string; step_days: number; window_days: number; weeks: number
+  backtest: { seasons: string; n: number; n_districts: number; baseline: string; base_rate: number; brier_skill: CI }
+  ships: boolean
+  districts: Record<string, { clim: number[]; if_recent: number[]; if_quiet: number[] }>  // one value per week from `start`
+}
+
 export interface Validation {
   gates: { gate: 'G0' | 'G1' | 'G2' | 'G3' | 'GN'; criterion: string; value: number; threshold: string; p?: number; pass?: boolean }[]
   profiles: { week: string[]; kiln_day: number[]; kiln_night: number[]; ctrl_day: number[]; ctrl_night: number[] }

@@ -87,6 +87,18 @@ def test_harmonization(branch):
 
 
 @pytest.mark.parametrize("branch", BRANCHES)
+def test_outlook(branch):
+    if not (FIXT / branch / "data" / "outlook.json").exists():
+        pytest.skip("optional file: no outlook when its backtest is not estimable (synthetic calendars)")
+    o = load(branch, "outlook.json")
+    has(o, ["rule", "start", "step_days", "window_days", "weeks", "backtest", "ships", "districts"])
+    assert o["ships"] == (o["backtest"]["brier_skill"]["lo"] > 0)  # the ship rule
+    for d in o["districts"].values():
+        assert len(d["clim"]) == len(d["if_recent"]) == len(d["if_quiet"]) == o["weeks"]
+        assert all(0 <= v <= 1 for k in ("clim", "if_recent", "if_quiet") for v in d[k] if v is not None)
+
+
+@pytest.mark.parametrize("branch", BRANCHES)
 def test_kiln_activity(branch):
     k = load(branch, "kiln_activity.json")
     has(k, ["layer", "pilots", "tests", "pass"])

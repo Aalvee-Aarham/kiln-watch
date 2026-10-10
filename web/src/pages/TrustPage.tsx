@@ -6,7 +6,7 @@ import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import { MONTHS } from '../lib/plain'
 import { palette, useTheme } from '../lib/theme'
-import type { Harmonization, TransferChannel, TransferCountry, TransferTest, Validation } from '../lib/types'
+import type { Harmonization, Outlook, TransferChannel, TransferCountry, TransferTest, Validation } from '../lib/types'
 
 const REPO = 'https://github.com/Aalvee-Aarham/kiln-watch'
 type Result = 'pass' | 'fail' | 'none'
@@ -21,6 +21,7 @@ export default function TrustPage() {
   const meta = useMeta().data
   const harm = useJson<Harmonization>('harmonization.json').data
   const val = useJson<Validation>('validation.json').data
+  const ol = useJson<Outlook>('outlook.json').data // optional file: absent when its backtest is not estimable
   const ka = useKilnActivity().data
   const gl = (s: string) => ka?.tests.find((r) => r.test === 'GL' && r.criterion.startsWith(s))
   const rep = gl('Replication'), repN = Number(rep?.criterion.match(/\((\d+) evaluable\)/)?.[1] ?? NaN)
@@ -42,12 +43,20 @@ export default function TrustPage() {
       got: <>On years held back from the model, the true value fell inside our range {pct(cov)} of the time (target 90–97%)</>,
       meaning: cov > 0.97 ? 'Failed on the safe side: our ranges are a little wider than they need to be, never too narrow.' : 'Our stated uncertainty matches reality.',
     }] : []),
+    ...(ol ? [{
+      claim: 'The two-week warning beats the usual chance for that place and time of year.',
+      result: (ol.ships ? 'pass' : 'fail') as Result,
+      got: <>Tested on {ol.backtest.n.toLocaleString('en-US')} past fortnights in {ol.backtest.n_districts} districts ({ol.backtest.seasons}), each season predicted without itself:
+        skill {ol.backtest.brier_skill.p50.toFixed(2)} (95%: {ol.backtest.brier_skill.lo.toFixed(2)}–{ol.backtest.brier_skill.hi.toFixed(2)}; 0 = no better than usual, 1 = perfect)</>,
+      meaning: ol.ships ? 'A modest but real gain: an unusual fortnight tends to be followed by another. Exploratory, not pre-registered.'
+        : 'Not better than the usual chance, so the site shows no outlook.',
+    }] : []),
     ...(fireGate ? [{
       claim: 'Fire satellites can tell brick kilns apart from farm fires.',
       result: (fireGate.pass ? 'pass' : 'fail') as Result,
       got: fireGate.pass ? <>Kilns stood out from nearby farmland in the fire data</> : <>Kilns looked no different from nearby farmland in the fire data</>,
       meaning: fireGate.pass ? 'Fire data can separate kiln heat from crop fires.'
-        : 'So we did not publish any fire-based kiln map, and tested other instruments instead (see How it works, step 4).',
+        : 'So we did not publish any fire-based kiln map, and tested other instruments instead (see How it works, step 6).',
     }] : []),
     ...(gl('Contrast') ? [{
       claim: <>Kiln areas glow brighter at night in kiln season than nearby farmland (<Gloss k="nightLights">night lights</Gloss>).</>,
