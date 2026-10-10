@@ -1,80 +1,138 @@
 # 🔥 Kiln Watch
 
-NASA Space Apps Challenge 2026
+**One fire record from MODIS and VIIRS: a burning-activity calendar for any area.**
 
-**Challenge: Harmonization of MODIS and VIIRS Hot Spots**
+NASA Space Apps Challenge 2026 · **Challenge: Harmonization of MODIS and VIIRS Hot Spots**
 
 🌐 **Live site: https://aalvee-aarham.github.io/kiln-watch/** (updated daily from NASA FIRMS)
 
 ## In short
 
-Every dry season, Bangladesh burns twice over: farmers set fire to crop leftovers after the rice harvests, and about 7,000 brick kilns fire up from November to April. NASA satellites have photographed this since 2003, but their cameras changed over the years, so the records don't agree, and nobody could tell kiln heat from crop fires.
+In 2012 NASA's sharper VIIRS camera joined the older MODIS cameras, and recorded fire jumped. Nothing new was burning; the camera had changed. Kiln Watch puts MODIS and VIIRS on one scale, from 2003 to today, and turns that record into a burning-activity calendar for an area: its normal season, its unusual days and its critical weeks. It is built for emergency responders and forest officers, farm officers, inspectors and scientists, and it keeps more than 20 years of fire history usable as MODIS ends.
 
-**Kiln Watch** fixes both. It turns 23 years of NASA satellite data (1.2 million fire detections) into **one consistent burning calendar for every district and upazila**, plus a separate **brick-kiln calendar**. It shows them on a plain-language website with interactive apps. Anyone can check their own area. Inspectors can plan when to visit kilns. Scientists can keep long fire records going after NASA's older MODIS cameras retire in 2027.
+## The problem
 
-## The two problems we solve
+- **Two cameras, two pixel sizes.** MODIS sees the ground in 1 km squares. VIIRS sees it in 375 m squares, so about 7 VIIRS squares fit in one MODIS square. A small fire fills more of a small square, so VIIRS notices many fires MODIS misses.
+- **The 2012 jump.** When VIIRS arrived, fire counts jumped overnight. The land did not change; the camera did. Joined as they are, the old and new records cannot be compared.
+- **MODIS is ending.** NASA plans to end MODIS data collection in 2027 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/transition-from-modis-viirs)). After that only VIIRS is left. Without a bridge, the MODIS years cannot be compared with the years to come.
 
-### Problem 1: The satellites don't agree
+## How we harmonize
 
-**The problem.** Until 2012, fires were recorded by NASA's **MODIS** cameras, which see the ground in 1 km squares. In 2012 the sharper **VIIRS** camera arrived, with 375 m squares, and it notices many small fires that MODIS misses. Fire counts over Bangladesh jumped several-fold overnight. Bangladesh didn't suddenly burn more; the camera changed. Spliced together as-is, the 23-year record is meaningless.
+```
+MODIS (1 km) ──┐
+               ├─▶ 1. days both saw ─▶ 2. exchange rate ─▶ 3. cloud correction ─▶ 4. 95% ranges ─▶ one record, 2003 → today
+VIIRS (375 m) ─┘
+```
 
-**How we solved it.**
-- **One common unit.** On days when two satellites saw the same place, we learned how many old-camera detections one new-camera detection is worth, by region, month and day or night pass.
-- **Chaining the satellites.** We chained the satellites onto one scale: Aqua ← Suomi NPP ← NOAA-20. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*. Suomi NPP stops delivering new data on 2 Nov 2026 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/content/data-alert-history/21880)); from then on NOAA-20 carries the record on the same scale. The NOAA-21 link is set up but not yet calibrated: there are not yet enough months in which both satellites' near-real-time data overlap.
-- **Correcting for cloud.** Satellites can't see fire through cloud, so we counted the cloud-free land every day with Google Earth Engine.
-- **Error ranges.** Every number carries a 95% uncertainty range.
+1. **Match the days both cameras saw.** We pair the same place on the same day, seen by both cameras.
+2. **Learn an exchange rate.** From those pairs we learn how many MODIS detections one VIIRS detection is worth, by region, month, and day or night pass, like converting currencies.
+3. **Correct for cloud.** Satellites cannot see fire through cloud, so we divide by the cloud-free land seen each day (Google Earth Engine). A cloudy day is "not seen", never "no fire".
+4. **Give every number a range.** Resampling whole seasons gives each value a 95% uncertainty range.
 
-**Result.**
-- **The fake jump is gone.** The 2012 jump shrinks from 55.1 to 1.6 units: **97% of it was the camera**. A statistical break test finds a clear break in the raw record and none after correction.
-- **It matches a real reading.** Our corrected 2012-13 value (23.4, range 21.8–24.9) matches what the unchanged Aqua camera actually saw (23.7).
+The unit is *MODIS-equivalent fire cell-days per 1,000 cloud-free cells*. The full method, including which satellites carry each camera, is under [Validity](#validity).
 
-### Problem 2 (our extension): Telling brick kilns apart from crop fires
+## Results
 
-**The problem.** Brick kilns are a major source of Dhaka's winter smog. If their heat were hiding inside the fire record, the crop-burning calendar would be wrong, and nobody could say when kilns are actually working.
+| What we checked | Before | After | Source |
+|---|---|---|---|
+| **The fake 2012 jump** | 55.1 units | **1.6 units**: 97% of the jump was the camera | [`reports/harmonization_report.md`](reports/harmonization_report.md) |
+| **Do the cameras agree?** VIIRS ÷ MODIS on the same district-months | 4.4× | **1.04×** | `harmonization.json` (site data), *Can you trust it?* page |
+| **Agreement score** (Lin's concordance, 1 = perfect) | 0.62 | **0.98** | same |
+| **Does it match what MODIS saw directly?** Season 2012-13 | | corrected **23.4** (range 21.8–24.9) vs MODIS **23.7** | `harmonization.json` |
 
-**How we solved it.**
-1. **Test whether fire satellites see kilns at all.** Before looking at the data, we wrote down a test: do 3,653 mapped kiln clusters produce more fire detections than matched farmland nearby? They don't (0.46×). Only **0.15%** of dry-season fire detections fall on kilns, the same as on ordinary farmland. Kilns burn inside closed brick chambers, so fire satellites can't see them. The fire calendar is therefore clean, with no kiln heat to remove.
-2. **Find a satellite that can see kilns.** We tried six kinds of data. Two worked:
-   - ❌ **NASA FIRMS fire detections:** kiln fires burn inside closed chambers, so the satellite sees no flames.
-   - ❌ **NASA ECOSTRESS night heat:** kilns were no warmer at night than nearby farmland.
-   - ❌ **Landsat 8/9 surface heat:** it picked up the warm brick buildings even when kilns were shut, so it couldn't tell working kilns from idle ones.
-   - ❌ **TROPOMI air pollution (SO₂, NO₂):** each pixel covers too much ground, so kiln smoke gets mixed in with every other source.
-   - ✅ **NASA Black Marble night lights:** kilns run all night with lamps and workers on site.
-   - ✅ **Sentinel-1 radar:** stacks of fresh bricks pile up in the kiln yards.
-3. **Test it fairly.** We wrote the pass rules down in advance ([Amendment 1](docs/PREREGISTRATION_AMENDMENTS.md)) and tested on 3,253 kiln clusters and a season the trial never touched. Both checks passed:
-   - **Night lights:** **72%** of kiln clusters glow brighter in kiln season than nearby farmland. The result holds in **13 of 13 years**, and ordinary farmland shows nothing.
-   - **Radar:** passes as an independent second check.
+A statistical break test finds a clear break in the raw record (p = 6×10⁻⁵) and none after correction (p = 0.29). The agreement also holds on later seasons the correction never saw (4.8× → 1.04×, concordance 0.61 → 0.96). Every pre-registered test, including the ones that failed, is listed under [Validity](#validity).
 
-**Result.** Bangladesh's first satellite-based **kiln-season calendar**, for 275 districts and upazilas.
-- **When:** kilns work from about mid-November to mid-April, busiest in February.
-- **Trend:** the season has grown from about **3 months (2012–15) to about 5 months (2022–25)**.
+## Burning-activity calendar
 
-## What we built
+For each area, Kiln Watch shows every day since 2003 on the harmonized scale, and from that:
 
-1. **A pipeline** (`kilnwatch/`, Python) that downloads, harmonizes and tests the satellite data end to end, from raw NASA files to the public dataset.
-2. **A website** with a plain-language layer and interactive apps, and the full science one click away for experts (see below). It refreshes daily from NASA's near-real-time fire data.
+- **The normal season:** the usual first, busiest and last month, and the normal range (the middle 80% of past seasons for each day).
+- **Unusual days:** days above what 9 out of 10 past seasons had on the same date.
+- **Critical weeks:** the busiest weeks of the area's normal year.
+- **This season so far:** updated every day from NASA FIRMS near-real-time data, marked provisional.
+- **A two-week outlook:** the chance of at least one unusual day in the next 14 days, shown from 1 November to mid-May. It was backtested on past seasons and beats the usual chance for that week (Brier skill 0.075).
+
+**Picking an area.** Search by name in English or Bangla, tap the map, use your location (matched to an area on your device and never sent anywhere), draw a box or enter coordinates. Today the areas are Bangladesh's 64 districts and their upazilas (560 calendars). See [Coverage](#coverage-and-next-steps).
+
+## AI agent: Ask Kiln Watch
+
+Ask a question in plain English or Bangla, for example *"When is burning season in Rajshahi, and is this year unusual so far?"* or *"Did the correction really remove the 2012 jump?"*
+
+- **It picks its own steps.** Claude (Anthropic) decides which of the project's five functions to call, and in what order: find an area, its fire calendar, this season so far, the two-week outlook, and the harmonization evidence. It takes at most 6 steps per question.
+- **Our code computes; the AI explains.** Every figure comes from a tested project function reading NASA FIRMS data in the public export. A check blocks any answer that states a number no function returned, and the page shows "blocked" rather than an unchecked figure.
+- **You can see the data behind each answer:** every function call, its result, the dataset and the data build.
+- **Where to use it.** `python -m kilnwatch ask "your question"` answers any question live (needs an `ANTHROPIC_API_KEY`). The website's AI agent page (`#/ask`) shows saved answers to demo questions, generated with `python -m kilnwatch ask --build-cache`, so it works offline. Until answers are generated for a data build, the page says so.
+- **Limits.** It answers about Bangladesh areas only, the same areas the website covers. Code: [`kilnwatch/ask.py`](kilnwatch/ask.py); disclosure: [`docs/AI_USE.md`](docs/AI_USE.md).
+
+## Extension 1: crop burning windows
+
+**Problem.** Farm officers need to know when fields burn after the rice harvests, so they can offer alternatives before burning starts.
+**Method.** Each area's calendar is split into burning inside the Aman and Boro rice-harvest windows, and burning outside them.
+**Result.** Every area shows its harvest windows on its calendar, and the share of its burning that falls in each. The farm-officer plan on *Who benefits* turns this into dates, such as starting a straw campaign a month before burning begins.
+
+## Extension 2: brick kilns
+
+**Problem.** Brick kilns are a major source of Dhaka's winter smog, and inspectors need to know when they are working. Fire satellites cannot see them: kilns burn inside closed brick chambers. Only 0.15% of dry-season fire detections fall on kilns, the same as on ordinary farmland.
+**Method.** We read the kiln season from **NASA Black Marble night lights** instead (kilns run all night with lamps and workers on site), and checked it with **Sentinel-1 radar** (brick stacks pile up in kiln yards). Both tests were written down before the data were analysed.
+**Result.** 72% of 3,253 held-out kiln clusters glow brighter in kiln season than nearby farmland, in 13 of 13 years; radar passes as an independent check. Kilns work from about mid-November to mid-April, busiest in February, and the season has grown from **about 3 months (2012–15) to about 5 months (2022–25)**. Kiln calendars cover 275 districts and upazilas. The same method was tested in Pakistan, India and Afghanistan, with mixed results (see [Validity](#validity)).
+
+## Who it helps
+
+| Who | What they use | What they do with it |
+|---|---|---|
+| **Emergency responders and forest officers** | Unusual days this season and the two-week outlook | See when burning is running above normal, and plan crews for the weeks ahead |
+| **Farm officers** | The normal season and the crop burning windows (Extension 1) | Start straw campaigns a month before burning begins |
+| **Inspectors** | The kiln season and its busiest month (Extension 2) | Time inspection rounds to when kilns are actually working |
+| **Scientists** | One record across the MODIS-to-VIIRS change, with 95% ranges, as CSV and Parquet | Keep long fire records going after MODIS ends |
+
+The *Who benefits* page also has plans for families and schools, journalists and policy makers.
+
+## Coverage and next steps
+
+| | Status |
+|---|---|
+| **Bangladesh** | **Live.** The harmonized calendar for all 64 districts and their upazilas, 2003 to today, updated daily; both extensions |
+| **South Asia** | **In progress.** The pre-registration is drafted ([`docs/amendment5_draft.md`](docs/amendment5_draft.md)) but not yet agreed, and no regional fire data have been analysed. Each region gets its own exchange rate, tested by the same rules before anything is shown: the Bangladesh calibration is not reused elsewhere |
+| **Kiln extension abroad** | **Tested.** Night lights pass in Pakistan and India on a retest, and fail in Afghanistan |
+| **Rest of the world** | The method uses only global NASA data (FIRMS detections and daily fire masks), so the same steps can run for any region. The world map shows what is covered today |
+
+**Next steps**
+1. Agree and run the South Asia pre-registration (Amendment 5), then publish each region only after it passes.
+2. **Pilot with forest and fire services:** we are looking for a forest or fire service to use the calendar and the two-week outlook for one burning season and tell us what they need.
+3. Add a plan for responders and forest officers to the *Who benefits* page.
+4. Calibrate the newest VIIRS satellite once enough overlapping data exist.
 
 ## The website
 
 Every topic has three layers: *what it means* in one plain sentence, an app to *try it*, and *the proof* in the For-experts section ([`docs/redesign_plan.md`](docs/redesign_plan.md), §9 for this version).
 
-The pages are organised around the four things Space Apps judges score.
-
 | Page | Judging question | What a visitor does |
 |---|---|---|
-| **Home** | All four | Three findings, the six steps from satellite to decision, real questions turned into actions, today's NASA fire data, and a four-card guide for judges |
-| **How it works** | Creativity, Relevance | Steps through the whole approach on real data (satellites, hot pixels, one scale, calendars, who acts, then the kiln extension), then a checklist of everything the challenge asks for and where it is on the site |
-| **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, a tested two-week outlook (1 November to mid-May), when kilns work, a typical year month by month; compare two areas. The map can show NASA satellite or night-lights imagery and step through this season week by week |
-| **World map** | Relevance | Every country, state and city on Earth, opening on South Asia, with NASA satellite and night-light backgrounds: search any place or tap the map to see what Kiln Watch covers there and the kiln tests abroad. The harmonized calendar beyond Bangladesh is being built |
-| **Kiln planner** (extension) | Impact | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
+| **Home** | All four | The harmonized fire record in one picture, three findings, today's NASA fire data, real questions turned into actions, and a four-card guide for judges |
+| **How it works** | Creativity, Relevance | Steps through the whole approach on real data (cameras, hot pixels, one scale, calendars, who acts, then the kiln extension), then a checklist of everything the challenge asks for and where it is on the site |
+| **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, a tested two-week outlook (1 November to mid-May), a typical year month by month with the harvest windows (Extension 1) and kiln months (Extension 2); compare two areas. The map can show NASA satellite or night-lights imagery and step through this season week by week |
+| **AI agent** (Ask Kiln Watch) | Creativity, Validity | Plain-language answers written by Claude from the project's own functions, with every function call and result behind each figure |
+| **World map** | Relevance | Every country, state and city on Earth, opening on South Asia, with NASA satellite and night-light backgrounds: search any place or tap the map to see what Kiln Watch covers there. Bangladesh is live; South Asia's calendar is being built |
 | **Who benefits** | Impact | Picks a person (farm officer, family, scientist, journalist, inspector, policy maker) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
 | **Can you trust it?** | Validity | Every pre-registered test in plain words, marked passed, failed or no link found; whether the cameras agree after correction; how the outlook was tested; how we kept ourselves honest; what we never claim |
+| **Kiln planner** (extension) | Impact | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
 | **Sensor switch**, **Timeline** | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 by season with laws and satellite milestones (linked from the pages above) |
-| **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, the research data (CSV + Parquet), pre-registration, and **Ask Kiln Watch**: answers written by Claude from our own functions, with the data behind each figure |
+| **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, the research data (CSV + Parquet) and the pre-registration |
+
+The crop burning windows (Extension 1) have no page of their own: they appear on My area, the Explorer and the farm-officer plan.
 
 Everything is computed in the browser from the public, area-level export. "Use my location" is matched to an area on the device and never sent anywhere.
 
-## Results (real data, built 6 Oct 2026)
+## Validity
+
+### The method in detail
+
+- **The satellite chain.** MODIS flies on Terra and Aqua; VIIRS flies on Suomi NPP, NOAA-20 and NOAA-21. We chain them onto one scale: Aqua ← Suomi NPP ← NOAA-20. Aqua is the anchor because its overpass time matches Suomi NPP's. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*. The calibration window (2012-13 to 2020-21) ends before Aqua's orbit began to drift.
+- **After Suomi NPP.** Suomi NPP stops delivering new data on 2 Nov 2026 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/content/data-alert-history/21880)); from then on NOAA-20 carries the record on the same scale. The NOAA-21 link is set up but not yet calibrated: there are not yet enough months in which both satellites' near-real-time data overlap.
+- **Cloud.** Daily clear-land fractions per area come from the MOD14A1, MYD14A1 and VNP14A1 fire masks in Google Earth Engine.
+- **Uncertainty.** A season-block bootstrap gives every value a 95% interval.
+
+### Results (real data, built 6 Oct 2026)
 
 | Test (pre-registered) | Result |
 |---|---|
@@ -98,6 +156,26 @@ Everything is computed in the browser from the public, area-level export. "Use m
 
 Data: 1,221,809 FIRMS detections (2003 → today) · 13M Earth Engine daily clear-land fractions · 4,760 APAD kilns · 560 district and upazila calendars.
 Full reports: [`reports/`](reports/) · Evidence page of the site · pitch materials in [`presentation/`](presentation/).
+
+### Pre-registration and amendments
+
+[`docs/PREREGISTRATION.md`](docs/PREREGISTRATION.md) was committed before any analysis, and its thresholds are never edited. Later additions are dated amendments in [`docs/PREREGISTRATION_AMENDMENTS.md`](docs/PREREGISTRATION_AMENDMENTS.md), each written before the data it governs were analysed:
+
+1. **Amendment 1** (6 Oct 2026): kiln activity from night lights and radar.
+2. **Amendment 2** (7 Oct 2026): the kiln method in Pakistan and India.
+3. **Amendment 3** (7 Oct 2026): Afghanistan.
+4. **Amendment 4** (7 Oct 2026): retest with farmland at least 6 km from every kiln, on fresh clusters.
+
+A fifth, for the South Asia calendar, is a draft and not in force ([`docs/amendment5_draft.md`](docs/amendment5_draft.md)).
+
+### Tests that failed
+
+We publish every failure:
+
+- **Leave-one-season-out coverage** missed its target on the safe side: the 95% ranges are too wide, not too narrow.
+- **G1 and G2:** fire satellites cannot see brick kilns (0.46× and 0.73× matched farmland). This is why the calendar is split by harvest windows, and why the kiln extension uses night lights.
+- **Faisalabad transfer:** a fire-satellite kiln classifier did not transfer to Pakistan, as G1 and G2 predicted.
+- **Kilns abroad:** night lights failed their placebo in Pakistan and India on the first run (Amendment 2) and passed on a retest (Amendment 4), and showed no signal in Afghanistan (Amendment 3).
 
 ---
 
@@ -127,6 +205,7 @@ Good first pages:
 | Who benefits (a plan for one person and district) | http://localhost:5173/kiln-watch/#/impact/inspector/BD3026 |
 | Can you trust it? (every test, failures included) | http://localhost:5173/kiln-watch/#/trust |
 | My area | http://localhost:5173/kiln-watch/#/area |
+| AI agent (Ask Kiln Watch) | http://localhost:5173/kiln-watch/#/ask |
 
 **Production build** (what GitHub Pages serves):
 
@@ -163,6 +242,7 @@ Fill in `.env` (it is gitignored; never commit it):
 | `FIRMS_MAP_KEY` | NASA FIRMS fire archive and the daily near-real-time update | https://firms.modaps.eosdis.nasa.gov/api/map_key/ |
 | `OPENAQ_API_KEY` | Dhaka PM2.5 readings (validation only) | https://explore.openaq.org/register |
 | `EE_PROJECT` | Google Earth Engine: clear-land fractions, night lights, radar | A Google Cloud project registered at https://code.earthengine.google.com/register |
+| `ANTHROPIC_API_KEY` | Optional: the AI agent (`python -m kilnwatch ask`) | https://console.anthropic.com |
 | `EE_API_KEY`, `EOG_USER`, `EOG_PASSWORD` | Not needed by the current pipeline | Leave empty |
 
 Then sign in to Earth Engine once and run everything:
@@ -251,6 +331,17 @@ Code: MIT. Data:
 - geoBoundaries ADM0 outlines of Pakistan (OpenStreetMap, ODbL 1.0) and India (CC0 1.0), for Amendment 2 controls
 - OpenAQ (CC BY 4.0)
 
+## Team
+
+**Team Off The Binary**
+
+- Arna · Frontend
+- Sajid · Backend
+- Aalvee · AI Agent
+- Ahnaf · Data
+- Nazifa · Research
+- Maruf · Design
+
 ## Build dates
 
-The planning documents, pipeline, data processing and first results were built on 5–6 October 2026, after the challenge summary was published; the plain-language redesign and its apps followed on 7 October 2026. The public git history records every date.
+The planning documents, pipeline, data processing and first results were built on 5–6 October 2026, after the challenge summary was published; the plain-language redesign and its apps followed on 7 October 2026. The fire-calendar-first pages, the two-week outlook, the research data release, the world map and the AI agent followed on 10 October 2026. The public git history records every date.

@@ -5,6 +5,10 @@
 | Raw VIIRS-era jump | d_raw = 55.1 season-activity units | `reports/harmonization_report.md` (seam) | Bangladesh, 2009-10/2010-11 vs 2012-13/2013-14 |
 | Harmonized jump | d_harm = 1.6 → ratio 0.029 (pass ≤ 0.25) | same | same |
 | Break test | Chow p raw 6.0e-5; harmonized 0.29 | same | seasons 2003-04 … 2024-25 excl. 2011-12 |
+| Share of the 2012 jump that was the camera | 97% (1 − 0.029) | `reports/harmonization_report.md` (seam) | same |
+| Cameras agree after correction (exploratory) | VIIRS/Aqua ratio 4.4× raw → 1.04× harmonized; Lin's concordance 0.62 → 0.98 | `harmonization.json` `overlap` (calibration), *Can you trust it?* page | Bangladesh district-months both saw, 2012-13 … 2020-21 |
+| Same, on seasons the correction never saw | 4.8× → 1.04×; concordance 0.61 → 0.96 | `harmonization.json` `overlap` (held_out) | 2021-22 … 2026-27 |
+| Two-week outlook skill (exploratory) | Brier skill 0.075 [0.056–0.097] | `outlook.json`, README Validity | Bangladesh districts, leave-one-season-out |
 | Aqua check, 2012-13 | harmonized 23.4 [21.8–24.9] vs Aqua observed 23.7 | `web/public/data/harmonization.json` yearly | Bangladesh |
 | Kiln detectability | DR(kiln)/DR(control) = 0.46, perm p = 0.96 (pass ≥ 3, p < 0.01) | `reports/gate_report.md` G1 | 3,653 clusters, 10,959 controls, season 2023-24 |
 | Eligible clusters | 0 of 3,653 | same | same |

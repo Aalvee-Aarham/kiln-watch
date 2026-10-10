@@ -4,10 +4,12 @@ Screen recording of the live site, voice-over plus burned-in subtitles. Each lin
 
 | Time | Screen | Subtitle / voice-over |
 |---|---|---|
-| 0–5 s | Story page, the 2012 jump chart: raw line jumps, harmonized line stays flat | "Splice NASA's two fire satellites and burning seems to triple in 2012. It's the sensor, not the fires." |
-| 5–11 s | Same chart, hover the Aqua check line in 2012-13 | "We put MODIS and VIIRS on one scale. The jump falls to 3%, with uncertainty and held-out tests." |
-| 11–18 s | Explore → Dhaka district: calendar heatmap, then the normal-range chart with unusual days | "Pick any district: every day since 2003, the normal range, unusual days, critical periods." |
-| 18–25 s | Story kiln card: 0.46× tile, then the brown night-light curve | "Fire satellites can't see brick kilns. NASA night lights can, so we built Bangladesh's first kiln-season calendar." |
-| 25–30 s | Kiln seasons page, timing chart, then zoom out to the logo | "Kiln Watch: one honest fire record, and the kiln season beside it." |
+| 0–5 s | Sensor switch, the 2012 chart: raw line jumps | "In 2012, VIIRS joined MODIS and fire counts jumped. Nothing new was burning." |
+| 5–11 s | Same chart, apply the correction: the jump flattens | "Kiln Watch puts both cameras on one scale. 97% of the jump was the camera." |
+| 11–18 s | My area → Dhaka: calendar, normal range, unusual days, two-week outlook | "Pick any area: its normal season, unusual days, critical weeks and two-week outlook." |
+| 18–24 s | AI agent page: one answer, then open "The data behind this answer" | "Ask the AI agent in plain words. Our code computes every number it states." |
+| 24–30 s | Kiln planner (extension) slider, then zoom out to the logo | "Extensions: crop burning windows, and kiln seasons from NASA night lights. Kiln Watch." |
+
+Before recording the 18–24 s shot, the AI agent page needs saved answers for the current data build (`python -m kilnwatch ask --build-cache`). Until then, record `python -m kilnwatch ask "Is this fire season unusual in Rajshahi?"` in a terminal instead.
 
 Recording tips: 1920×1080 at 125% browser zoom, light theme, no mouse wandering, and English subtitles burned in (judges may watch muted). Host it unlisted on YouTube and check that the link works while logged out.
