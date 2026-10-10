@@ -97,7 +97,7 @@ function LiveChat({ apiKey }: { apiKey: string }) {
           onKeyDown={e => { if (e.key === 'Enter') askModel() }} placeholder={`Ask about ${name}'s fire season...`} />
         <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={askModel} disabled={loading || !q.trim()}>Ask</button>
       </div>
-      {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="search" className="animate-spin" />Thinking...</div>}
+      {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="search" className="h-4 w-4 animate-spin" />Thinking...</div>}
       {ans && <div className="prose-measure whitespace-pre-wrap rounded-[6px] bg-surface-2 p-3 text-sm">{ans}</div>}
     </div>
   )
