@@ -107,8 +107,9 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showKilns = useKilnsVisible()
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []),
-    ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'], ['/experts', 'experts', 'expertsShort']]
+  // The fire calendar leads; the kiln extension sits after the proof (docs/roadmap.md F1).
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+    ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.

@@ -31,7 +31,7 @@ Plain-language pages, organised around the four judging questions (redesign v2):
 
 Legacy expert routes are kept so shared links survive: `#/story`, `#/explore[/:level[/:unitId]]`, `#/explore/box/:box`, `#/experts/kilns/:unitId?` (renders a StatusMessage when kilns are hidden), `#/season`, `#/evidence`, `#/method`. Everything except Home is lazy-loaded.
 
-The header nav (`AppShell`) shows How / Area / Kilns (when the kiln layer exists) / Impact / Trust / Experts; Sensors and Timeline are linked from the pages.
+The header nav (`AppShell`) shows How / Area / Impact / Trust / Kilns (the extension, when the kiln layer exists) / Experts; Sensors and Timeline are linked from the pages.
 
 ## `src/lib`
 

@@ -259,7 +259,7 @@ test('who benefits: picking a person and a district rewrites the plan and its ad
 
 test('how it works: Next walks the six steps in order', async ({ page }) => {
   await page.goto('#/how')
-  for (const s of ['They spot heat', 'One scale', 'Find the kilns', 'A calendar', 'People act']) {
+  for (const s of ['They spot heat', 'One scale', 'A calendar', 'People act', 'Extension: kilns']) {
     await page.getByRole('button', { name: `Next: ${s}` }).click()
     await expect(page.getByRole('heading', { level: 2, name: new RegExp(s) })).toBeVisible()
   }

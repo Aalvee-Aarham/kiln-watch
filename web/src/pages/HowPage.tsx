@@ -1,18 +1,18 @@
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { Icon, Loading, SkeletonCard, useKilnActivity, useTitle } from '../components/ui'
-import { Caution, Flow, Gloss, MonthStrip, Other, Ours, PageHead, TryLink, useQ, windowLevels } from '../components/plain'
+import { Caution, Flow, Gloss, MonthStrip, Other, Ours, PageHead, TryLink, useQ } from '../components/plain'
 import { EChart } from '../components/EChart'
 import { seasonMean } from '../lib/calendar'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
-import { busyMonths, typicalSeason } from '../lib/plain'
+import { busyMonths } from '../lib/plain'
 import { palette, useTheme } from '../lib/theme'
 import type { Calendar, Harmonization, KilnActivity, Sensor } from '../lib/types'
 
 const STEPS: [string, string][] = [
   ['Satellites watch', 'five NASA/NOAA cameras'], ['They spot heat', 'hot pixels, day and night'], ['One scale', 'old and new cameras agree'],
-  ['Find the kilns', 'night lights, not fire'], ['A calendar', 'for every area'], ['People act', 'with dates, not guesses'],
+  ['A calendar', 'for every area'], ['People act', 'with dates, not guesses'], ['Extension: kilns', 'night lights, not fire'],
 ]
 const SENSORS: [Sensor, string, string][] = [
   ['T', 'Terra', 'MODIS · 1 km'], ['A', 'Aqua', 'MODIS · 1 km'], ['N', 'Suomi NPP', 'VIIRS · 375 m'], ['J1', 'NOAA-20', 'VIIRS · 375 m'], ['J2', 'NOAA-21', 'VIIRS · 375 m'],
@@ -51,9 +51,9 @@ function StepBody({ step, h, ka }: { step: number; h: Harmonization; ka?: KilnAc
   if (step === 0) return <Satellites h={h} />
   if (step === 1) return <Pixels />
   if (step === 2) return <OneScale h={h} />
-  if (step === 3) return <Kilns ka={ka} />
-  if (step === 4) return <Calendars ka={ka} />
-  return <Act />
+  if (step === 3) return <Calendars />
+  if (step === 4) return <Act />
+  return <Kilns ka={ka} />
 }
 
 function Satellites({ h }: { h: Harmonization }) {
@@ -161,18 +161,15 @@ function Kilns({ ka }: { ka?: KilnActivity }) {
   )
 }
 
-function Calendars({ ka }: { ka?: KilnActivity }) {
+function Calendars() {
   const cal = useJson<Calendar>(`calendar/${DHAKA}.json`)
   const bm = useMemo(() => (cal.data ? busyMonths(seasonMean(cal.data)) : null), [cal.data])
-  const typ = ka?.national ? typicalSeason(ka.national.seasons) : null
   return (
     <div className="space-y-4">
       <p className="prose-measure">For every district and <Gloss k="upazila" />, every day since 2003 goes into one calendar: when it usually burns, its <Gloss k="normal">normal range</Gloss>,
-        and whether this season is running above it. Here are two real examples.</p>
+        and whether this season is running above it. Here is a real example.</p>
       {bm && <div><p className="mb-1 text-sm font-semibold">Fires in Dhaka district, a typical year</p>
         <MonthStrip color="var(--color-heat)" level={Array.from({ length: 12 }, (_, i) => (i === bm.peak ? 2 : i >= bm.first && i <= bm.last ? 1 : 0))} label="Months when fires usually burn in Dhaka district" /></div>}
-      {typ && <div><p className="mb-1 text-sm font-semibold">Brick kilns across Bangladesh, a typical year</p>
-        <MonthStrip level={windowLevels(typ.onset, typ.end, typ.peak)} label="Months when brick kilns usually work across Bangladesh" /></div>}
       <p className="text-xs text-muted">Darkest month: the busiest. The year runs July to June, so one winter is never split in two.</p>
       <TryLink to="/area" primary>Find your own area</TryLink>
     </div>
@@ -182,9 +179,9 @@ function Calendars({ ka }: { ka?: KilnActivity }) {
 function Act() {
   const q = useQ()
   const who: [string, string, string][] = [
-    ['inspector', 'Environment inspectors', 'time kiln visits to the busiest month'], ['farm', 'Agriculture officers', 'start straw campaigns before burning starts'],
-    ['families', 'Families and schools', 'mark burning season on the calendar'], ['journalist', 'Journalists', 'check a claim with a source link'],
-    ['policy', 'Policy makers', 'track kiln-season length every year'], ['science', 'Scientists', 'keep fire records alive after MODIS'],
+    ['farm', 'Agriculture officers', 'start straw campaigns before burning starts'], ['families', 'Families and schools', 'mark burning season on the calendar'],
+    ['science', 'Scientists', 'keep fire records alive after MODIS'], ['journalist', 'Journalists', 'check a claim with a source link'],
+    ['inspector', 'Environment inspectors', 'time kiln visits to the busiest month'], ['policy', 'Policy makers', 'track kiln-season length every year'],
   ]
   return (
     <div className="space-y-3">

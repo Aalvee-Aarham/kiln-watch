@@ -20,7 +20,7 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 
 **How we solved it.**
 - **One common unit.** On days when two satellites saw the same place, we learned how many old-camera detections one new-camera detection is worth, by region, month and day or night pass.
-- **Chaining the satellites.** We chained every satellite onto one scale: Aqua ← Suomi NPP ← NOAA-20 ← NOAA-21. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*.
+- **Chaining the satellites.** We chained the satellites onto one scale: Aqua ← Suomi NPP ← NOAA-20. The unit is *Aqua-MODIS-equivalent fire cell-days per 1,000 cloud-free cells*. Suomi NPP stops delivering new data on 2 Nov 2026 ([NASA Earthdata](https://www.earthdata.nasa.gov/data/alerts-outages/content/data-alert-history/21880)); from then on NOAA-20 carries the record on the same scale. The NOAA-21 link is set up but not yet calibrated: there are not yet enough months in which both satellites' near-real-time data overlap.
 - **Correcting for cloud.** Satellites can't see fire through cloud, so we counted the cloud-free land every day with Google Earth Engine.
 - **Error ranges.** Every number carries a 95% uncertainty range.
 
@@ -28,7 +28,7 @@ Every dry season, Bangladesh burns twice over: farmers set fire to crop leftover
 - **The fake jump is gone.** The 2012 jump shrinks from 55.1 to 1.6 units: **97% of it was the camera**. A statistical break test finds a clear break in the raw record and none after correction.
 - **It matches a real reading.** Our corrected 2012-13 value (23.4, range 21.8–24.9) matches what the unchanged Aqua camera actually saw (23.7).
 
-### Problem 2: Telling brick kilns apart from crop fires
+### Problem 2 (our extension): Telling brick kilns apart from crop fires
 
 **The problem.** Brick kilns are a major source of Dhaka's winter smog. If their heat were hiding inside the fire record, the crop-burning calendar would be wrong, and nobody could say when kilns are actually working.
 
@@ -205,7 +205,7 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 | 4 | `python -m kilnwatch kilns` | Kiln clusters (DBSCAN with 5 km diameter cap), 3 matched controls each, detection linking |
 | 5 | `python -m kilnwatch gee --units footprints` | Clear fractions at kiln and control footprints for the gate season |
 | 6 | `python -m kilnwatch gates` | Pre-registered feasibility gates G0–G3 → `GATE_BRANCH` |
-| 7 | `python -m kilnwatch harmonize` | Calibration chain Aqua ← S-NPP ← NOAA-20 ← NOAA-21, pooling ladder, M0/M1, leave-one-season-out, seam test |
+| 7 | `python -m kilnwatch harmonize` | Calibration chain Aqua ← S-NPP ← NOAA-20 (NOAA-21 not yet calibrated), pooling ladder, M0/M1, leave-one-season-out, seam test |
 | 8 | `python -m kilnwatch classify` | Source classifier, 4 holdouts, label-set comparison, persistence ablation, transfer test |
 | 9 | `python -m kilnwatch metrics` | ~570 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
 | 10 | `python -m kilnwatch validate` | Validation layers (shape across seasons, TROPOMI NO₂ DiD, Dhaka PM2.5 lags) |

@@ -265,9 +265,8 @@ def _calendar(uid, g, clear, cells, is_district, keys, branch, rng):
     idx = pd.date_range(DAY0, end)
     n = len(idx)
     cf = clear.pivot_table(index="date_local", columns="sensor", values="clear_frac").reindex(idx)
-    era = M.era_sensor(pd.Series(idx))
-    cf_era = np.select([era == "A", era == "N"], [cf.get("A", pd.Series(np.nan, idx)).to_numpy(), cf.get("N", pd.Series(np.nan, idx)).to_numpy()],
-                       cf.get("N", pd.Series(np.nan, idx)).to_numpy())
+    clim_n = M.clear_climatology(clear[clear.sensor == "N"]).set_index("doy").clear_frac
+    cf_era = M.era_clear_frac(idx, cf, clim_n)
     observed = np.nan_to_num(cf_era) >= 0.2
     di = ((g.date_local - DAY0).dt.days).to_numpy()
     raw = {}

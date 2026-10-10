@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useTitle } from '../components/ui'
+import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useMeta, useTitle } from '../components/ui'
 import { Flow, Gloss, Ours, TryLink, useQ } from '../components/plain'
 import Ledger from '../components/Ledger'
 import { useMemo } from 'react'
@@ -28,6 +28,15 @@ export default function HomePage() {
   const early = meanDuration(rows, '2012-13', '2014-15'), late = meanDuration(rows, '2022-23', '2024-25')
   const prev = ka?.tests.find((r) => r.test === 'GL' && r.criterion.startsWith('Prevalence'))?.value
   const fire = useMemo(() => (cal.data ? busyMonths(seasonMean(cal.data)) : null), [cal.data])
+  const meta = useMeta().data
+  const harvest = useMemo(() => {
+    if (!cal.data || !meta) return null
+    const tot = cal.data.split.map((x) => ({ key: x.key, v: x.values.reduce((a, b) => a + (b ?? 0), 0) }))
+    const all = tot.reduce((a, b) => a + b.v, 0)
+    if (!all) return null
+    const label = (k: string) => meta.split_labels.find((l) => l.key === k)?.label_en ?? k
+    return tot.sort((a, b) => b.v - a.v).slice(0, 2).map((x) => `${Math.round((x.v / all) * 100)}% ${label(x.key).toLowerCase()}`).join(', ') + ' (share of harmonized burning since 2003).'
+  }, [cal.data, meta])
 
   return (
     <div className="space-y-20">
@@ -43,13 +52,13 @@ export default function HomePage() {
           </div>
         </div>
         <Loading state={cal} skeleton={<Skeleton className="h-[290px] w-full" />}>{(c) =>
-          <Ledger cal={c} events={events.data} caption={`Every day since 2003 in ${name(top)}, the district with the most fire this season. Each row is a year; darker means more fire.`} />}</Loading>
+          <Ledger cal={c} events={events.data} caption={`Every day since 2003 in ${name(top)}, the district with the most fire this season; darker means more fire`} />}</Loading>
       </header>
 
       <section aria-label="How it works" className="space-y-5">
         <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">From space to your district, in six steps</h2>
         <Flow items={[['Satellites watch', 'five NASA/NOAA cameras'], ['They spot heat', 'hot pixels, day and night'], ['One scale', 'old and new cameras agree'],
-          ['Find the kilns', 'night lights, not fire'], ['A calendar', 'for every area'], ['People act', 'with dates, not guesses']]} />
+          ['A calendar', 'for every area'], ['People act', 'with dates, not guesses'], ['Extension: kilns', 'night lights, not fire']]} />
         <TryLink to="/how">Walk through the six steps with real data</TryLink>
       </section>
 
@@ -60,7 +69,8 @@ export default function HomePage() {
             <article className="panel flex flex-col gap-3">
               <span className="big-num text-heat">{Math.round((1 - h.seam.ratio) * 100)}%</span>
               <h3 className="text-lg font-semibold leading-snug">of the 2012 “fire explosion” was a camera change, not more fire.</h3>
-              <p className="text-sm text-muted">When the sharper <Gloss k="VIIRS" /> camera arrived, fire counts jumped. We <Gloss k="harmonize">converted</Gloss> every camera to one scale and the jump disappeared.</p>
+              <p className="text-sm text-muted">When the sharper <Gloss k="VIIRS" /> camera arrived, fire counts jumped. We <Gloss k="harmonize">converted</Gloss> every camera to one scale and the jump disappeared.
+                Suomi NPP stops sending data on 2 Nov 2026; NOAA-20 carries the record on, on the same scale.</p>
               <div className="flex items-end gap-4 text-xs text-muted">
                 <span>Raw<Sparkline values={h.yearly.map((y) => y.raw_sum)} stroke="var(--color-raw)" /></span>
                 <span>Corrected<Sparkline values={h.yearly.map((y) => y.h.p50)} /></span>
@@ -68,22 +78,18 @@ export default function HomePage() {
               <div className="mt-auto"><TryLink to="/sensors">Try the sensor switch</TryLink></div>
             </article>)}</Loading>
           <article className="panel flex flex-col gap-3">
-            <span className="big-num text-brick">{prev != null ? `${Math.round(prev * 100)}%` : '–'}</span>
-            <h3 className="text-lg font-semibold leading-snug">of brick-kiln clusters glow brighter at night in kiln season than nearby farmland, though fire satellites can’t see them.</h3>
-            <p className="text-sm text-muted">Kilns burn inside closed brick chambers, so fire cameras miss them. But they work all night with lamps on, and NASA’s <Gloss k="nightLights" /> pick that up.</p>
-            {typ && <p className="text-sm">Kiln season: <b>{whenText(typ.onset)}</b> to <b>{whenText(typ.end)}</b>{typ.peak != null && <>, busiest in <b>{monthOfSeasonDay(typ.peak)}</b></>}.</p>}
-            <div className="mt-auto"><TryLink to="/kilns">Open the kiln planner</TryLink></div>
+            <span className="big-num text-heat">{fire ? SEASON_MONTHS[fire.peak] : '–'}</span>
+            <h3 className="text-lg font-semibold leading-snug">is when {name(top) ?? 'the busiest district'} burns most{fire && <>, in a season running {SEASON_MONTHS[fire.first]} to {SEASON_MONTHS[fire.last]}</>}.</h3>
+            <p className="text-sm text-muted">Every district and upazila gets its own burning calendar from 23 years of satellite data on one scale: its usual season, its <Gloss k="normal">normal range</Gloss>, and whether this season is above it.</p>
+            {harvest && <p className="text-sm">{harvest}</p>}
+            <div className="mt-auto"><TryLink to="/area">Check my area</TryLink></div>
           </article>
           <article className="panel flex flex-col gap-3">
-            <span className="big-num text-ink">{early != null && late != null ? `${Math.round(early / 30.44)} → ${Math.round(late / 30.44)}` : '–'}<span className="ml-2 text-2xl">months</span></span>
-            <h3 className="text-lg font-semibold leading-snug">The kiln season has grown longer, not shorter.</h3>
-            {early != null && late != null && <div className="space-y-1.5 text-sm" aria-label={`About ${Math.round(early)} days in 2012 to 2015, about ${Math.round(late)} days in 2022 to 2025`}>
-              {[['2012–15', early], ['2022–25', late]].map(([l, v]) => (
-                <div key={l as string} className="flex items-center gap-2"><span className="num w-16 text-muted">{l}</span>
-                  <span className="h-3 rounded-full bg-brick" style={{ width: `${((v as number) / 200) * 60}%` }} /><span className="num">{Math.round(v as number)} days</span></div>))}
-            </div>}
-            <p className="text-sm text-muted">Even after a 2019 plan to switch government building to concrete blocks.</p>
-            <div className="mt-auto"><TryLink to="/timeline">See the timeline</TryLink></div>
+            <span className="big-num text-brick">{prev != null ? `${Math.round(prev * 100)}%` : '–'}</span>
+            <h3 className="text-lg font-semibold leading-snug">of brick-kiln clusters glow brighter at night in kiln season, though fire satellites can’t see them.</h3>
+            <p className="text-sm text-muted">Our extension. Kilns burn inside closed chambers, so fire cameras miss them and the fire calendar has no kiln heat to remove. NASA’s <Gloss k="nightLights" /> see them working.</p>
+            {typ && <p className="text-sm">Kiln season: <b>{whenText(typ.onset)}</b> to <b>{whenText(typ.end)}</b>{early != null && late != null && <>, grown from about {Math.round(early / 30.44)} to {Math.round(late / 30.44)} months since 2012</>}.</p>}
+            <div className="mt-auto"><TryLink to="/kilns">Open the kiln extension</TryLink></div>
           </article>
         </div>
       </section>
@@ -117,15 +123,15 @@ export default function HomePage() {
         <p className="prose-measure text-muted">Real questions, answered with real NASA data, turned into a step someone can take this season.</p>
         <ul className="grid gap-4 md:grid-cols-2">
           {([
-            ['inspector', 'Environment inspector', 'When should we inspect kilns?',
-              typ ? <>Kilns work {whenText(typ.onset)} to {whenText(typ.end)}{typ.peak != null && <>, busiest in {monthOfSeasonDay(typ.peak)}</>}.</> : null,
-              typ?.peak != null ? <>Put the main inspection round in {monthOfSeasonDay(typ.peak)}.</> : <>Time visits to the kiln season.</>],
             ['farm', 'Agriculture officer', `When do fields burn in ${name(top) ?? 'my district'}?`,
               fire ? <>Usually {SEASON_MONTHS[fire.first]} to {SEASON_MONTHS[fire.last]}, busiest in {SEASON_MONTHS[fire.peak]}.</> : null,
               fire ? <>Start the straw campaign in {SEASON_MONTHS[(fire.first + 11) % 12]}, a month before burning begins.</> : <>Start campaigns before burning begins.</>],
             ['families', 'Parent or school', 'Is this a bad burning year here?',
               nrt.data ? <>{unusual.length} of {Object.keys(nrt.data.districts).length} districts have had unusual days this season.</> : null,
               <>Look up your district and mark its burning months on the school calendar.</>],
+            ['inspector', 'Environment inspector', 'When should we inspect kilns?',
+              typ ? <>Kilns work {whenText(typ.onset)} to {whenText(typ.end)}{typ.peak != null && <>, busiest in {monthOfSeasonDay(typ.peak)}</>}.</> : null,
+              typ?.peak != null ? <>Put the main inspection round in {monthOfSeasonDay(typ.peak)}.</> : <>Time visits to the kiln season.</>],
             ['policy', 'Policy maker', 'Is kiln policy working?',
               early != null && late != null ? <>The kiln season grew from about {Math.round(early / 30.44)} to about {Math.round(late / 30.44)} months.</> : null,
               <>Track kiln-season length every year as a progress number.</>],
@@ -146,8 +152,8 @@ export default function HomePage() {
           {([
             ['Impact', 'Does it help many people?', 'Air pollution killed an estimated 78,000 to 88,000 people in Bangladesh in 2019 (World Bank). Kiln Watch gives inspectors, farm officers, families and planners in all 64 districts dates to act on.', '/impact', 'Who benefits'],
             ['Creativity', 'Is the approach new?', `Fire satellites can’t see brick kilns, so we found them with NASA night lights instead, after testing ${ka?.pilots.length ?? 'several'} space instruments.`, '/how', 'How it works'],
-            ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. The kiln method was retested in Pakistan, India and Afghanistan. Open code and data.', '/trust', 'Can you trust it?'],
-            ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning.', '/how', 'Challenge checklist'],
+            ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. The kiln extension was also tested abroad, with mixed results, all published. Open code and data.', '/trust', 'Can you trust it?'],
+            ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning, continued on NOAA-20 after Suomi NPP ends.', '/how', 'Challenge checklist'],
           ] as const).map(([k, qn, a, to, l]) => (
             <li key={k} className="panel flex flex-col gap-2"><span className="tag">{k}</span><b className="leading-snug">{qn}</b><span className="text-sm text-muted">{a}</span>
               <div className="mt-auto pt-1"><TryLink to={to}>{l}</TryLink></div></li>))}

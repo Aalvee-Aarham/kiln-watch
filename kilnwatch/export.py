@@ -268,6 +268,7 @@ def _fixture_set_real(d: Path, src: Path) -> None:
     if d.exists():
         shutil.rmtree(d)
     shutil.copytree(src, d)
+    _dump(events_payload(), d / "events.json")  # curated data/static CSVs, not pipeline output: always current
     # kiln_activity season CIs from release c310275 predate the activity.py p50 fix (bootstrap median):
     # a CI that cannot bracket its median is treated as not estimable, the file's own convention for degenerate rows.
     ka_p = d / "kiln_activity.json"
