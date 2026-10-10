@@ -2,12 +2,33 @@ import { Link } from 'react-router'
 import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useMeta, useTitle } from '../components/ui'
 import { Flow, Gloss, Ours, Provenance, TryLink, useQ } from '../components/plain'
 import Ledger from '../components/Ledger'
-import { useMemo } from 'react'
+import { useMemo, useState, useEffect } from 'react'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import { busyMonths, meanDuration, SEASON_MONTHS, typicalSeason, whenText, monthOfSeasonDay } from '../lib/plain'
 import { seasonMean } from '../lib/calendar'
 import type { Calendar, Events, FC, Harmonization, NrtSeason } from '../lib/types'
+
+function ModisCountdown() {
+  const [now, setNow] = useState(Date.now())
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(id)
+  }, [])
+
+  const diff = Date.parse('2027-01-20T00:00:00Z') - now
+  const days = Math.floor(diff / 86_400_000)
+  const hrs = Math.floor((diff % 86_400_000) / 3_600_000)
+  const mins = Math.floor((diff % 3_600_000) / 60_000)
+  const secs = Math.floor((diff % 60_000) / 1000)
+
+  return (
+    <div className="rounded-[4px] border border-warn/40 bg-warn-soft/50 px-2 py-1.5 text-xs font-medium text-warn">
+      MODIS retires in <span className="tabular-nums font-bold">{days}d {hrs}h {mins}m {secs}s</span> — this bridge keeps 23 years of records alive.
+    </div>
+  )
+}
 
 export default function HomePage() {
   useTitle()
@@ -71,9 +92,7 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold leading-snug">of the 2012 “fire explosion” was a camera change, not more fire.</h3>
               <p className="text-sm text-muted">When the sharper <Gloss k="VIIRS" /> camera arrived, fire counts jumped. We <Gloss k="harmonize">converted</Gloss> every camera to one scale and the jump disappeared.
                 Suomi NPP stops sending data on 2 Nov 2026; NOAA-20 carries the record on, on the same scale.</p>
-              <div className="rounded-[4px] border border-warn/40 bg-warn-soft/50 px-2 py-1.5 text-xs font-medium text-warn">
-                MODIS retires in ~{Math.ceil((Date.parse('2027-01-20T00:00:00Z') - Date.now()) / 86_400_000)} days — this bridge keeps 23 years of records alive.
-              </div>
+              <ModisCountdown />
               <div className="flex items-end gap-4 text-xs text-muted">
                 <span>Raw<Sparkline values={h.yearly.map((y) => y.raw_sum)} stroke="var(--color-raw)" /></span>
                 <span>Corrected<Sparkline values={h.yearly.map((y) => y.h.p50)} /></span>
