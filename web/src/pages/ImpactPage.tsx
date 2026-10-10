@@ -26,7 +26,7 @@ interface Facts {
   early: number | null; late: number | null
   unusual: number | null; season?: string
   harvest: string[]
-  seamPct: number | null; repl: string | null
+  seamPct: number | null; repl: string | null; agree: string | null
   passedAbroad: string[]; failedAbroad: string[]   // Amendment 2: night-light kiln test, local calendar (LL)
 }
 
@@ -55,6 +55,69 @@ const unusualText = (f: Facts) => f.unusual == null ? 'No live data for this dis
 
 const PERSONAS: Persona[] = [
   {
+    id: 'farm', who: 'Farmers and agriculture officers', benefit: 'Offer alternatives to burning before it starts', area: true,
+    question: (f) => `When do people burn crop leftovers in ${f.name}, so we can offer alternatives in time?`,
+    tool: (f) => [`/area/${f.id}`, 'My area'],
+    shows: (f) => <>
+      {f.fire ? <p>Fire season here is usually <b>{fireMonths(f)}</b>, busiest in <b>{m(f.fire.peak)}</b>.</p> : <p>Very little fire has been recorded here since 2003.</p>}
+      {f.harvest.length > 0 && <p className="text-sm text-muted">Rice harvests: {f.harvest.join('; ')}.</p>}
+    </>,
+    actions: (f) => f.fire ? [
+      <>Start the straw and stubble campaign in <b>{m(f.fire.first - 1)}</b>, one month before burning usually begins.</>,
+      <>Line up straw buyers, composting or mushroom-growing groups before <b>{m(f.fire.peak)}</b>, the busiest burning month.</>,
+      <>From 1 November, check the <b>two-week outlook</b> on My area each week, and send field staff first where it is above the usual chance.</>,
+      <>After the season, check whether burning fell below this area’s <Gloss k="normal">normal range</Gloss>.</>,
+    ] : [<>Burning is rare here: focus campaigns on the busier districts shown on the My area map.</>],
+    outcome: 'Advice arrives before the fields are burned, not after.',
+    limit: <>Fire counts include all open burning seen from space, not only crop leftovers.</>,
+  },
+  {
+    id: 'families', who: 'Families, schools and health workers', benefit: 'Prepare for burning season, not be surprised by it', area: true,
+    question: (f) => `Which months bring burning season to ${f.name}, and is this year worse than usual?`,
+    tool: (f) => [`/area/${f.id}`, 'My area'],
+    shows: (f) => <>
+      {f.fire && <p>Fires usually burn <b>{fireMonths(f)}</b>.{f.kiln && <> Brick kilns usually work <b>{kilnMonths(f)}</b>.</>}</p>}
+      <p><b>{unusualText(f)}</b></p>
+    </>,
+    actions: (f) => [
+      <>Mark burning season on the school or clinic calendar{f.fire && <>: fires <b>{fireMonths(f)}</b></>}{f.kiln && <>, kilns <b>{kilnMonths(f)}</b></>}.</>,
+      <>In those months, check an official air-quality reading before sports days and outdoor events, and keep inhalers ready for children with asthma.</>,
+      <>If this season shows unusual days, or the two-week outlook on My area is above the usual chance, share this page’s link in the parents’ or community group.</>,
+    ],
+    outcome: 'Families and clinics plan around burning season with dates, not rumours.',
+    other: [<>Air pollution caused an estimated <b>78,000 to 88,000 deaths</b> in Bangladesh in 2019 and cost about <b>4% of GDP</b>.</>, ...SRC.wb],
+    limit: <>This is not an air-quality forecast. In our test, burning did not predict Dhaka’s daily PM2.5 readings.</>,
+  },
+  {
+    id: 'science', who: 'Scientists and other countries', benefit: 'Keep fire records alive after MODIS retires', area: false,
+    question: () => 'How do we keep 20-year fire records going after MODIS retires, and find kilns that fire satellites can’t see?',
+    tool: () => ['/sensors', 'Sensor switch'],
+    shows: (f) => <p>{f.seamPct != null && <>Our correction removed <b>{f.seamPct}%</b> of the false 2012 jump. </>}{f.agree && <>In later years it was never fitted on, corrected VIIRS read <b>{f.agree}</b> Aqua MODIS. </>}{f.repl && <>The night-light kiln test passed in <b>{f.repl}</b> seasons, and found nothing on ordinary farmland, as it should.</>}{f.passedAbroad.length > 0 && <> Repeated with the same rules, it also passed in <b>{list(f.passedAbroad)}</b>.</>}{f.failedAbroad.length > 0 && <> It did not pass in <b>{list(f.failedAbroad)}</b>.</>}</p>,
+    actions: () => [
+      <>Download the research data (CSV + Parquet, CC BY 4.0) from the For experts page and extend the record with your own analysis.</>,
+      <>Reuse the open code to bridge MODIS to VIIRS for your own country before MODIS stops in 2027, and to carry the record on NOAA-20 when Suomi NPP stops on 2 November 2026.</>,
+      <>Run the night-light kiln calendar with free NASA Black Marble data in another brick-belt country: learn its kiln calendar from one in five of its kiln clusters first, then test on the rest.</>,
+      <>Copy the pre-registration: write the tests down before you look at the data.</>,
+    ],
+    outcome: 'Long fire records stay comparable across the camera change, with an open method any team can rerun for its own region.',
+    other: [<>NASA plans to end data collection from Terra MODIS in <b>January 2027</b> and from Aqua MODIS around <b>September 2027</b>.</>, ...SRC.modis],
+    limit: (f) => <>The night-light kiln method is tested in {list(['Bangladesh', ...f.passedAbroad, ...f.failedAbroad])} only; we make no claim for other countries. The older fire-satellite kiln test in Faisalabad, Pakistan, failed, as it did in Bangladesh.</>,
+  },
+  {
+    id: 'journalist', who: 'Journalists and students', benefit: 'Check a claim in minutes, with a source', area: true,
+    question: (f) => `Is burning in ${f.name} really worse this year? Do kilns run longer than they used to?`,
+    tool: (f) => [`/area/${f.id}`, 'My area'],
+    shows: (f) => <><p><b>{unusualText(f)}</b></p>{trend(f) && <p>{trend(f)}</p>}</>,
+    actions: () => [
+      <>Quote the number in plain words and link to the exact page: every area has its own address.</>,
+      <>Download the area’s data file and check it yourself, or hand it to a data desk.</>,
+      <>Read <b>Can you trust it?</b> before publishing: it lists the tests that failed, too.</>,
+      <>Never write that a named kiln broke the law. The data cannot show that.</>,
+    ],
+    outcome: 'Stories about smog and kilns rest on 23 years of checked NASA data, not on one bad week.',
+    limit: <>Things happening at the same time doesn’t mean one caused the other.</>,
+  },
+  {
     id: 'inspector', who: 'Environment inspectors', benefit: 'Visit kilns when they are actually working', area: true,
     question: (f) => `When should our team visit brick kilns in ${f.name} to find them working?`,
     tool: (f) => [`/kilns/${f.id}`, 'Kiln planner'],
@@ -73,54 +136,6 @@ const PERSONAS: Persona[] = [
     limit: <>It tells you <i>when</i> to look, for a whole district. It never points at a single kiln or says one broke the law.</>,
   },
   {
-    id: 'farm', who: 'Farmers and agriculture officers', benefit: 'Offer alternatives to burning before it starts', area: true,
-    question: (f) => `When do people burn crop leftovers in ${f.name}, so we can offer alternatives in time?`,
-    tool: (f) => [`/area/${f.id}`, 'My area'],
-    shows: (f) => <>
-      {f.fire ? <p>Fire season here is usually <b>{fireMonths(f)}</b>, busiest in <b>{m(f.fire.peak)}</b>.</p> : <p>Very little fire has been recorded here since 2003.</p>}
-      {f.harvest.length > 0 && <p className="text-sm text-muted">Rice harvests: {f.harvest.join('; ')}.</p>}
-    </>,
-    actions: (f) => f.fire ? [
-      <>Start the straw and stubble campaign in <b>{m(f.fire.first - 1)}</b>, one month before burning usually begins.</>,
-      <>Line up straw buyers, composting or mushroom-growing groups before <b>{m(f.fire.peak)}</b>, the busiest burning month.</>,
-      <>During the season, watch the <Gloss k="unusual">unusual days</Gloss> count and send field staff first to districts burning more than usual.</>,
-      <>After the season, check whether burning fell below this area’s <Gloss k="normal">normal range</Gloss>.</>,
-    ] : [<>Burning is rare here: focus campaigns on the busier districts shown on the My area map.</>],
-    outcome: 'Advice arrives before the fields are burned, not after.',
-    limit: <>Fire counts include all open burning seen from space, not only crop leftovers.</>,
-  },
-  {
-    id: 'families', who: 'Families, schools and health workers', benefit: 'Prepare for burning season, not be surprised by it', area: true,
-    question: (f) => `Which months bring burning season to ${f.name}, and is this year worse than usual?`,
-    tool: (f) => [`/area/${f.id}`, 'My area'],
-    shows: (f) => <>
-      {f.fire && <p>Fires usually burn <b>{fireMonths(f)}</b>.{f.kiln && <> Brick kilns usually work <b>{kilnMonths(f)}</b>.</>}</p>}
-      <p><b>{unusualText(f)}</b></p>
-    </>,
-    actions: (f) => [
-      <>Mark burning season on the school or clinic calendar{f.fire && <>: fires <b>{fireMonths(f)}</b></>}{f.kiln && <>, kilns <b>{kilnMonths(f)}</b></>}.</>,
-      <>In those months, check an official air-quality reading before sports days and outdoor events, and keep inhalers ready for children with asthma.</>,
-      <>If this season shows unusual days, share this page’s link in the parents’ or community group.</>,
-    ],
-    outcome: 'Families and clinics plan around burning season with dates, not rumours.',
-    other: [<>Air pollution caused an estimated <b>78,000 to 88,000 deaths</b> in Bangladesh in 2019 and cost about <b>4% of GDP</b>.</>, ...SRC.wb],
-    limit: <>This is not an air-quality forecast. In our test, burning did not predict Dhaka’s daily PM2.5 readings.</>,
-  },
-  {
-    id: 'journalist', who: 'Journalists and students', benefit: 'Check a claim in minutes, with a source', area: true,
-    question: (f) => `Is burning in ${f.name} really worse this year? Do kilns run longer than they used to?`,
-    tool: (f) => [`/area/${f.id}`, 'My area'],
-    shows: (f) => <><p><b>{unusualText(f)}</b></p>{trend(f) && <p>{trend(f)}</p>}</>,
-    actions: () => [
-      <>Quote the number in plain words and link to the exact page: every area has its own address.</>,
-      <>Download the area’s data file and check it yourself, or hand it to a data desk.</>,
-      <>Read <b>Can you trust it?</b> before publishing: it lists the tests that failed, too.</>,
-      <>Never write that a named kiln broke the law. The data cannot show that.</>,
-    ],
-    outcome: 'Stories about smog and kilns rest on 23 years of checked NASA data, not on one bad week.',
-    limit: <>Things happening at the same time doesn’t mean one caused the other.</>,
-  },
-  {
     id: 'policy', who: 'Policy makers and planners', benefit: 'A yearly, independent check on kiln policy', area: true,
     question: (f) => `Is kiln policy changing what happens on the ground in ${f.name}?`,
     tool: () => ['/timeline', 'Timeline'],
@@ -133,21 +148,7 @@ const PERSONAS: Persona[] = [
     outcome: 'A free progress check every year, from satellite data that already exists.',
     other: [<>In 2019 the government set a target of concrete blocks instead of fired bricks in <b>100%</b> of government works by 2024-25. The deadline has since moved to <b>2028-29</b>.</>, ...SRC.block],
     limit: <>The record shows what happened, not why. Before-and-after comparisons are descriptive.</>,
-  },
-  {
-    id: 'science', who: 'Scientists and other countries', benefit: 'Keep fire records alive after MODIS retires', area: false,
-    question: () => 'How do we keep 20-year fire records going after MODIS retires, and find kilns that fire satellites can’t see?',
-    tool: () => ['/sensors', 'Sensor switch'],
-    shows: (f) => <p>{f.seamPct != null && <>Our correction removed <b>{f.seamPct}%</b> of the false 2012 jump. </>}{f.repl && <>The night-light kiln test passed in <b>{f.repl}</b> seasons, and found nothing on ordinary farmland, as it should.</>}{f.passedAbroad.length > 0 && <> Repeated with the same rules, it also passed in <b>{list(f.passedAbroad)}</b>.</>}{f.failedAbroad.length > 0 && <> It did not pass in <b>{list(f.failedAbroad)}</b>.</>}</p>,
-    actions: () => [
-      <>Reuse the open code to bridge MODIS to VIIRS for your own country before MODIS stops in 2027.</>,
-      <>Run the night-light kiln calendar with free NASA Black Marble data in another brick-belt country: learn its kiln calendar from one in five of its kiln clusters first, then test on the rest.</>,
-      <>Copy the pre-registration: write the tests down before you look at the data.</>,
-    ],
-    outcome: 'Long fire records stay comparable across the camera change, with an open method any team can rerun for its own region.',
-    other: [<>NASA plans to end data collection from Terra MODIS in <b>January 2027</b> and from Aqua MODIS around <b>September 2027</b>.</>, ...SRC.modis],
-    limit: (f) => <>The night-light kiln method is tested in {list(['Bangladesh', ...f.passedAbroad, ...f.failedAbroad])} only; we make no claim for other countries. The older fire-satellite kiln test in Faisalabad, Pakistan, failed, as it did in Bangladesh.</>,
-  },
+  }
 ]
 
 /** Who benefits: pick a person and a district, get their real question, what Kiln Watch shows, and what they do next. */
@@ -242,6 +243,7 @@ function useFacts(id: string, name: string): Facts | null {
     unusual: nrt?.districts[id]?.above_p90_days ?? null, season: nrt?.season,
     harvest: (events?.harvest ?? []).map((h) => `${h.crop === 'aman' ? 'Aman' : h.crop === 'boro' ? 'Boro' : h.crop} in ${mon(h.start_doy)}–${mon(h.end_doy)}`),
     seamPct: harm ? Math.round((1 - harm.seam.ratio) * 100) : null,
+    agree: ((o) => (o ? `${o.ratio_harm.p50.toFixed(2)}×` : null))(harm?.overlap?.find((x) => x.period === 'held_out')),
     passedAbroad: abroad.filter((c) => c.channels.ntl?.pass.LL).map((c) => c.name),
     failedAbroad: abroad.filter((c) => c.channels.ntl?.pass.LL === false).map((c) => c.name),
     repl: rep?.value != null && Number.isFinite(repN) ? `${Math.round(rep.value * repN)} of ${repN}` : null,

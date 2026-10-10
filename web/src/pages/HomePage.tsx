@@ -152,7 +152,7 @@ export default function HomePage() {
         <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">Four questions judges ask</h2>
         <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {([
-            ['Impact', 'Does it help many people?', 'Air pollution killed an estimated 78,000 to 88,000 people in Bangladesh in 2019 (World Bank). Kiln Watch gives inspectors, farm officers, families and planners in all 64 districts dates to act on.', '/impact', 'Who benefits'],
+            ['Impact', 'Does it help many people?', <>Air pollution killed an estimated 78,000 to 88,000 people in Bangladesh in 2019 (<a className="underline" href="https://www.worldbank.org/en/news/press-release/2022/12/03/high-air-pollution-level-is-creating-physical-and-mental-health-hazards-in-bangladesh-world-bank" target="_blank" rel="noreferrer">World Bank, 2022</a>). Kiln Watch gives farm officers, families, inspectors and planners in all 64 districts dates to act on.</>, '/impact', 'Who benefits'],
             ['Creativity', 'Is the approach new?', `Fire satellites can’t see brick kilns, so we found them with NASA night lights instead, after testing ${ka?.pilots.length ?? 'several'} space instruments.`, '/how', 'How it works'],
             ['Validity', 'Is the science sound?', 'Tests written before the analysis, every result published, including the failures. The kiln extension was also tested abroad, with mixed results, all published. Open code and data.', '/trust', 'Can you trust it?'],
             ['Relevance', 'Does it answer the challenge?', 'A harmonized MODIS + VIIRS burning calendar for any area, with history, unusual days and early warning, continued on NOAA-20 after Suomi NPP ends.', '/how', 'Challenge checklist'],

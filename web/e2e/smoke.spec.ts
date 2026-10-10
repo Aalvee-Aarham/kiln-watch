@@ -285,3 +285,8 @@ test('my area: the two-week outlook says when it opens before the burning season
   await expect(page.getByText('Next two weeks')).toBeVisible()
   await expect(page.getByText(/two-week outlook starts on 1 November/)).toBeVisible()
 })
+
+test('who benefits: the fire-calendar plan comes first', async ({ page }) => {
+  await page.goto('#/impact')
+  await expect(page.getByRole('heading', { level: 2, name: 'Farmers and agriculture officers in Dhaka' })).toBeVisible()
+})
