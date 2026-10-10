@@ -1,11 +1,11 @@
 import { Component, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { NavLink, Link, useLocation, useSearchParams } from 'react-router'
+import { NavLink, Link, useLocation } from 'react-router'
 import { chartPng } from '../lib/chartRegistry'
 import { useJson } from '../lib/data'
 import { fmtNumber, useLang, useT, type Key } from '../lib/i18n'
 import { toggleTheme, useTheme } from '../lib/theme'
 import { harvestSpans, rituSpans, type Layout } from '../lib/ritu'
-import type { CI, Events, KilnActivity, Meta } from '../lib/types'
+import type { CI, Events, KilnActivity, Meta, NrtSeason } from '../lib/types'
 
 export function useMeta() { return useJson<Meta>('meta.json') }
 
@@ -22,6 +22,35 @@ export function DemoBanner() {
       <p className="mx-auto max-w-[1200px] px-4 py-1.5">{t('demoSynthetic')}</p>
     </div>
   return null
+}
+
+export function SeasonBanner() {
+  const nrtState = useJson<NrtSeason>('nrt/current_season.json')
+  const [dismissed, setDismissed] = useState(() => {
+    try { return sessionStorage.getItem('banner-dismissed') === '1' } catch { return false }
+  })
+
+  // Only render if not dismissed and data is loaded.
+  if (dismissed || !nrtState.data) return null
+  const nrt = nrtState.data
+
+  const dayNumber = Math.floor((Date.now() - Date.parse(nrt.day0 + 'T00:00:00Z')) / 86_400_000) + 1
+  const unusualCount = Object.values(nrt.districts).filter(d => d.above_p90_days > 0).length
+
+  return (
+    <div role="note" className="flex items-center gap-2 border-b border-line bg-surface px-4 py-2 text-sm text-ink sm:justify-center">
+      {unusualCount > 0 && (
+        <span className="relative flex h-2.5 w-2.5 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-err opacity-75" />
+          <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-err" />
+        </span>
+      )}
+      <p>Today is Day <span className="font-semibold">{dayNumber}</span> of the {nrt.season} burning season. <span className="font-semibold">{unusualCount}</span> districts have had unusual fire activity.</p>
+      <button className="ml-auto p-1 opacity-60 hover:opacity-100 sm:ml-4" aria-label="Dismiss banner" onClick={() => { setDismissed(true); try { sessionStorage.setItem('banner-dismissed', '1') } catch { } }}>
+        <Icon name="cross" />
+      </button>
+    </div>
+  )
 }
 
 /** Per-page browser title, so tabs, history and bookmarks say where they lead. */
@@ -111,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads; the kiln extension sits after the proof (docs/roadmap.md F1).
   const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
-    ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
+  ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.
@@ -128,6 +157,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2">{t('skip')}</a>
       <DemoBanner />
+      <SeasonBanner />
       <header ref={headerRef} className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur-md">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:flex-nowrap min-[900px]:gap-x-5">
           <NavLink to={'/' + q} className="flex shrink-0 items-center gap-2 py-1">
@@ -145,7 +175,6 @@ export function AppShell({ children }: { children: ReactNode }) {
             })}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:ml-0">
-            <LangToggle />
             <PatternsToggle />
             <button className="btn btn-icon" aria-label={theme === 'day' ? t('themeNight') : t('themeDay')} title={theme === 'day' ? t('themeNight') : t('themeDay')}
               onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); toggleTheme({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) }}>
@@ -177,21 +206,10 @@ function PatternsToggle() {
   return <button className="btn btn-icon aria-pressed:bg-surface-2 aria-pressed:text-orbit" aria-pressed={on} onClick={togglePatterns} aria-label={label} title={label}><Icon name="texture" /></button>
 }
 
-function LangToggle() {
-  const lang = useLang()
-  const [sp, setSp] = useSearchParams()
-  return (
-    <button className="btn" lang={lang === 'bn' ? 'en' : 'bn'} aria-label={lang === 'bn' ? 'Switch to English' : 'বাংলায় দেখুন'}
-      onClick={() => { const n = new URLSearchParams(sp); if (lang === 'bn') n.delete('lang'); else n.set('lang', 'bn'); setSp(n) }}>
-      {lang === 'bn' ? 'English' : 'বাংলা'}
-    </button>
-  )
-}
-
 /** A page section: title row with a hairline, actions on the right, optional Download menu and table view. */
 export function Section({ id, title, summary, actions, download, table, children, plate = true }: {
   id?: string; title: ReactNode; summary?: ReactNode; actions?: ReactNode; children: ReactNode; plate?: boolean
-  download?: { name: string; csv?: () => string; json?: unknown; png?: boolean }; table?: () => ReactNode
+  download?: { name: string; csv?: () => string; json?: unknown; png?: boolean | string }; table?: () => ReactNode
 }) {
   const [showTable, setShowTable] = useState(false)
   return (
@@ -210,7 +228,7 @@ export function Section({ id, title, summary, actions, download, table, children
   )
 }
 
-export function DownloadMenu({ name, csv, json, png, onTable, tableOn }: { name?: string; csv?: () => string; json?: unknown; png?: boolean; onTable?: () => void; tableOn?: boolean }) {
+export function DownloadMenu({ name, csv, json, png, onTable, tableOn }: { name?: string; csv?: () => string; json?: unknown; png?: boolean | string; onTable?: () => void; tableOn?: boolean }) {
   const t = useT()
   const ref = useRef<HTMLDetailsElement>(null)
   const save = (href: string, ext: string) => {
@@ -234,7 +252,7 @@ export function DownloadMenu({ name, csv, json, png, onTable, tableOn }: { name?
       <div className="menu-list" role="menu">
         {csv && <button role="menuitem" onClick={() => blob(csv(), 'csv', 'text/csv')}>CSV <span className="ml-auto text-xs text-muted">{t('dlCsv')}</span></button>}
         {json !== undefined && <button role="menuitem" onClick={() => blob(JSON.stringify(json), 'json', 'application/json')}>JSON <span className="ml-auto text-xs text-muted">{t('dlJson')}</span></button>}
-        {png && name && <button role="menuitem" onClick={() => { const u = chartPng(name); if (u) save(u, 'png') }}>PNG <span className="ml-auto text-xs text-muted">{t('dlPng')}</span></button>}
+        {png && name && <button role="menuitem" onClick={() => { const u = chartPng(typeof png === 'string' ? png : name); if (u) save(u, 'png') }}>PNG <span className="ml-auto text-xs text-muted">{t('dlPng')}</span></button>}
         {onTable && <button role="menuitemcheckbox" aria-checked={!!tableOn} onClick={() => { onTable(); ref.current?.removeAttribute('open') }}><Icon name="table" />{t('viewTable')}</button>}
       </div>
     </details>

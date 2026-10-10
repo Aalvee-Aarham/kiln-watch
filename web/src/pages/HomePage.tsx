@@ -58,7 +58,7 @@ export default function HomePage() {
       <section aria-label="How it works" className="space-y-5">
         <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">From space to your district, in six steps</h2>
         <Flow items={[['Satellites watch', 'five NASA/NOAA cameras'], ['They spot heat', 'hot pixels, day and night'], ['One scale', 'old and new cameras agree'],
-          ['A calendar', 'for every area'], ['People act', 'with dates, not guesses'], ['Extension: kilns', 'night lights, not fire']]} />
+        ['A calendar', 'for every area'], ['People act', 'with dates, not guesses'], ['Extension: kilns', 'night lights, not fire']]} />
         <TryLink to="/how">Walk through the six steps with real data</TryLink>
       </section>
 
@@ -71,6 +71,9 @@ export default function HomePage() {
               <h3 className="text-lg font-semibold leading-snug">of the 2012 “fire explosion” was a camera change, not more fire.</h3>
               <p className="text-sm text-muted">When the sharper <Gloss k="VIIRS" /> camera arrived, fire counts jumped. We <Gloss k="harmonize">converted</Gloss> every camera to one scale and the jump disappeared.
                 Suomi NPP stops sending data on 2 Nov 2026; NOAA-20 carries the record on, on the same scale.</p>
+              <div className="rounded-[4px] border border-warn/40 bg-warn-soft/50 px-2 py-1.5 text-xs font-medium text-warn">
+                MODIS retires in ~{Math.ceil((Date.parse('2027-01-20T00:00:00Z') - Date.now()) / 86_400_000)} days — this bridge keeps 23 years of records alive.
+              </div>
               <div className="flex items-end gap-4 text-xs text-muted">
                 <span>Raw<Sparkline values={h.yearly.map((y) => y.raw_sum)} stroke="var(--color-raw)" /></span>
                 <span>Corrected<Sparkline values={h.yearly.map((y) => y.h.p50)} /></span>

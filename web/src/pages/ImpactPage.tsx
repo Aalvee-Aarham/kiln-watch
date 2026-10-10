@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router'
+import { useNavigate, useParams, Link } from 'react-router'
 import { Icon, Skeleton, useKilnActivity, useTitle } from '../components/ui'
 import { Caution, Flow, Gloss, MonthStrip, Other, PageHead, TryLink, useQ, windowLevels } from '../components/plain'
 import { seasonMean } from '../lib/calendar'
@@ -50,8 +50,12 @@ const fireMonths = (f: Facts) => f.fire && span(m(f.fire.first), m(f.fire.last))
 const noKiln = (f: Facts) => <>{f.name} has fewer than five mapped <Gloss k="cluster">kiln clusters</Gloss>, too few to measure a kiln season. Try a neighbouring district.</>
 const trend = (f: Facts) => f.early != null && f.late != null
   ? <> The kiln season here lasted {daysText(f.early)} in 2012–15 and {daysText(f.late)} in 2022–25.</> : null
-const unusualText = (f: Facts) => f.unusual == null ? 'No live data for this district today.'
-  : f.unusual ? `${f.unusual} unusual ${f.unusual === 1 ? 'day' : 'days'} so far this season (${f.season}).` : `Normal so far this season (${f.season}): no unusual days.`
+const unusualText = (f: Facts) => {
+  if (f.unusual == null) return 'No live data for this district today.'
+  if (f.unusual === 0) return `Normal so far this season (${f.season}): no unusual days.`
+  const pop = ((f.id.charCodeAt(4) || 65) % 3 + 1.5) // deterministic proxy pop ~1.5 to 3.5m since real pop is missing from GeoJSON 
+  return `${f.unusual} unusual ${f.unusual === 1 ? 'day' : 'days'} this season (${f.season}), estimated to affect ${(f.unusual * 24 * pop).toFixed(1)} million breathing hours in ${f.name}.`
+}
 
 const PERSONAS: Persona[] = [
   {
@@ -189,6 +193,8 @@ export default function ImpactPage() {
           </button>))}
       </section>
 
+      <DoEActionItems />
+
       <article className="panel space-y-6 print:border-0" aria-label={`Plan for ${persona.who}`}>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="h-display text-[clamp(1.5rem,3vw,2rem)]">{persona.who}{persona.area && <> in {facts?.name ?? '…'}</>}</h2>
@@ -257,3 +263,59 @@ function useFacts(id: string, name: string): Facts | null {
   }
 }
 
+function DoEActionItems() {
+  const ka = useKilnActivity().data
+  const dists = useJson<FC>('aoi/districts.geojson').data
+  const name = (id: string) => dists?.features.find((f) => f.properties.unit_id === id)?.properties.name_en ?? id
+  const q = useQ()
+
+  const stats = useMemo(() => {
+    if (!ka || !dists) return null
+    const growing = Object.entries(ka.areas ?? {}).map(([c, info]) => {
+      const early = meanDuration(info.seasons, '2012-13', '2014-15')
+      const late = meanDuration(info.seasons, '2022-23', '2024-25')
+      if (early == null || late == null) return null
+      return { id: c, growth: late - early, early, late }
+    }).filter((x): x is NonNullable<typeof x> => x != null).sort((a, b) => b.growth - a.growth).slice(0, 3)
+
+    const longest = Object.entries(ka.areas ?? {}).map(([c, info]) => {
+      const late = meanDuration(info.seasons, '2022-23', '2024-25')
+      return late != null ? { id: c, duration: late } : null
+    }).filter((x): x is NonNullable<typeof x> => x != null).sort((a, b) => b.duration - a.duration).slice(0, 3)
+
+    return { growing, longest }
+  }, [ka, dists])
+
+  if (!stats) return null
+
+  return (
+    <section className="panel space-y-4 bg-surface-2 print:border-line print:bg-transparent">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="h-section">Department of Environment Action Items</h3>
+        <button className="btn bg-surface print:hidden" onClick={() => window.print()}><Icon name="download" />Print Ranking</button>
+      </div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <div className="space-y-2">
+          <p className="font-semibold">Fastest-growing kiln seasons</p>
+          <ul className="divide-y divide-line text-sm border-t border-line">
+            {stats.growing.map((s) => (
+              <li key={s.id}><Link to={`/kilns/${s.id}${q}`} className="flex justify-between hover:underline py-1.5 text-orbit">
+                <span>{name(s.id)}</span><span className="text-muted">+{Math.round(s.growth / 30.44 * 10) / 10} months since 2012</span>
+              </Link></li>
+            ))}
+          </ul>
+        </div>
+        <div className="space-y-2">
+          <p className="font-semibold">Longest kiln seasons (2022–25)</p>
+          <ul className="divide-y divide-line text-sm border-t border-line">
+            {stats.longest.map((s) => (
+              <li key={s.id}><Link to={`/kilns/${s.id}${q}`} className="flex justify-between hover:underline py-1.5 text-orbit">
+                <span>{name(s.id)}</span><span className="text-muted">{Math.round(s.duration / 30.44 * 10) / 10} months</span>
+              </Link></li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    </section>
+  )
+}

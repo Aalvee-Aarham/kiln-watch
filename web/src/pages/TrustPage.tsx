@@ -1,12 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Icon, SegmentedToggle, useKilnActivity, useMeta, useTitle } from '../components/ui'
-import { Gloss, PageHead, Provenance, TryLink } from '../components/plain'
+import { Flow, Gloss, PageHead, Provenance, TryLink } from '../components/plain'
 import { EChart } from '../components/EChart'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import { MONTHS } from '../lib/plain'
 import { palette, useTheme } from '../lib/theme'
-import type { Harmonization, Outlook, TransferChannel, TransferCountry, TransferTest, Validation } from '../lib/types'
+import type { Harmonization, Meta, Outlook, TransferChannel, TransferCountry, TransferTest, Validation } from '../lib/types'
 
 const REPO = 'https://github.com/Aalvee-Aarham/kiln-watch'
 type Result = 'pass' | 'fail' | 'none'
@@ -127,6 +127,8 @@ export default function TrustPage() {
         We wrote our tests down <i>before</i> looking at the results, and we publish every outcome, including the ones that went against us.
       </PageHead>
 
+      <PreRegStory meta={meta} />
+
       <section className="space-y-4" aria-label="Test results">
         <p className="text-lg"><b className="text-ok">{n('pass')} passed</b> · <b className="text-err">{n('fail')} failed</b>{n('none') > 0 && <> · <b>{n('none')} found no link</b></>}. All shown below.</p>
         <ul className="space-y-2">
@@ -145,9 +147,9 @@ export default function TrustPage() {
 
       <section className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" aria-label="How we kept ourselves honest">
         {[['Tests written first', 'Every pass mark was committed to a public file before the analysis it governs. Later changes go in dated amendments, never edits.'],
-          ['Fair comparisons', 'Each kiln cluster is compared with three patches of similar farmland nearby, so seasons and weather cancel out.'],
-          ['Tested on unseen years', 'The camera correction was checked on each year after leaving that year out of the training.'],
-          ['Everything open', 'Code, data and reports are public, so anyone can rerun every number on this site.']].map(([a, b]) => (
+        ['Fair comparisons', 'Each kiln cluster is compared with three patches of similar farmland nearby, so seasons and weather cancel out.'],
+        ['Tested on unseen years', 'The camera correction was checked on each year after leaving that year out of the training.'],
+        ['Everything open', 'Code, data and reports are public, so anyone can rerun every number on this site.']].map(([a, b]) => (
           <div key={a} className="panel"><b className="block">{a}</b><span className="text-sm text-muted">{b}</span></div>))}
       </section>
 
@@ -161,6 +163,24 @@ export default function TrustPage() {
         <TryLink to="/evidence">Full evidence (for experts)</TryLink>
       </div>
     </div>
+  )
+}
+
+function PreRegStory({ meta }: { meta?: Meta }) {
+  if (!meta) return null
+  return (
+    <section className="space-y-4" aria-label="Integrity timeline">
+      <h2 className="h-section">Our integrity timeline</h2>
+      <Flow items={[
+        ['Step 1: Tests written', 'Oct 2022'],
+        ['Step 2: Data collected', '2003–2025'],
+        ['Step 3: Code locked', <a key="sha" href={`https://github.com/Aalvee-Aarham/kiln-watch/commit/${meta.prereg_sha}`} className="code text-orbit underline" target="_blank" rel="noreferrer">{meta.prereg_sha.slice(0, 7)}</a>],
+        ['Step 4: Results', 'All shown here']
+      ]} />
+      <blockquote className="border-l-2 border-line pl-4 text-muted">
+        “We committed these thresholds to GitHub before we looked at the data. The SHA above proves it. This build’s branch: <span className="code">{meta.gate_branch}</span>.”
+      </blockquote>
+    </section>
   )
 }
 
@@ -219,11 +239,15 @@ function ProfileChart({ ch, name }: { ch: TransferChannel; name: string }) {
     yAxis: { type: 'value', name: 'nW/cm²/sr' },
     series: [
       { name: 'lo', type: 'line', data: lo, stack: 'ci', stackStrategy: 'all', symbol: 'none', lineStyle: { opacity: 0 }, tooltip: { show: false } },
-      { name: '95% range', type: 'line', data: band, stack: 'ci', stackStrategy: 'all', symbol: 'none', lineStyle: { opacity: 0 },
-        areaStyle: { color: p.brick, opacity: 0.18 }, tooltip: { show: false } },
-      { name: 'Kiln glow above farmland', type: 'line', data: ch.profile.p50, color: p.brick, lineStyle: { width: 3 }, symbolSize: 6,
+      {
+        name: '95% range', type: 'line', data: band, stack: 'ci', stackStrategy: 'all', symbol: 'none', lineStyle: { opacity: 0 },
+        areaStyle: { color: p.brick, opacity: 0.18 }, tooltip: { show: false }
+      },
+      {
+        name: 'Kiln glow above farmland', type: 'line', data: ch.profile.p50, color: p.brick, lineStyle: { width: 3 }, symbolSize: 6,
         markArea: area(ch.learned.core, p.brick, 'busiest'),
-        markLine: { silent: true, symbol: 'none', lineStyle: { color: p.muted, type: 'dotted' }, data: [{ yAxis: 0 }], label: { show: false } } },
+        markLine: { silent: true, symbol: 'none', lineStyle: { color: p.muted, type: 'dotted' }, data: [{ yAxis: 0 }], label: { show: false } }
+      },
       { name: 'quiet', type: 'line', data: [], markArea: area(ch.learned.off, p.muted, 'quietest') },
     ],
   }

@@ -1,7 +1,10 @@
 import { lazy, StrictMode, Suspense } from 'react'
 import { createRoot } from 'react-dom/client'
 import { HashRouter, Route, Routes } from 'react-router'
+import { registerSW } from 'virtual:pwa-register'
 import './index.css'
+
+registerSW({ immediate: true })
 import { Link } from 'react-router'
 import { AppShell, ErrorBoundary, SkeletonCard, StatusMessage, useKilnsVisible, useMeta } from './components/ui'
 import HomePage from './pages/HomePage'

@@ -315,22 +315,22 @@ function UnitView({ unitId, unit, level, meta, u, setQ }: { unitId: string; unit
             </div>)}
 
           {u.split !== split && <StatusMessage>Source “{u.split}” does not exist in this data build, so all sources are shown.</StatusMessage>}
-          <Section id="calendar" title={t('everyDay')} download={{ name: `kilnwatch_${unitId}`, csv: () => calendarToCsv(c, meta.split_labels.map((s) => s.key)), json: c, png: true }}
+          <Section id="calendar" title={t('everyDay')} download={{ name: `kilnwatch_${unitId}`, csv: () => calendarToCsv(c, meta.split_labels.map((s) => s.key)), json: c, png: 'kilnwatch_calendar' }}
             summary={<>Each row is a year, each cell a day; darker means more fire (<Term k="MYD-eq">{t('unit')}</Term>). Blue-grey cells were <b>not observed</b> (cloud), which is not the same as no fire. {u.mode === 'raw' ? 'Raw view: each sensor in its own units, so the 2012 jump shows.' : 'Harmonized view: every year on the Aqua-MODIS scale.'} Click a day to open its season below.</>}>
             <CalendarHeatmap cal={c} mode={u.mode} split={split} layout={u.layout} events={events.data} onPickDay={pickDay} />
           </Section>
-          <Section id="season" title={`${t('vsNormal')}: ${season}`} download={{ name: `kilnwatch_${unitId}_normal`, png: true }}
+          <Section id="season" title={`${t('vsNormal')}: ${season}`} download={{ name: `kilnwatch_${unitId}_normal`, png: 'kilnwatch_normal' }}
             actions={<select aria-label="Season" className="btn" value={season} onChange={(e) => { setMarkDay(undefined); setQ({ season: e.target.value }) }}>{seasons.map((s) => <option key={s}>{s}</option>)}</select>}
             summary={<>Shaded band: the middle 80% of all seasons for each day. Dots: unusual days above the <Term k="p90">90th percentile</Term>. Labelled shading: critical periods, when activity is normally at its yearly high.</>}>
             <NormalBandChart cal={c} season={season} mode={u.mode} split={split} events={events.data} markDay={markDay} />
           </Section>
-          {kilnArea?.e && ka && <Section id="kiln" title={t('twoSeasonsTitle')} download={{ name: `kilnwatch_${unitId}_kiln`, png: true }}
+          {kilnArea?.e && ka && <Section id="kiln" title={t('twoSeasonsTitle')} download={{ name: `kilnwatch_${unitId}_kiln`, png: 'kilnwatch_kiln_shape' }}
             actions={<Link className="btn" to={`/kilns${u.lang === 'bn' ? '?lang=bn' : ''}`}>{t('kilns')}</Link>}
             summary={<>Top: the kiln season, from {ka.layer === 'ntl' ? 'night lights' : 'radar'} at {kilnArea.n_clusters} mapped kiln clusters against matched control sites (band = middle half of seasons). Bottom: this area’s average fire activity through the season (FIRMS, harmonized, 2003 to today).
               Kiln heat does not show up in fire detections, so the two are measured with different satellites, and they follow different calendars.</>}>
             <KilnSeasonShapeChart ka={ka} area={kilnArea} burning={seasonMean(c)} />
           </Section>}
-          <Section id="sources" title={t('whereHeat')} download={{ name: `kilnwatch_${unitId}_sources`, png: true }}
+          <Section id="sources" title={t('whereHeat')} download={{ name: `kilnwatch_${unitId}_sources`, png: 'kilnwatch_sources' }}
             summary={`Season totals split into ${meta.split_labels.map((s) => label(s.key).toLowerCase()).join(', ')}. Seasons the record covers only in part are left out.`}>
             <SourceStackChart cal={c} meta={meta} lang={u.lang} />
           </Section>
@@ -412,7 +412,8 @@ function BoxView({ box, meta, districts }: { box: Box; meta: Meta; districts: FC
           <EChart label="Season totals of harmonized activity inside the drawn area" exportName={`kilnwatch_box_${formatBox(box)}`} height={280} option={{
             grid: { left: 48, right: 16, top: 24, bottom: 28 }, tooltip: { trigger: 'axis' },
             xAxis: { type: 'category', data: ys, axisLabel: { hideOverlap: true } }, yAxis: { type: 'value', name: 'Season sum (MYD-eq)' },
-            series: [{ type: 'bar', data: ys.map((y) => Math.round(byYear.get(y)! * 100) / 100), color: p.heat, barMaxWidth: 24 }] }} />}
+            series: [{ type: 'bar', data: ys.map((y) => Math.round(byYear.get(y)! * 100) / 100), color: p.heat, barMaxWidth: 24 }]
+          }} />}
       </Section>
     </div>
   )

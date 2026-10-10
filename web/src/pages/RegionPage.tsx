@@ -16,6 +16,7 @@ import type { Calendar, FC, NrtSeason, Outlook, UnitProps } from '../lib/types'
 const WorldMap = lazy(() => import('../components/WorldMap'))
 const SOUTH_ASIA = ['AFG', 'BGD', 'BTN', 'IND', 'LKA', 'MDV', 'NPL', 'PAK']
 const TRANSFER: Record<string, string> = { PAK: 'PK', IND: 'IN', AFG: 'AF' } // ISO3 → the codes used by the kiln tests abroad
+const REVERSE_TRANSFER: Record<string, string> = { PK: 'PAK', IN: 'IND', AF: 'AFG' }
 type StateProps = UnitProps & { type_en?: string | null; adm0?: string }
 type CityFile = { fields: string[]; rows: (string | number | null)[][] }
 const cityId = (c: City) => `${c.name}|${c.adm0}|${c.lat}`
@@ -41,6 +42,8 @@ export default function RegionPage() {
   const [sel, setSel] = useState<Pick | undefined>()
   const [focus, setFocus] = useState<{ box: Box; key: number } | undefined>()
   const countryName = useMemo(() => new Map((countries.data?.features ?? []).map((f) => [f.properties.unit_id, f.properties.name_en])), [countries.data])
+  const ka = useKilnActivity().data
+  const testedIso3 = useMemo(() => (ka?.transfer?.countries ?? []).filter((c) => c.evaluable !== false).map((c) => REVERSE_TRANSFER[c.code]).filter(Boolean), [ka])
 
   const zoomTo = (box: Box) => setFocus((f) => ({ box, key: (f?.key ?? 0) + 1 }))
   const featureOf = (p?: Pick) => p && (p.kind === 'state' ? states.data : p.kind === 'country' ? countries.data : undefined)?.features.find((f) => f.properties.unit_id === p.id)
@@ -73,7 +76,7 @@ export default function RegionPage() {
         {countries.data && cityFile.data ? (
           <Suspense fallback={<Skeleton className="h-[560px] w-full rounded-[10px]" />}>
             <WorldMap countries={countries.data} states={states.data} region={region.data} cities={cities} selected={sel} focus={focus}
-              onPick={(p) => pick(p, p.kind === 'country')} />
+              transferCountries={testedIso3} onPick={(p) => pick(p, p.kind === 'country')} />
           </Suspense>) : <Skeleton className="h-[560px] w-full rounded-[10px]" />}
         <aside className="panel space-y-3 self-start" aria-live="polite">
           <Details sel={sel} feature={featureOf(sel)?.properties as StateProps | undefined} geometry={featureOf(sel)?.geometry} city={cityOf(sel)} cities={cities}
@@ -138,8 +141,9 @@ function Details({ sel, feature, geometry, city, cities, countryName, onCity, on
 function Coverage({ adm0, kind, city, geometry }: { adm0: string; kind: Pick['kind']; city?: City; geometry?: GeoJSON.Geometry }) {
   if (adm0 === 'BGD') return <div className="space-y-3 border-t border-line pt-3"><BangladeshFacts kind={kind} city={city} geometry={geometry} /></div>
   if (SOUTH_ASIA.includes(adm0)) return <div className="space-y-3 border-t border-line pt-3">
-    <p>Not analysed yet. South Asia’s harmonized fire calendar is being built, with its own calibration, tested before it is shown.</p>
-    <KilnAbroad adm0={adm0} /></div>
+    <p>Fire calendar coming. Kiln method already tested:</p>
+    <KilnAbroad adm0={adm0} />
+    <p className="text-sm text-muted">The Bangladesh method has been tested in Pakistan and India with mixed results — all published.</p></div>
   return <p className="border-t border-line pt-3 text-sm text-muted">Outside the study area. Kiln Watch analyses Bangladesh in depth, and South Asia next.</p>
 }
 

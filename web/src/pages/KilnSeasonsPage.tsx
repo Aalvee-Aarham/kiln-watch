@@ -45,18 +45,18 @@ function ActivityView({ ka }: { ka: KilnActivity }) {
         </div>
       </header>
       {area?.e && <>
-        <Section title={`${label}: the kiln season`} download={{ name: `kilnwatch_kiln_shape_${id}`, json: area, png: true }}
+        <Section title={`${label}: the kiln season`} download={{ name: `kilnwatch_kiln_shape_${id}`, json: area, png: 'kilnwatch_kiln_shape' }}
           actions={<select aria-label="Season to compare" className="btn" value={season ?? latest} onChange={(e) => setSeason(e.target.value)}>
             {seasons.map((s) => <option key={s.season}>{s.season}</option>)}</select>}
           summary={<>Brick line: kiln excess in a typical season (median of all seasons; band = middle half). Dashed: {season ?? latest}. Kilns light up from late autumn and go dark before the monsoon.</>}>
           <KilnSeasonShapeChart ka={ka} area={area} season={season ?? latest} />
         </Section>
-        <Section title="Kiln calendar" download={{ name: `kilnwatch_kiln_calendar_${id}`, png: true }}
+        <Section title="Kiln calendar" download={{ name: `kilnwatch_kiln_calendar_${id}`, png: 'kilnwatch_kiln_calendar' }}
           summary="One row per season, one cell per half-month. Darker means kilns busier than in that season’s monsoon. Compare it with the fire calendar on the Explore page: the two seasons are not the same.">
           <KilnCalendarHeatmap ka={ka} area={area} />
         </Section>
       </>}
-      {area && <Section title="Season start and end" download={{ name: `kilnwatch_kiln_seasons_${id}`, csv, png: true }}
+      {area && <Section title="Season start and end" download={{ name: `kilnwatch_kiln_seasons_${id}`, csv, png: 'kilnwatch_kiln_timing' }}
         summary="Onset and end: when the smoothed kiln excess first rises above, and last falls below, half of that season’s peak. The shaded band is the working season. Dotted lines mark policy events and the 2020 COVID-19 shutdown; before-and-after comparisons are descriptive, not causal.">
         <KilnTimingChart rows={seasons} events={events.data} />
         <div className="mt-4 overflow-x-auto border-t border-line pt-3"><table className="w-full text-sm">
@@ -90,7 +90,7 @@ function FirmsView() {
         {all.map((p) => <option key={p.unit_id} value={p.unit_id}>{p.name_en} ({p.level}, {p.kiln_count} kilns)</option>)}
       </select>
       <Loading state={cal} skeleton={<SkeletonCard label="Loading firing seasons" />}>{(c) => (
-        <Section title="Firing-season length" download={{ name: `kilnwatch_duration_${pick}`, png: true }} summary="Days between the 10th and 90th percentile of the season’s cumulative harmonized activity, with a week-block bootstrap 95% interval.">
+        <Section title="Firing-season length" download={{ name: `kilnwatch_duration_${pick}`, png: 'kilnwatch_duration' }} summary="Days between the 10th and 90th percentile of the season’s cumulative harmonized activity, with a week-block bootstrap 95% interval.">
           <SeasonDurationChart cal={c} events={events.data} />
         </Section>)}</Loading>
     </div>

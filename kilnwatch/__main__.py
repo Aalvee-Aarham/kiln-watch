@@ -46,6 +46,11 @@ def main(argv=None) -> int:
     s.add_argument("--build-cache", action="store_true", help="answer the demo questions and write ask.json into --src")
     s = sub.add_parser("nrt", help="daily near-real-time update")
     s.add_argument("--days", type=int, default=5)
+    s = sub.add_parser("verify-firms", help="independent FIRMS re-fetch + cross-check (not part of `all`)")
+    s.add_argument("--sources", nargs="+", default=None, help="FIRMS source ids (default: all)")
+    s.add_argument("--start", help="YYYY-MM-DD")
+    s.add_argument("--end", help="YYYY-MM-DD")
+    s.add_argument("--cached-only", dest="cached_only", action="store_true", help="use the existing verify cache; no downloads")
     sub.add_parser("all", help="every stage after gee, in order (fails fast without the GEE cache)")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
@@ -105,6 +110,9 @@ def main(argv=None) -> int:
     elif a.stage == "nrt":
         from . import nrt
         nrt.run(a.days)
+    elif a.stage == "verify-firms":
+        from . import verify_firms
+        verify_firms.run(a.sources, a.start, a.end, a.cached_only)
     elif a.stage == "all":
         if not (C.RAW / "gee" / "clear" / "admin").exists():
             print("ERROR GeeCacheMissing: data/raw/gee/clear/admin is missing. Run `python -m kilnwatch gee` first.", file=sys.stderr)

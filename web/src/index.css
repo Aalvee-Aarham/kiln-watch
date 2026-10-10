@@ -20,12 +20,18 @@
   --font-display: "Anek Display", "Anek Bangla Variable", "Noto Sans Bengali", system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 
-  --text-xs: 0.8rem;   --text-xs--line-height: 1.45;
-  --text-sm: 0.875rem; --text-sm--line-height: 1.5;
-  --text-base: 1rem;   --text-base--line-height: 1.6;
-  --text-lg: 1.25rem;  --text-lg--line-height: 1.4;
-  --text-xl: 1.5625rem; --text-xl--line-height: 1.25;
-  --text-2xl: 1.953rem; --text-2xl--line-height: 1.1;
+  --text-xs: 0.8rem;
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.875rem;
+  --text-sm--line-height: 1.5;
+  --text-base: 1rem;
+  --text-base--line-height: 1.6;
+  --text-lg: 1.25rem;
+  --text-lg--line-height: 1.4;
+  --text-xl: 1.5625rem;
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.953rem;
+  --text-2xl--line-height: 1.1;
 
   --color-bg: oklch(0.975 0.005 230);
   --color-surface: oklch(0.995 0.003 230);
@@ -70,7 +76,16 @@
   --color-swath-edge: color-mix(in oklch, var(--color-ink) 8%, transparent);
 
   --animate-shimmer: shimmer 1.2s linear infinite;
-  @keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+  @keyframes shimmer {
+    from {
+      background-position: 200% 0;
+    }
+
+    to {
+      background-position: -200% 0;
+    }
+  }
 }
 
 /* Night pass: deep indigo. Fire is drawn brighter-is-hotter, like real incandescence. */
@@ -119,213 +134,745 @@
   --dur-base: 220ms;
   color-scheme: light;
 }
-:root[data-theme="night"] { color-scheme: dark; }
+
+:root[data-theme="night"] {
+  color-scheme: dark;
+}
 
 /* S-NPP ground track over 23.7°N: the 13:30 ascending pass heads N13°W, the 01:30 descending pass mirrors it. */
-:root { --swath-tilt: -13deg; }
-:root[data-theme="night"] { --swath-tilt: 13deg; }
+:root {
+  --swath-tilt: -13deg;
+}
+
+:root[data-theme="night"] {
+  --swath-tilt: 13deg;
+}
 
 @layer base {
-  html { font-feature-settings: "tnum" 1; -webkit-text-size-adjust: 100%; }
-  body { background: var(--color-bg); color: var(--color-ink); font-family: var(--font-sans); font-weight: 420; }
-  :lang(bn) { line-height: 1.75; letter-spacing: 0; }
-  ::selection { background: color-mix(in oklch, var(--color-orbit) 25%, transparent); }
-  :focus-visible { outline: 2px solid var(--color-orbit); outline-offset: 2px; }
-  a { text-underline-offset: 3px; }
+  html {
+    font-feature-settings: "tnum" 1;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background: var(--color-bg);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    font-weight: 420;
+  }
+
+  :lang(bn) {
+    line-height: 1.75;
+    letter-spacing: 0;
+  }
+
+  ::selection {
+    background: color-mix(in oklch, var(--color-orbit) 25%, transparent);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-orbit);
+    outline-offset: 2px;
+  }
+
+  a {
+    text-underline-offset: 3px;
+  }
 
   /* Tailwind v4 preflight sets buttons to cursor: default — restore the affordance. */
-  button:not(:disabled), [role="button"], [role="option"], [role="radio"], [role="tab"], summary, select, label[for] { cursor: pointer; }
-  :disabled, [aria-disabled="true"] { cursor: not-allowed; }
-  html.is-loading, html.is-loading * { cursor: progress; }
+  button:not(:disabled),
+  [role="button"],
+  [role="option"],
+  [role="radio"],
+  [role="tab"],
+  summary,
+  select,
+  label[for] {
+    cursor: pointer;
+  }
 
-  table { font-variant-numeric: tabular-nums; }
-  table th, table td { padding: 0.35rem 0.9rem 0.35rem 0; vertical-align: top; }
-  table th { font-weight: 560; color: var(--color-muted); font-size: var(--text-xs); text-align: left; }
-  td.n, th.n { text-align: right; }
+  :disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
+  html.is-loading,
+  html.is-loading * {
+    cursor: progress;
+  }
+
+  table {
+    font-variant-numeric: tabular-nums;
+  }
+
+  table th,
+  table td {
+    padding: 0.35rem 0.9rem 0.35rem 0;
+    vertical-align: top;
+  }
+
+  table th {
+    font-weight: 560;
+    color: var(--color-muted);
+    font-size: var(--text-xs);
+    text-align: left;
+  }
+
+  td.n,
+  th.n {
+    text-align: right;
+  }
 }
 
 @layer components {
+
   /* Panels are for interactive groups and chart plates only — sections use whitespace + a hairline. */
-  .panel { border: 1px solid var(--color-line); background: var(--color-surface); border-radius: var(--radius-panel); padding: 1rem; }
-  .section-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.5rem 1rem; padding-bottom: 0.5rem; margin-bottom: 0.75rem; border-bottom: 1px solid var(--color-line); }
-  .note { margin-top: 0.5rem; font-size: var(--text-sm); color: var(--color-muted); max-width: 68ch; }
-  .prose-measure { max-width: 68ch; }
-  .num { font-variant-numeric: tabular-nums; }
-  .code { font-family: var(--font-mono); font-size: 0.85em; }
-  .h-display { font-family: var(--font-display); font-stretch: 75%; font-weight: 640; letter-spacing: -0.02em; line-height: 1; }
-  .h-section { font-weight: 600; font-size: var(--text-lg); letter-spacing: -0.005em; }
+  .panel {
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    border-radius: var(--radius-panel);
+    padding: 1rem;
+  }
+
+  .section-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 0.5rem 1rem;
+    padding-bottom: 0.5rem;
+    margin-bottom: 0.75rem;
+    border-bottom: 1px solid var(--color-line);
+  }
+
+  .note {
+    margin-top: 0.5rem;
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+    max-width: 68ch;
+  }
+
+  .prose-measure {
+    max-width: 68ch;
+  }
+
+  .num {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .code {
+    font-family: var(--font-mono);
+    font-size: 0.85em;
+  }
+
+  .h-display {
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-weight: 640;
+    letter-spacing: -0.02em;
+    line-height: 1;
+  }
+
+  .h-section {
+    font-weight: 600;
+    font-size: var(--text-lg);
+    letter-spacing: -0.005em;
+  }
 
   .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem;
-    min-height: 2.25rem; padding: 0.35rem 0.8rem; border-radius: var(--radius-control);
-    font-size: var(--text-sm); font-weight: 520; line-height: 1.2; white-space: nowrap;
-    border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    min-height: 2.25rem;
+    padding: 0.35rem 0.8rem;
+    border-radius: var(--radius-control);
+    font-size: var(--text-sm);
+    font-weight: 520;
+    line-height: 1.2;
+    white-space: nowrap;
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
     transition: background-color var(--dur-quick) ease, border-color var(--dur-quick) ease, color var(--dur-quick) ease, transform var(--dur-press) var(--ease-out);
-    -webkit-tap-highlight-color: transparent; user-select: none;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
   }
-  .btn:active:not(:disabled) { transform: scale(0.97); }
-  .btn:disabled { opacity: 0.45; }
-  .btn-primary { background: var(--color-ink); border-color: var(--color-ink); color: var(--color-on-ink); font-weight: 580; }
-  .btn-quiet { border-color: transparent; background: transparent; color: var(--color-muted); padding-inline: 0.5rem; }
-  .btn-icon { padding: 0; width: 2.25rem; }
-  .btn[aria-pressed="true"] { border-color: var(--color-orbit); color: var(--color-orbit); background: color-mix(in oklch, var(--color-orbit) 8%, var(--color-surface)); }
+
+  .btn:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+
+  .btn:disabled {
+    opacity: 0.45;
+  }
+
+  .btn-primary {
+    background: var(--color-ink);
+    border-color: var(--color-ink);
+    color: var(--color-on-ink);
+    font-weight: 580;
+  }
+
+  .btn-quiet {
+    border-color: transparent;
+    background: transparent;
+    color: var(--color-muted);
+    padding-inline: 0.5rem;
+  }
+
+  .btn-icon {
+    padding: 0;
+    width: 2.25rem;
+  }
+
+  .btn[aria-pressed="true"] {
+    border-color: var(--color-orbit);
+    color: var(--color-orbit);
+    background: color-mix(in oklch, var(--color-orbit) 8%, var(--color-surface));
+  }
+
   @media (hover: hover) and (pointer: fine) {
-    .btn:hover:not(:disabled) { background: var(--color-surface-2); }
-    .btn-primary:hover:not(:disabled) { background: color-mix(in oklch, var(--color-ink) 86%, var(--color-orbit)); }
-    .btn-quiet:hover:not(:disabled) { background: transparent; color: var(--color-ink); }
+    .btn:hover:not(:disabled) {
+      background: var(--color-surface-2);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: color-mix(in oklch, var(--color-ink) 86%, var(--color-orbit));
+    }
+
+    .btn-quiet:hover:not(:disabled) {
+      background: transparent;
+      color: var(--color-ink);
+    }
   }
+
   @media (pointer: coarse) {
-    .btn { min-height: 2.75rem; }
-    .btn-icon { width: 2.75rem; }
+    .btn {
+      min-height: 2.75rem;
+    }
+
+    .btn-icon {
+      width: 2.75rem;
+    }
   }
 
   .field {
-    width: 100%; min-height: 2.5rem; padding: 0.45rem 0.75rem; border-radius: var(--radius-control);
-    border: 1px solid var(--color-line); background: var(--color-surface); color: var(--color-ink);
-    font-size: 1rem; /* ≥16px: no iOS zoom on focus */
+    width: 100%;
+    min-height: 2.5rem;
+    padding: 0.45rem 0.75rem;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--color-line);
+    background: var(--color-surface);
+    color: var(--color-ink);
+    font-size: 1rem;
+    /* ≥16px: no iOS zoom on focus */
   }
-  .field::placeholder { color: var(--color-muted); }
 
-  .chip { display: inline-flex; align-items: center; gap: 0.35rem; border-radius: 999px; border: 1px solid var(--color-line); padding: 0.15rem 0.65rem; font-size: var(--text-sm); background: var(--color-surface); }
+  .field::placeholder {
+    color: var(--color-muted);
+  }
 
-  .skeleton { border-radius: var(--radius-control); background-color: var(--color-surface-2); animation: var(--animate-shimmer);
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    border-radius: 999px;
+    border: 1px solid var(--color-line);
+    padding: 0.15rem 0.65rem;
+    font-size: var(--text-sm);
+    background: var(--color-surface);
+  }
+
+  .skeleton {
+    border-radius: var(--radius-control);
+    background-color: var(--color-surface-2);
+    animation: var(--animate-shimmer);
     background-image: linear-gradient(100deg, transparent 40%, color-mix(in oklch, var(--color-ink) 7%, transparent) 50%, transparent 60%);
-    background-size: 200% 100%; }
+    background-size: 200% 100%;
+  }
 
   /* Popover menu (native <details>): scales from its trigger corner. */
-  .menu { position: relative; }
-  .menu > summary { list-style: none; }
-  .menu > summary::-webkit-details-marker { display: none; }
+  .menu {
+    position: relative;
+  }
+
+  .menu>summary {
+    list-style: none;
+  }
+
+  .menu>summary::-webkit-details-marker {
+    display: none;
+  }
+
   .menu-list {
-    position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 11rem; padding: 0.25rem;
-    border: 1px solid var(--color-line); border-radius: var(--radius-panel); background: var(--color-surface);
+    position: absolute;
+    right: 0;
+    top: calc(100% + 4px);
+    z-index: 30;
+    min-width: 11rem;
+    padding: 0.25rem;
+    border: 1px solid var(--color-line);
+    border-radius: var(--radius-panel);
+    background: var(--color-surface);
     box-shadow: 0 8px 24px -8px color-mix(in oklch, var(--color-ink) 25%, transparent);
     transform-origin: top right;
     transition: opacity 150ms var(--ease-out), transform 150ms var(--ease-out);
-    @starting-style { opacity: 0; transform: scale(0.97); }
+
+    @starting-style {
+      opacity: 0;
+      transform: scale(0.97);
+    }
   }
-  .menu-list > * { display: flex; width: 100%; align-items: center; gap: 0.5rem; border-radius: var(--radius-control); padding: 0.45rem 0.6rem; font-size: var(--text-sm); text-align: left; }
-  @media (hover: hover) and (pointer: fine) { .menu-list > *:hover { background: var(--color-surface-2); } }
+
+  .menu-list>* {
+    display: flex;
+    width: 100%;
+    align-items: center;
+    gap: 0.5rem;
+    border-radius: var(--radius-control);
+    padding: 0.45rem 0.6rem;
+    font-size: var(--text-sm);
+    text-align: left;
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .menu-list>*:hover {
+      background: var(--color-surface-2);
+    }
+  }
 
   /* Segmented control: one thumb that slides (transform only). */
-  .seg { position: relative; display: inline-flex; padding: 2px; border-radius: calc(var(--radius-control) + 2px); background: var(--color-surface-2); border: 1px solid var(--color-line); isolation: isolate; }
-  .seg button { position: relative; z-index: 1; min-height: 2rem; padding: 0.25rem 0.75rem; font-size: var(--text-sm); color: var(--color-muted); border-radius: var(--radius-control); transition: color var(--dur-quick) ease; -webkit-tap-highlight-color: transparent; }
-  .seg button[aria-checked="true"] { color: var(--color-ink); font-weight: 560; }
-  .seg-thumb { position: absolute; z-index: 0; top: 2px; bottom: 2px; left: 0; border-radius: var(--radius-control); background: var(--color-surface); border: 1px solid var(--color-line); box-shadow: 0 1px 2px color-mix(in oklch, var(--color-ink) 10%, transparent); transition: transform 200ms var(--ease-out), width 200ms var(--ease-out); }
-  @media (pointer: coarse) { .seg button { min-height: 2.5rem; } }
+  .seg {
+    position: relative;
+    display: inline-flex;
+    padding: 2px;
+    border-radius: calc(var(--radius-control) + 2px);
+    background: var(--color-surface-2);
+    border: 1px solid var(--color-line);
+    isolation: isolate;
+  }
+
+  .seg button {
+    position: relative;
+    z-index: 1;
+    min-height: 2rem;
+    padding: 0.25rem 0.75rem;
+    font-size: var(--text-sm);
+    color: var(--color-muted);
+    border-radius: var(--radius-control);
+    transition: color var(--dur-quick) ease;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .seg button[aria-checked="true"] {
+    color: var(--color-ink);
+    font-weight: 560;
+  }
+
+  .seg-thumb {
+    position: absolute;
+    z-index: 0;
+    top: 2px;
+    bottom: 2px;
+    left: 0;
+    border-radius: var(--radius-control);
+    background: var(--color-surface);
+    border: 1px solid var(--color-line);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--color-ink) 10%, transparent);
+    transition: transform 200ms var(--ease-out), width 200ms var(--ease-out);
+  }
+
+  @media (pointer: coarse) {
+    .seg button {
+      min-height: 2.5rem;
+    }
+  }
 
   /* Measurable surfaces get the reticle (pointer: fine only). */
   @media (pointer: fine) {
+
     /* Cursors carry meaning (bg_cursor_plan.md §3): reticle = point at a measured value, pick = click selects this
        place, box = drag draws an area, grab = drag pans. Plain url() first: browsers that reject image-set() in
        cursor keep it. */
-    .measure, .measure canvas {
-      cursor: url("./assets/cursors/reticle-day.svg") 12 12, crosshair !important; /* ECharts writes an inline cursor on its canvas */
+    .measure,
+    .measure canvas {
+      cursor: url("./assets/cursors/reticle-day.svg") 12 12, crosshair !important;
+      /* ECharts writes an inline cursor on its canvas */
       cursor: image-set(url("./assets/cursors/reticle-day.svg") 1x, url("./assets/cursors/reticle-day@2x.svg") 2x) 12 12, crosshair !important;
     }
+
     :root[data-theme="night"] :is(.measure, .measure canvas) {
       cursor: url("./assets/cursors/reticle-night.svg") 12 12, crosshair !important;
       cursor: image-set(url("./assets/cursors/reticle-night.svg") 1x, url("./assets/cursors/reticle-night@2x.svg") 2x) 12 12, crosshair !important;
     }
-    .bd-map svg { cursor: grab; }
+
+    .bd-map svg {
+      cursor: grab;
+    }
+
     .bd-map .bd-feat {
       cursor: url("./assets/cursors/pick-day.svg") 12 12, pointer;
       cursor: image-set(url("./assets/cursors/pick-day.svg") 1x, url("./assets/cursors/pick-day@2x.svg") 2x) 12 12, pointer;
     }
+
     :root[data-theme="night"] .bd-map .bd-feat {
       cursor: url("./assets/cursors/pick-night.svg") 12 12, pointer;
       cursor: image-set(url("./assets/cursors/pick-night.svg") 1x, url("./assets/cursors/pick-night@2x.svg") 2x) 12 12, pointer;
     }
+
     .bd-map.is-drawing svg {
       cursor: url("./assets/cursors/box-day.svg") 12 12, crosshair;
       cursor: image-set(url("./assets/cursors/box-day.svg") 1x, url("./assets/cursors/box-day@2x.svg") 2x) 12 12, crosshair;
     }
+
     :root[data-theme="night"] .bd-map.is-drawing svg {
       cursor: url("./assets/cursors/box-night.svg") 12 12, crosshair;
       cursor: image-set(url("./assets/cursors/box-night.svg") 1x, url("./assets/cursors/box-night@2x.svg") 2x) 12 12, crosshair;
     }
+
     /* On <html>: pointer capture can carry a pan over the header. */
-    html.is-panning, html.is-panning * { cursor: grabbing !important; }
+    html.is-panning,
+    html.is-panning * {
+      cursor: grabbing !important;
+    }
+
     @media (forced-colors: active) {
-      .measure, .measure canvas, :root[data-theme] :is(.measure, .measure canvas), .bd-map .bd-feat, :root[data-theme] .bd-map .bd-feat,
-      .bd-map.is-drawing svg, :root[data-theme] .bd-map.is-drawing svg { cursor: crosshair !important; }
+
+      .measure,
+      .measure canvas,
+      :root[data-theme] :is(.measure, .measure canvas),
+      .bd-map .bd-feat,
+      :root[data-theme] .bd-map .bd-feat,
+      .bd-map.is-drawing svg,
+      :root[data-theme] .bd-map.is-drawing svg {
+        cursor: crosshair !important;
+      }
     }
   }
 
-  .term { text-decoration: underline dotted color-mix(in oklch, var(--color-muted) 70%, transparent); text-underline-offset: 3px; cursor: help; }
+  .term {
+    text-decoration: underline dotted color-mix(in oklch, var(--color-muted) 70%, transparent);
+    text-underline-offset: 3px;
+    cursor: help;
+  }
 
   /* Plain-language pages: tap-to-explain glossary (native popover), our finding vs outside fact, caution line. */
-  button.gloss { font: inherit; color: inherit; background: none; border: 0; padding: 0; text-decoration: underline dotted var(--color-orbit); text-underline-offset: 3px; cursor: help; }
-  .gloss-pop { max-width: min(26rem, calc(100vw - 2rem)); margin: auto; padding: 1rem 1.1rem; border: 1px solid var(--color-line); border-radius: 10px;
-    background: var(--color-surface); color: var(--color-ink); box-shadow: 0 16px 40px -12px rgba(15, 20, 40, 0.35); }
-  .gloss-pop::backdrop { background: rgba(15, 20, 40, 0.25); }
-  .ours { border: 1px solid color-mix(in oklch, var(--color-orbit) 35%, var(--color-line)); background: color-mix(in oklch, var(--color-orbit) 7%, var(--color-surface)); border-radius: 6px; padding: 0.6rem 0.8rem; }
-  .other { border: 1px dashed var(--color-line); background: var(--color-surface-2); border-radius: 6px; padding: 0.6rem 0.8rem; }
-  .tag { display: inline-block; font-size: 11px; font-weight: 650; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-muted); margin-bottom: 0.15rem; }
-  .big-num { font-family: var(--font-display); font-stretch: 75%; font-weight: 640; font-size: clamp(2.25rem, 5vw, 3.25rem); line-height: 1; letter-spacing: -0.02em; }
+  button.gloss {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    padding: 0;
+    text-decoration: underline dotted var(--color-orbit);
+    text-underline-offset: 3px;
+    cursor: help;
+  }
+
+  .gloss-pop {
+    max-width: min(26rem, calc(100vw - 2rem));
+    margin: auto;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--color-line);
+    border-radius: 10px;
+    background: var(--color-surface);
+    color: var(--color-ink);
+    box-shadow: 0 16px 40px -12px rgba(15, 20, 40, 0.35);
+  }
+
+  .gloss-pop::backdrop {
+    background: rgba(15, 20, 40, 0.25);
+  }
+
+  .ours {
+    border: 1px solid color-mix(in oklch, var(--color-orbit) 35%, var(--color-line));
+    background: color-mix(in oklch, var(--color-orbit) 7%, var(--color-surface));
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .other {
+    border: 1px dashed var(--color-line);
+    background: var(--color-surface-2);
+    border-radius: 6px;
+    padding: 0.6rem 0.8rem;
+  }
+
+  .tag {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 650;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    margin-bottom: 0.15rem;
+  }
+
+  .big-num {
+    font-family: var(--font-display);
+    font-stretch: 75%;
+    font-weight: 640;
+    font-size: clamp(2.25rem, 5vw, 3.25rem);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
 
   /* Nav pill row: fades at the right edge on narrow screens so cut-off reads as scrollable. */
-  .nav-scroll { scrollbar-width: none; scroll-snap-type: x proximity; }
-  .nav-scroll::-webkit-scrollbar { display: none; }
-  .nav-scroll > * { scroll-snap-align: start; }
+  .nav-scroll {
+    scrollbar-width: none;
+    scroll-snap-type: x proximity;
+  }
+
+  .nav-scroll::-webkit-scrollbar {
+    display: none;
+  }
+
+  .nav-scroll>* {
+    scroll-snap-align: start;
+  }
+
   /* Fade the trailing edge only while the row actually scrolls (scroll-driven; no timeline = no mask), clear at the end. */
   @supports (animation-timeline: scroll()) {
-    .nav-scroll { animation: nav-fade linear both; animation-timeline: scroll(self inline); }
-    @keyframes nav-fade { 0%, 96% { mask-image: linear-gradient(to right, #000 85%, transparent); } 100% { mask-image: none; } }
+    .nav-scroll {
+      animation: nav-fade linear both;
+      animation-timeline: scroll(self inline);
+    }
+
+    @keyframes nav-fade {
+
+      0%,
+      96% {
+        mask-image: linear-gradient(to right, #000 85%, transparent);
+      }
+
+      100% {
+        mask-image: none;
+      }
+    }
   }
+
   @supports not (animation-timeline: scroll()) {
-    @media (max-width: 639px) { .nav-scroll { mask-image: linear-gradient(to right, #000 82%, transparent); } }
+    @media (max-width: 639px) {
+      .nav-scroll {
+        mask-image: linear-gradient(to right, #000 82%, transparent);
+      }
+    }
   }
 }
 
-@utility route-in { animation: route-in var(--dur-quick) var(--ease-out) both; }
-@keyframes route-in { from { opacity: 0; } to { opacity: 1; } }
+@utility route-in {
+  animation: route-in var(--dur-quick) var(--ease-out) both;
+}
+
+@keyframes route-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
 
 /* BdMap: self-contained SVG choropleth (no tiles, no library). Fill comes from the
    path attribute (ramp/surface) — never set `fill` here: CSS overrides attributes. */
-.bd-feat { stroke: var(--color-line); stroke-width: 1; transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out); }
-.bd-feat:hover, .bd-feat:focus-visible { stroke: var(--color-ink); stroke-width: 1.8; outline: none; }
-.bd-feat:focus:not(:focus-visible) { outline: none; } /* a mouse pick shows as the selection stroke, not a focus box */
-.bd-sel { stroke: var(--color-orbit); stroke-width: 2.6; }
-.bd-label { fill: var(--color-ink); font-weight: 600; paint-order: stroke; stroke: var(--color-bg); stroke-width: 3px; pointer-events: none; }
-.bd-boxrect { fill: var(--color-orbit); fill-opacity: 0.08; stroke: var(--color-orbit); stroke-width: 2; }
+.bd-feat {
+  stroke: var(--color-line);
+  stroke-width: 1;
+  transition: fill 180ms var(--ease-out), stroke 180ms var(--ease-out);
+}
+
+.bd-feat:hover,
+.bd-feat:focus-visible {
+  stroke: var(--color-ink);
+  stroke-width: 1.8;
+  outline: none;
+}
+
+.bd-feat:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* a mouse pick shows as the selection stroke, not a focus box */
+.bd-sel {
+  stroke: var(--color-orbit);
+  stroke-width: 2.6;
+}
+
+.bd-label {
+  fill: var(--color-ink);
+  font-weight: 600;
+  paint-order: stroke;
+  stroke: var(--color-bg);
+  stroke-width: 3px;
+  pointer-events: none;
+}
+
+.bd-boxrect {
+  fill: var(--color-orbit);
+  fill-opacity: 0.08;
+  stroke: var(--color-orbit);
+  stroke-width: 2;
+}
 
 /* WorldMap (#/region): degrees as viewBox units, so every stroke is non-scaling. Lines go light over NASA imagery. */
-.wm-land, .wm-state, .wm-country, .wm-sa, .wm-sel, .wm-city { vector-effect: non-scaling-stroke; }
-.wm-land { fill: var(--color-surface); stroke: none; }
-.wm-state { fill: var(--color-surface); fill-opacity: 0.001; stroke: var(--color-line); stroke-width: 0.6; cursor: pointer; }
-.wm-state:hover { stroke: var(--color-ink); stroke-width: 1.4; fill: var(--color-orbit); fill-opacity: 0.08; }
-.wm-country { fill: none; stroke: var(--color-muted); stroke-width: 1; pointer-events: none; }
-.wm-country.is-pick { fill: var(--color-surface); fill-opacity: 0.001; pointer-events: auto; cursor: pointer; }
-.wm-country.is-pick:hover { fill: var(--color-orbit); fill-opacity: 0.08; stroke: var(--color-ink); }
-.wm-sa { fill: none; stroke: var(--color-heat); stroke-width: 1.8; pointer-events: none; }
-.wm-sel { fill: var(--color-orbit); fill-opacity: 0.14; stroke: var(--color-orbit); stroke-width: 2.4; pointer-events: none; }
-.wm-city { fill: var(--color-ink); stroke: var(--color-bg); stroke-width: 1; }
-.wm-city.is-capital { fill: var(--color-bg); stroke: var(--color-ink); stroke-width: 1.6; }
-.wm-city.is-sel { fill: var(--color-orbit); stroke: var(--color-bg); stroke-width: 2; }
-.wm-name { fill: var(--color-ink); paint-order: stroke; stroke: var(--color-bg); stroke-linejoin: round; pointer-events: none; }
-.wm-imagery .wm-state { stroke: rgb(255 255 255 / 0.35); }
-.wm-imagery .wm-country { stroke: rgb(255 255 255 / 0.7); }
-.wm-imagery .wm-land { fill: none; }
+.wm-land,
+.wm-state,
+.wm-country,
+.wm-sa,
+.wm-sel,
+.wm-city {
+  vector-effect: non-scaling-stroke;
+}
 
-@keyframes sel-pulse { 0%, 100% { stroke-opacity: 1; } 50% { stroke-opacity: 0.35; } }
-.map-sel { animation: sel-pulse 0.9s ease-out 2; }
+.wm-land {
+  fill: var(--color-surface);
+  stroke: none;
+}
+
+.wm-state {
+  fill: var(--color-surface);
+  fill-opacity: 0.001;
+  stroke: var(--color-line);
+  stroke-width: 0.6;
+  cursor: pointer;
+}
+
+.wm-state:hover {
+  stroke: var(--color-ink);
+  stroke-width: 1.4;
+  fill: var(--color-orbit);
+  fill-opacity: 0.08;
+}
+
+.wm-country {
+  fill: none;
+  stroke: var(--color-muted);
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.wm-country.is-pick {
+  fill: var(--color-surface);
+  fill-opacity: 0.001;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.wm-country.is-pick:hover {
+  fill: var(--color-orbit);
+  fill-opacity: 0.08;
+  stroke: var(--color-ink);
+}
+
+.wm-sa {
+  fill: none;
+  stroke: var(--color-heat);
+  stroke-width: 1.8;
+  pointer-events: none;
+}
+
+.wm-sel {
+  fill: var(--color-orbit);
+  fill-opacity: 0.14;
+  stroke: var(--color-orbit);
+  stroke-width: 2.4;
+  pointer-events: none;
+}
+
+.wm-city {
+  fill: var(--color-ink);
+  stroke: var(--color-bg);
+  stroke-width: 1;
+}
+
+.wm-city.is-capital {
+  fill: var(--color-bg);
+  stroke: var(--color-ink);
+  stroke-width: 1.6;
+}
+
+.wm-city.is-sel {
+  fill: var(--color-orbit);
+  stroke: var(--color-bg);
+  stroke-width: 2;
+}
+
+.wm-name {
+  fill: var(--color-ink);
+  paint-order: stroke;
+  stroke: var(--color-bg);
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.wm-imagery .wm-state {
+  stroke: rgb(255 255 255 / 0.35);
+}
+
+.wm-imagery .wm-country {
+  stroke: rgb(255 255 255 / 0.7);
+}
+
+.wm-imagery .wm-land {
+  fill: none;
+}
+
+@keyframes sel-pulse {
+
+  0%,
+  100% {
+    stroke-opacity: 1;
+  }
+
+  50% {
+    stroke-opacity: 0.35;
+  }
+}
+
+.map-sel {
+  animation: sel-pulse 0.9s ease-out 2;
+}
 
 /* Theme switch: circular reveal from the toggle (View Transitions; rare action, 400ms). */
-::view-transition-old(root), ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
-::view-transition-new(root) { animation: theme-reveal 400ms var(--ease-out); }
-@keyframes theme-reveal { from { clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0)); } to { clip-path: circle(150vmax at var(--vt-x, 100%) var(--vt-y, 0)); } }
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
 
-@media print, (forced-colors: active) {
-  .panel { border: 1px solid CanvasText; }
+::view-transition-new(root) {
+  animation: theme-reveal 400ms var(--ease-out);
+}
+
+@keyframes theme-reveal {
+  from {
+    clip-path: circle(0 at var(--vt-x, 100%) var(--vt-y, 0));
+  }
+
+  to {
+    clip-path: circle(150vmax at var(--vt-x, 100%) var(--vt-y, 0));
+  }
+}
+
+@media print,
+(forced-colors: active) {
+  .panel {
+    border: 1px solid CanvasText;
+  }
 }
 
 /* Page ground (bg_cursor_plan.md §2). Static, never behind data, cool hues only: heat is data, not decoration. */
 /* Neatline: survey-sheet frame in the gutters, 1px rules with a 6px tick every 48px, outward. One fixed layer. */
 @media (min-width: 1360px) {
   body::before {
-    content: ""; position: fixed; inset-block: 0; left: 50%; z-index: -1; pointer-events: none;
-    width: calc(1200px + 2 * 24px + 2 * 6px); transform: translateX(-50%);
+    content: "";
+    position: fixed;
+    inset-block: 0;
+    left: 50%;
+    z-index: -1;
+    pointer-events: none;
+    width: calc(1200px + 2 * 24px + 2 * 6px);
+    transform: translateX(-50%);
     background:
       linear-gradient(var(--color-ground-rule), var(--color-ground-rule)) left 6px top 0 / 1px 100% no-repeat,
       linear-gradient(var(--color-ground-rule), var(--color-ground-rule)) right 6px top 0 / 1px 100% no-repeat,
@@ -333,32 +880,90 @@
       repeating-linear-gradient(var(--color-ground-rule) 0 1px, transparent 1px 48px) right 0 top 0 / 6px 100% no-repeat;
   }
 }
+
 /* The pass: one band of cooler ground behind the Story headline, at the real ground-track angle (--swath-tilt). */
 @media (min-width: 768px) {
-  .hero-ground { position: relative; isolation: isolate; }
+  .hero-ground {
+    position: relative;
+    isolation: isolate;
+  }
+
   .hero-ground::before {
-    content: ""; position: absolute; z-index: -1; pointer-events: none;
-    top: -24px; bottom: 0; left: 22%; width: min(34vw, 420px);
+    content: "";
+    position: absolute;
+    z-index: -1;
+    pointer-events: none;
+    top: -24px;
+    bottom: 0;
+    left: 22%;
+    width: min(34vw, 420px);
     background: var(--color-swath);
     border-inline: 1px dashed var(--color-swath-edge);
-    transform: rotate(var(--swath-tilt)); transform-origin: 50% 0;
+    transform: rotate(var(--swath-tilt));
+    transform-origin: 50% 0;
     /* a swath has no end: it fades in from the page top and out before the Ledger, so it never reaches the header
        or the demo banner (the isolated hero paints above unpositioned blocks) */
     mask-image: linear-gradient(to bottom, transparent, #000 22%, #000 48%, transparent 92%);
   }
 }
-@media print, (forced-colors: active) { body::before, .hero-ground::before { display: none; } }
+
+@media print,
+(forced-colors: active) {
+
+  body::before,
+  .hero-ground::before {
+    display: none;
+  }
+}
 
 /* Explore compact bar: fixed (no layout shift), fades in once the full header has scrolled away. */
-.compact-bar { opacity: 0; transform: translateY(-6px); visibility: hidden; transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s 160ms; }
-.compact-bar[data-on] { opacity: 1; transform: none; visibility: visible; transition-delay: 0s; }
+.compact-bar {
+  opacity: 0;
+  transform: translateY(-6px);
+  visibility: hidden;
+  transition: opacity 160ms var(--ease-out), transform 160ms var(--ease-out), visibility 0s 160ms;
+}
+
+.compact-bar[data-on] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition-delay: 0s;
+}
 
 /* Reduced motion = fewer and gentler, not zero: drop travel/scale, keep short opacity and colour changes. */
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
-  .btn:active:not(:disabled) { transform: none; }
-  .seg-thumb { transition: none; }
-  .menu-list { transition: opacity 120ms ease; @starting-style { opacity: 0; transform: none; } }
-  ::view-transition-new(root) { animation: none; }
-  .compact-bar { transform: none; }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  .btn:active:not(:disabled) {
+    transform: none;
+  }
+
+  .seg-thumb {
+    transition: none;
+  }
+
+  .menu-list {
+    transition: opacity 120ms ease;
+
+    @starting-style {
+      opacity: 0;
+      transform: none;
+    }
+  }
+
+  ::view-transition-new(root) {
+    animation: none;
+  }
+
+  .compact-bar {
+    transform: none;
+  }
 }
