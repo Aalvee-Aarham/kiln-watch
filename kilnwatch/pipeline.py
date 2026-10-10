@@ -276,6 +276,8 @@ def _calendar(uid, g, clear, cells, is_district, keys, branch, rng):
             continue
         cnt = np.bincount(di[m], minlength=n)[:n].astype(float)
         c = cf[s].to_numpy() if s in cf else (cf["N"].to_numpy() if "N" in cf else np.full(n, np.nan))
+        if s == "J1" and "J1" not in cf:  # NOAA-20 shares S-NPP's fraction; after S-NPP ends, its climatology (as h)
+            c = np.where(np.isnan(c), clim_n.reindex(idx.dayofyear).to_numpy(), c)
         raw[s] = np.where(np.nan_to_num(c) >= 0.2, 1000 * cnt / np.maximum(np.nan_to_num(c) * cells, 1), 0.0)
     e = g[g.era & g.w.notna()]
     de = ((e.date_local - DAY0).dt.days).to_numpy()

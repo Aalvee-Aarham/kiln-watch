@@ -24,7 +24,7 @@ const S = {
   englishOnly: ['', 'এই অংশটি এখনো ইংরেজিতে।'], ctrlZoom: ['Hold Ctrl to zoom the map', 'মানচিত্র বড় করতে Ctrl চেপে রাখুন'],
   daysAbove: ['days above normal this season', 'এই মৌসুমে স্বাভাবিকের চেয়ে বেশি দিন'], showMap: ['Map', 'মানচিত্র'],
   seasonShort: ['Season', 'মৌসুম'], kilnsShort: ['Kilns', 'ভাটা'],
-  area: ['My area', 'আমার এলাকা'], areaShort: ['Area', 'এলাকা'], planner: ['Kiln planner', 'ভাটা পরিকল্পনা'],
+  area: ['My area', 'আমার এলাকা'], areaShort: ['Area', 'এলাকা'], region: ['World map', 'বিশ্ব মানচিত্র'], regionShort: ['World', 'বিশ্ব'], planner: ['Kiln planner', 'ভাটা পরিকল্পনা'],
   sensors: ['Sensor switch', 'সেন্সর বদল'], sensorsShort: ['Sensors', 'সেন্সর'], timeline: ['Timeline', 'সময়রেখা'], timelineShort: ['Events', 'ঘটনা'],
   impact: ['Who benefits', 'কারা উপকৃত'], impactShort: ['Uses', 'ব্যবহার'], experts: ['For experts', 'বিশেষজ্ঞদের জন্য'], expertsShort: ['Experts', 'বিশেষজ্ঞ'],
   how: ['How it works', 'কীভাবে কাজ করে'], howShort: ['How', 'কীভাবে'], trust: ['Can you trust it?', 'বিশ্বাস করা যায়?'], trustShort: ['Trust', 'আস্থা'],

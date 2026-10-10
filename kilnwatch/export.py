@@ -16,7 +16,7 @@ from . import config as C
 
 log = logging.getLogger("kilnwatch.export")
 BUDGET = {"meta.json": 50_000, "events.json": 50_000, "harmonization.json": 200_000, "validation.json": 500_000,
-          "aoi/districts.geojson": 400_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "outlook.json": 200_000,
+          "aoi/districts.geojson": 400_000, "aoi/south_asia.geojson": 100_000, "aoi/world_countries.geojson": 1_000_000, "aoi/world_states.geojson": 3_500_000, "aoi/world_cities.json": 700_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "outlook.json": 200_000,
           "kiln_activity.json": 1_500_000}
 BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000}
 SPLITS = {
@@ -176,6 +176,7 @@ def write_public(out: Path = C.WEB_DATA) -> None:
     dv = {"firms": "FIRMS API SP+NRT, fetched " + pd.Timestamp.today().strftime("%Y-%m-%d"), "apad": "APAD IGP Brick Kilns BAN (accessed 2026-10-06)",
           "boundaries": "HDX COD-AB BGD v03 (2023-05-21)"}
     add_overlap(out)
+    write_region(out)
     _dump(meta(branch, dv), out / "meta.json")
     check_public_dir(out)
     errs = check_budgets(out)
@@ -276,6 +277,7 @@ def _fixture_set_real(d: Path, src: Path) -> None:
     shutil.copytree(src, d)
     _dump(events_payload(), d / "events.json")  # curated data/static CSVs, not pipeline output: always current
     add_overlap(d)  # derived from the public calendars alone, so it can be recomputed on the frozen release
+    write_region(d)
     # kiln_activity season CIs from release c310275 predate the activity.py p50 fix (bootstrap median):
     # a CI that cannot bracket its median is treated as not estimable, the file's own convention for degenerate rows.
     ka_p = d / "kiln_activity.json"
@@ -316,6 +318,17 @@ def add_overlap(d: Path) -> None:
     o = outlook([c for c in cals if c.get("clear_frac")])  # districts: the NRT job publishes districts only
     if o:
         _dump(nan_to_none(o), d / "outlook.json")
+    else:  # not estimable for this build: an outlook left by an earlier build would no longer match its calendars
+        (d / "outlook.json").unlink(missing_ok=True)
+
+
+def write_region(d: Path) -> None:
+    """The world map's reference geography (#/region), from committed Natural Earth extracts in data/static (public
+    domain, de facto boundaries): South Asia's eight countries, every country, every state/province, and city names as
+    plain records (not point features). Place names and outlines only: no data of ours."""
+    _dump(json.loads((C.STATIC / "south_asia_countries.geojson").read_text(encoding="utf-8")), d / "aoi" / "south_asia.geojson")
+    for name in ("world_countries.geojson", "world_states.geojson", "world_cities.json"):  # kilnwatch/geography.py builds these
+        _dump(json.loads((C.STATIC / name).read_text(encoding="utf-8")), d / "aoi" / name)
 
 
 def events_payload() -> dict:
@@ -382,6 +395,7 @@ def _fixture_set(branch: str, d: Path) -> None:
     _dump({"tile": "90_23", "day0": "2003-01-01", "rows": [[int(1136241 + i), int(4000 + i % 300), int(i % 6)] for i in range(500)]}, d / "grid" / "90_23.json")
     _dump(_fixture_kiln_activity(rng), d / "kiln_activity.json")
     add_overlap(d)
+    write_region(d)
 
 
 def _fixture_kiln_activity(rng):

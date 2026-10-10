@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from 'react'
+import { useEffect, useMemo, useRef, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router'
 import { Icon, Skeleton, useKilnActivity, useTitle } from '../components/ui'
 import { Caution, Flow, Gloss, MonthStrip, Other, PageHead, TryLink, useQ, windowLevels } from '../components/plain'
@@ -163,7 +163,14 @@ export default function ImpactPage() {
   useTitle(`Who benefits · ${persona.who}`)
   const dists = useJson<FC>('aoi/districts.geojson')
   const options = useMemo(() => (dists.data?.features ?? []).map((f) => f.properties).sort((a, b) => a.name_en.localeCompare(b.name_en)), [dists.data])
-  const go = (p: string, a: string) => nav(`/impact/${p}/${a}${q}`, { replace: true })
+  // The latest pick, written the moment a control is used: navigation renders as a deferred update, so reading the person
+  // or district from the last render would rebuild the URL from a stale choice when two picks come in quick succession.
+  const cur = useRef({ who: persona.id, area: id })
+  useEffect(() => { cur.current = { who: persona.id, area: id } }, [persona.id, id]) // back/forward and direct links
+  const go = (pick: { who?: string; area?: string }) => {
+    cur.current = { ...cur.current, ...pick }
+    nav(`/impact/${cur.current.who}/${cur.current.area}${q}`, { replace: true })
+  }
   const facts = useFacts(id, options.find((o) => o.unit_id === id)?.name_en ?? id)
 
   return (
@@ -176,7 +183,7 @@ export default function ImpactPage() {
 
       <section aria-label="Choose a person" className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
         {PERSONAS.map((p) => (
-          <button key={p.id} type="button" aria-pressed={p.id === persona.id} onClick={() => go(p.id, id)}
+          <button key={p.id} type="button" aria-pressed={p.id === persona.id} onClick={() => go({ who: p.id })}
             className="panel text-left transition-colors hover:bg-surface-2 aria-pressed:border-ink aria-pressed:bg-surface-2">
             <b className="block">{p.who}</b><span className="text-sm text-muted">{p.benefit}</span>
           </button>))}
@@ -186,7 +193,7 @@ export default function ImpactPage() {
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h2 className="h-display text-[clamp(1.5rem,3vw,2rem)]">{persona.who}{persona.area && <> in {facts?.name ?? '…'}</>}</h2>
           {persona.area && <label className="text-sm font-semibold print:hidden">District
-            <select className="field ml-2 font-normal" value={id} onChange={(e) => go(persona.id, e.target.value)}>
+            <select className="field ml-2 font-normal" value={id} onChange={(e) => go({ area: e.target.value })}>
               {options.map((o) => <option key={o.unit_id} value={o.unit_id}>{o.name_en}</option>)}
             </select></label>}
         </div>

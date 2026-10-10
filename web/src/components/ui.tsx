@@ -87,6 +87,8 @@ const ICONS = {
   replay: 'M2.5 8a5.5 5.5 0 1 0 1.6-3.9M2.5 2v3h3',
   table: 'M2 3h12v10H2zM2 6.5h12M2 10h12M6.5 3v10',
   pin: 'M8 14.5s4.5-4 4.5-8a4.5 4.5 0 0 0-9 0c0 4 4.5 8 4.5 8zM8 5v.01',
+  plus: 'M8 3v10M3 8h10',
+  minus: 'M3 8h10',
 } as const
 export type IconName = keyof typeof ICONS
 export const Icon = ({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) => (
@@ -108,7 +110,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads; the kiln extension sits after the proof (docs/roadmap.md F1).
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
     ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])

@@ -1,6 +1,6 @@
 # Operations: setup, CI/CD, daily updates, release
 
-**Applies to:** `main` @ `1314a30` (10 Oct 2026) · **Pipeline:** [pipeline.md](pipeline.md) · **Contract:** [data-contracts.md](data-contracts.md)
+**Applies to:** `fire-calendar` branch (10 Oct 2026; `main` until it is merged) · **Pipeline:** [pipeline.md](pipeline.md) · **Contract:** [data-contracts.md](data-contracts.md)
 
 ## Local setup
 

@@ -57,7 +57,7 @@ export interface Outlook {
   rule: string; start: string; step_days: number; window_days: number; weeks: number
   backtest: { seasons: string; n: number; n_districts: number; baseline: string; base_rate: number; brier_skill: CI }
   ships: boolean
-  districts: Record<string, { clim: number[]; if_recent: number[]; if_quiet: number[] }>  // one value per week from `start`
+  districts: Record<string, { clim: (number | null)[]; if_recent: (number | null)[]; if_quiet: (number | null)[] }>  // one value per week from `start`; null = no estimate
 }
 
 export interface Validation {

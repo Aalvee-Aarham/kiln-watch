@@ -18,6 +18,9 @@ describe('outlookFor', () => {
   it('is closed before the window opens on 1 November', () => {
     expect(outlookFor(o, 'D1', nrt(122), p90)).toEqual({ state: 'before', opens: '1 November' })
   })
+  it('opens with data to 31 October: the forecast for 1–14 November is row 0', () => {
+    expect(outlookFor(o, 'D1', nrt(123), p90)).toMatchObject({ state: 'on', clim: 0.2, asOf: '2026-10-31' })
+  })
   it('reads week 0 on 1 November, quiet and recent', () => {
     expect(outlookFor(o, 'D1', nrt(124), p90)).toMatchObject({ state: 'on', p: 0.1, clim: 0.2, recent: false, asOf: '2026-11-01' })
     expect(outlookFor(o, 'D1', nrt(124, [110]), p90)).toMatchObject({ p: 0.5, recent: true }) // day 110 is within the last 14 days

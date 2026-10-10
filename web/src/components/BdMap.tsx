@@ -2,15 +2,12 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { palette, rampColor, useTheme } from '../lib/theme'
 import type { FC } from '../lib/types'
 import { BBOX, boxAreaKm2, type Box } from '../lib/box'
-// NASA GIBS WMS GetMap, EPSG:4326, BBOX = the analysis extent (lib/box.ts), 960×1240 px: plate carrée, so it lines up
-// with this map's equirectangular projection by its corners. Bundled, so the layer works with the network off.
+import { LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
+// NASA GIBS WMS GetMap images, EPSG:4326, BBOX = the analysis extent (lib/box.ts), 960×1240 px: plate carrée, so they
+// line up with this map's equirectangular projection by their corners. Bundled, so the layers work with the network off.
 import dayImg from '../assets/basemap/bluemarble-ng_bd.jpg'
 import nightImg from '../assets/basemap/black-marble-2016_bd.jpg'
 
-type Layer = 'none' | 'day' | 'night'
-const LAYERS: [Layer, string, string][] = [['none', 'Map', ''], ['day', 'Satellite', 'NASA Blue Marble Next Generation via GIBS'],
-  ['night', 'Night lights', 'NASA Black Marble 2016 via GIBS']]
-const readLayer = (): Layer => { try { const v = localStorage.getItem('kwBasemap'); return v === 'day' || v === 'night' ? v : 'none' } catch { return 'none' } }
 
 const MIN_KM2 = 100 // same floor as parseBox: reject at draw time, not after navigation
 const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -103,7 +100,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   const [hint, setHint] = useState(false)
   const [drawBox, setDrawBox] = useState<{ a: View; b: View; km2: number } | null>(null)
   const [layer, setLayer] = useState<Layer>(readLayer)
-  const pickLayer = (l: Layer) => { setLayer(l); try { localStorage.setItem('kwBasemap', l) } catch { /* this page only */ } }
+  const pickLayer = (l: Layer) => { setLayer(l); saveLayer(l) }
   const raf = useRef(0)
   const viewRef = useRef(view)
   viewRef.current = view

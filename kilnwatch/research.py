@@ -32,12 +32,16 @@ def _units(src: Path) -> pd.DataFrame:
     return pd.DataFrame(rows, columns=["unit_id", "level", "name_en", "division"]).drop_duplicates("unit_id")
 
 
+def calendar_len(cal: dict) -> int:
+    """Days covered by a sparse calendar file: through its last active day or its last not-observed run."""
+    return max(cal["days"][-1] if cal["days"] else 0, max((e for _, e in cal["nodata"]), default=0)) + 1
+
+
 def calendar_daily(cal: dict) -> pd.DataFrame:
     """One sparse calendar file → one row per day from day0. h is NaN on not-observed days and 0 on observed days with
     no fire, so "no fire" and "not seen" stay different facts."""
     days = np.asarray(cal["days"], dtype=int)
-    last = max(int(days[-1]) if len(days) else 0, max((e for _, e in cal["nodata"]), default=0))
-    n = last + 1
+    n = calendar_len(cal)
     observed = np.ones(n, bool)
     for a, b in cal["nodata"]:
         observed[a:b + 1] = False

@@ -1,6 +1,6 @@
 # Kiln Watch pipeline reference
 
-**Applies to:** `main` @ `1314a30` (10 Oct 2026) · **Contract:** [data-contracts.md](data-contracts.md) · **System overview:** [architecture.md](architecture.md)
+**Applies to:** `fire-calendar` branch (10 Oct 2026; `main` until it is merged) · **Contract:** [data-contracts.md](data-contracts.md) · **System overview:** [architecture.md](architecture.md)
 
 One Python package, `kilnwatch/`, turns raw NASA/ESA satellite data into the static JSON the website serves. Each stage is one module, runs alone as `python -m kilnwatch <stage>`, reads `data/raw` or `data/interim`, and writes Parquet to `data/interim`, model artifacts to `data/models`, reports to `reports/`, or the public export to `web/public/data/`. Tests never read any of these (see [operations.md](operations.md)).
 
@@ -24,6 +24,7 @@ One Python package, `kilnwatch/`, turns raw NASA/ESA satellite data into the sta
 | `export.py` | The public / regulator / fixtures / publish tiers; name and value safety checks; per-file size budgets |
 | `research.py` | The research release: the public export re-shaped as tidy CSV + Parquet tables (daily/monthly/weekly-interval calendars, season metrics, calibration betas, national series, kiln seasons by area) with a data dictionary, CC BY 4.0 and a SHA-256 manifest; refuses kiln-level and coordinate columns |
 | `ask.py` | Ask Kiln Watch: five deterministic tools over the public export (with dataset id, source URL and data build on every result), a bounded tool-use loop (≤ 6 model calls, Claude Opus 5.5), and `guard()`, which blocks any answer stating a number no tool returned |
+| `geography.py` | Builds the world map's reference geography in `data/static` from Natural Earth downloads (`python -m kilnwatch.geography <dir>`): countries, states (South Asia simplified finer), cities as records; unnamed minor areas are labelled by their country |
 | `stats.py` | `bootstrap_ci` (block), stratified `perm_test`, `wilson`, `chow_test` |
 | `pipeline.py` | Stage glue behind `grid`, `harmonize`, `metrics`: record assembly, national series, per-unit calendars, AOI GeoJSON, grid tiles, `events.json`, money-shot figures, `reports/baseline.json` |
 | `__main__.py` | The CLI (below) |

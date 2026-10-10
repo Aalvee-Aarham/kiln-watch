@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test'
 
-const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts', '#/ask',
+const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts', '#/ask', '#/region',
   '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
@@ -311,4 +311,35 @@ test('ask: without a generated cache the page says how to make one', async ({ pa
   await page.goto('#/ask')
   await expect(page.getByRole('heading', { level: 1, name: 'Ask Kiln Watch' })).toBeVisible()
   await expect(page.getByText(/No answers have been generated for this data build yet/)).toBeVisible()
+})
+
+test('world map: search finds a city anywhere and says what is covered there', async ({ page }) => {
+  await page.goto('#/region')
+  await expect(page.getByRole('heading', { level: 1, name: 'South Asia and the world' })).toBeVisible()
+  await page.getByLabel('Find a city, state or country').fill('Lahore')
+  await page.getByRole('button', { name: /^Lahore/ }).first().click()
+  await expect(page.getByRole('heading', { level: 2, name: /Lahore/ })).toBeVisible()
+  await expect(page.getByText(/South Asia’s harmonized fire calendar is being built/)).toBeVisible()
+  await page.getByLabel('Find a city, state or country').fill('Tokyo')
+  await page.getByRole('button', { name: /^Tokyo/ }).first().click()
+  await expect(page.getByText(/Outside the study area/)).toBeVisible()
+  await page.getByRole('radio', { name: 'Night lights' }).click()
+  await expect(page.locator('svg image')).toHaveCount(3)
+})
+
+test('world map: the panel shows real numbers for Bangladesh and the kiln test abroad', async ({ page }) => {
+  await page.goto('#/region')
+  const search = page.getByLabel('Find a city, state or country')
+  await search.fill('Rajshahi')
+  await page.getByRole('button', { name: /^Rajshahi \(city/ }).click()
+  await expect(page.getByText('In Rajshahi district')).toBeVisible()
+  await expect(page.getByText('Fire season', { exact: true })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Open Rajshahi in My area/ })).toBeVisible()
+  await search.fill('Sylhet')
+  await page.getByRole('button', { name: /^Sylhet \(state/ }).click()
+  await expect(page.getByText(/districts here/)).toBeVisible()
+  await search.fill('Pakistan')
+  await page.getByRole('button', { name: /^Pakistan \(country/ }).click()
+  await expect(page.getByText('Kiln extension: tested here')).toBeVisible()
+  await expect(page.getByText(/busiest from November to March/)).toBeVisible()
 })

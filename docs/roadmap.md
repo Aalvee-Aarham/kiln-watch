@@ -14,6 +14,8 @@ Each step is built and verified on its own (ruff, pytest, web lint/typecheck/Vit
 | **F5** ✓ `cf6cb84` | **Impact page.** Who acts, on which output, when; cited Bangladesh figures; each section ends on a decision | Every number carries a source link |
 | **F6** ✓ `f9821eb` | **Map navigation.** Smooth zoom to an area, a NASA imagery layer cached for offline use, a time slider | Works with the network off |
 | **F7** ✓ code | **"Ask Kiln Watch".** The model explains results returned by the project's own functions; it never computes a number; answers to the demo questions cached for offline; `docs/AI_USE.md` | Every number in an answer traces to a tool result; offline demo works |
+| **F8** ✓ | **World map (option A, widened).** `#/region`: every country, state/province and city (Natural Earth, public domain), opening on South Asia, NASA backgrounds for the world, South Asia and Bangladesh, ranked search, labels thinned by zoom and collision; the panel says what is analysed at each place | Renders with no console errors; contract tests on the geography (names present); map logic unit-tested; works offline |
+| **F9** | **Harmonized calendar for South Asia (option B).** Country + ADM1 calendars with a regional calibration, per-country seam and held-out agreement tests, shipped per country only when they pass | Amendment 5 agreed and committed **before** regional data is fetched ([draft](amendment5_draft.md)); tests on the Trust page |
 | — | Kiln and crop season *prediction* | Cut: highest validity risk; Black Marble VNP46A2 is a Suomi NPP product and needs the NOAA-20 equivalent first |
 
-Decisions that need a person: the AI hosting and key (F7), a Zenodo DOI for the data release (F2), and signing the rows in [VERIFICATION.md](VERIFICATION.md).
+Decisions that need a person: Amendment 5's open points (F9), the AI hosting and key (F7), a Zenodo DOI for the data release (F2), and signing the rows in [VERIFICATION.md](VERIFICATION.md).

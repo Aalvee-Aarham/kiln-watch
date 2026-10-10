@@ -46,7 +46,7 @@ export default function TrustPage() {
     ...(ol ? [{
       claim: 'The two-week warning beats the usual chance for that place and time of year.',
       result: (ol.ships ? 'pass' : 'fail') as Result,
-      got: <>Tested on {ol.backtest.n.toLocaleString('en-US')} past fortnights in {ol.backtest.n_districts} districts ({ol.backtest.seasons}), each season predicted without itself:
+      got: <>Tested on {ol.backtest.n.toLocaleString('en-US')} past fortnights in {ol.backtest.n_districts} districts ({ol.backtest.seasons}), each season predicted from the other seasons (the normal that defines an unusual day uses all seasons):
         skill {ol.backtest.brier_skill.p50.toFixed(2)} (95%: {ol.backtest.brier_skill.lo.toFixed(2)}–{ol.backtest.brier_skill.hi.toFixed(2)}; 0 = no better than usual, 1 = perfect)</>,
       meaning: ol.ships ? 'A modest but real gain: an unusual fortnight tends to be followed by another. Exploratory, not pre-registered.'
         : 'Not better than the usual chance, so the site shows no outlook.',
@@ -139,7 +139,7 @@ export default function TrustPage() {
         </ul>
       </section>
 
-      {harm?.overlap && harm.overlap.length > 0 && <Agreement rows={harm.overlap} />}
+      {harm?.overlap && harm.overlap.some((r) => r.ratio_harm.p50 != null) && <Agreement rows={harm.overlap.filter((r) => r.ratio_harm.p50 != null)} />}
 
       {ka?.transfer && ka.transfer.countries.length > 1 && <Abroad countries={ka.transfer.countries} />}
 

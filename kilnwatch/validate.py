@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from .research import calendar_len
 from .stats import bootstrap_ci, wilson
 
 log = logging.getLogger("kilnwatch.validate")
@@ -66,7 +67,7 @@ def overlap_agreement(cals: list[dict], calib=None, rng=None, n_boot=200) -> lis
     out = []
     for period, sel in (("calibration", allm.season.isin(calib)), ("held_out", ~allm.season.isin(calib) & (allm.season > calib[-1]))):
         d = allm[sel]
-        if d.unit_id.nunique() < 2:
+        if d.unit_id.nunique() < 2 or not d.aqua.sum() > 0:  # no Aqua activity to compare against: no estimate
             continue
         groups = [g for _, g in d.groupby("unit_id")]
 
@@ -92,11 +93,11 @@ def _outlook_rows(cals: list[dict]) -> pd.DataFrame:
     rows = []
     day0 = pd.Timestamp(cals[0]["day0"]) if cals else pd.Timestamp("2003-01-01")
     for c in cals:
-        n = max(c["days"][-1] if c["days"] else 0, max((e for _, e in c["nodata"]), default=0)) + 1  # calendar length
+        n = calendar_len(c)
         u = np.zeros(n, int)
         u[np.asarray(c["unusual"], int)] = 1
         cu = np.r_[0, np.cumsum(u)]
-        for y in range(day0.year, (day0 + pd.Timedelta(days=n)).year):
+        for y in range(day0.year, (day0 + pd.Timedelta(days=n)).year + 1):  # windows past the end are skipped below
             start = pd.Timestamp(y, *OUTLOOK_FROM)
             for k in range(OUTLOOK_STEPS):
                 i = (start - day0).days + 7 * k
@@ -119,8 +120,10 @@ def _outlook_probs(train: pd.DataFrame, keys: pd.DataFrame) -> tuple[np.ndarray,
 def outlook(cals: list[dict], rng=None, n_boot=200) -> dict | None:
     """Two-week unusual-fire outlook per district, and its leave-one-season-out backtest against the district ×
     week climatology (Brier skill score, district bootstrap). `ships` only when the lower 95% bound is above 0.
-    Exploratory, not pre-registered: the rule and the shrinkage were fixed before the first backtest run."""
-    df = _outlook_rows(cals)
+    Exploratory, not pre-registered: the rule and the shrinkage were fixed before the first backtest run. The
+    probabilities are fitted without the held-out season; the p90 normal that defines an unusual day uses all seasons."""
+    allrows = _outlook_rows(cals)
+    df = allrows
     if df.empty or df.unit_id.nunique() < 2:
         return None
     rng = rng if rng is not None else C.rng("validate")
@@ -143,7 +146,6 @@ def outlook(cals: list[dict], rng=None, n_boot=200) -> dict | None:
     if not np.isfinite(boots).any():
         return None
     skill = {"p50": round(float(bss(df)), 4), "lo": round(float(np.nanquantile(boots, 0.025)), 4), "hi": round(float(np.nanquantile(boots, 0.975)), 4)}
-    allrows = _outlook_rows(cals)
     table = {}
     for uid in sorted(allrows.unit_id.unique()):
         k = pd.DataFrame({"unit_id": uid, "week": np.repeat(np.arange(OUTLOOK_STEPS), 2), "s": np.tile([True, False], OUTLOOK_STEPS)})

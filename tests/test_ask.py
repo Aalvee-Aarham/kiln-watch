@@ -55,3 +55,31 @@ def test_step_cap():
 def test_find_area_puts_the_district_first():
     m = find_area(Data(FIXT), "Dhaka")["matches"]
     assert m[0]["name_en"] == "Dhaka" and m[0]["level"] == "district"
+
+
+def test_tool_arguments_cannot_reach_a_path_or_crash_the_loop():
+    from kilnwatch.ask import _run, area_fire_calendar
+
+    d = Data(FIXT)
+    for bad in ("../../../outside/x", "BD3026/../../meta", 3026, None):
+        assert "error" in _run(area_fire_calendar, d, {"unit_id": bad})
+    assert "error" in _run(area_fire_calendar, d, {"unit_id": "BD3026", "extra": 1})  # unexpected argument: reported, not raised
+    assert "error" not in _run(area_fire_calendar, d, {"unit_id": "BD3026"})
+
+
+def test_outlook_tool_matches_the_web_rule_at_the_window_start(tmp_path):
+    """Data to 31 October: the forecast for 1-14 November is row 0 (web/src/lib/outlook.test.ts has the same case)."""
+    import shutil
+
+    from kilnwatch.ask import two_week_outlook
+
+    src = tmp_path / "data"
+    shutil.copytree(C.ROOT / "web" / "fixtures" / "nokiln" / "data", src)
+    nrt = json.loads((src / "nrt" / "current_season.json").read_text(encoding="utf-8"))
+    for v in nrt["districts"].values():
+        v["h"] = [0.0] * 123  # 1 Jul .. 31 Oct 2026, no fire
+    (src / "nrt" / "current_season.json").write_text(json.dumps(nrt), encoding="utf-8")
+    out = two_week_outlook(Data(src), "BD3026")
+    o = json.loads((src / "outlook.json").read_text(encoding="utf-8"))
+    assert out["data_to"] == "2026-10-31" and out["state"] == "on"
+    assert out["usual_chance_for_time_of_year_pct"] == round(100 * o["districts"]["BD3026"]["clim"][0])

@@ -20,6 +20,7 @@ export function tilesForBox([w, s, e, n]: [number, number, number, number]): str
 
 export type Box = [number, number, number, number]
 export const BBOX: Box = [88.0, 20.5, 92.8, 26.7] // analysis extent (implementation_plan §6), not a grid constant
+export const SOUTH_ASIA_BOX: Box = [60.0, 3.0, 98.0, 39.0] // extent of the regional NASA images (#/region), not a grid constant
 
 /** Canonical box: four values with exactly 4 decimals, W,S,E,N, w<e, s<n, inside BBOX, area ≥ 100 km². */
 export function parseBox(text: string): Box | string {

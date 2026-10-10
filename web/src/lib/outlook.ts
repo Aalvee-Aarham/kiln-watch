@@ -17,10 +17,12 @@ export function outlookFor(o: Outlook, distId: string, nrt: NrtSeason, p90: numb
   const asOfMs = Date.parse(nrt.day0 + 'T00:00:00Z') + last * DAY
   const [mm, dd] = o.start.split('-').map(Number)
   const opens = Date.UTC(Number(nrt.season.slice(0, 4)), mm - 1, dd)
-  const k = Math.floor((asOfMs - opens) / (o.step_days * DAY))
+  // The forecast starts the day after the last day of data; row k forecasts from (start + 7k), as in the backtest.
+  const k = Math.floor((asOfMs + DAY - opens) / (o.step_days * DAY))
   const opensText = new Date(opens).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', timeZone: 'UTC' })
   if (k < 0) return { state: 'before', opens: opensText }
   if (k >= o.weeks) return { state: 'after', opens: opensText }
+  if (t.if_recent[k] == null || t.if_quiet[k] == null || t.clim[k] == null) return null // no estimate for this week
   let recent = false
   for (let i = Math.max(0, last - o.window_days + 1); i <= last; i++) if (h[i] > 0 && h[i] > p90[i % p90.length]) recent = true
   return { state: 'on', p: recent ? t.if_recent[k] : t.if_quiet[k], clim: t.clim[k], recent, asOf: new Date(asOfMs).toISOString().slice(0, 10) }

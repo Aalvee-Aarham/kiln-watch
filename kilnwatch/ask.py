@@ -101,7 +101,9 @@ def area_fire_calendar(d: Data, unit_id: str) -> dict:
         return {"error": f"no calendar for {unit_id}"}
     seasons = [s for s in cal["seasons"] if s.get("duration")]
     last = seasons[-1] if seasons else None
-    n_days = max(cal["days"][-1] if cal["days"] else 0, max((e for _, e in cal["nodata"]), default=0)) + 1
+    from .research import calendar_len
+
+    n_days = calendar_len(cal)
     return {"unit_id": unit_id, "record_starts": cal["day0"], "years_of_record": round(n_days / 365.25),
             "typical_year": _busy_months(_season_profile(cal)), "seasons_measured": len(seasons),
             "latest_full_season": last and {"season": last["season"], "duration_days": last["duration"]["p50"], "duration_days_95ci": [last["duration"]["lo"], last["duration"]["hi"]]},
@@ -131,7 +133,7 @@ def two_week_outlook(d: Data, unit_id: str) -> dict:
     as_of = pd.Timestamp(nrt["day0"]) + pd.Timedelta(days=last)
     mm, dd = (int(x) for x in o["start"].split("-"))
     opens = pd.Timestamp(int(nrt["season"][:4]), mm, dd)
-    k = (as_of - opens).days // o["step_days"]
+    k = (as_of + pd.Timedelta(days=1) - opens).days // o["step_days"]  # row k forecasts from day (opens + 7k), as in the backtest
     base = {"district": dist, "data_to": as_of.strftime("%Y-%m-%d"), "provenance": d.prov("outlook.json", "Kiln Watch outlook, backtested on " + FIRE),
             "backtest_brier_skill": o["backtest"]["brier_skill"]}
     if k < 0 or k >= o["weeks"]:
@@ -139,6 +141,8 @@ def two_week_outlook(d: Data, unit_id: str) -> dict:
     p90 = cal["normal"]["p90"]
     recent = any(h[i] > 0 and h[i] > p90[i % len(p90)] for i in range(max(0, last - o["window_days"] + 1), last + 1))
     t = o["districts"][dist]
+    if t["if_recent"][k] is None or t["if_quiet"][k] is None or t["clim"][k] is None:
+        return {**base, "state": "no estimate for this week"}
     return {**base, "state": "on", "window_days": o["window_days"], "unusual_day_in_last_14_days": recent,
             "chance_of_unusual_day_next_14_days_pct": round(100 * (t["if_recent"] if recent else t["if_quiet"])[k]),
             "usual_chance_for_time_of_year_pct": round(100 * t["clim"][k])}
@@ -168,6 +172,20 @@ TOOLS = [
 ]
 FUNCS = {"find_area": find_area, "area_fire_calendar": area_fire_calendar, "this_season": this_season,
          "two_week_outlook": two_week_outlook, "harmonization_evidence": harmonization_evidence}
+
+_UNIT = re.compile(r"BD\d{2,10}")  # HDX COD-AB p-codes: anything else never reaches a file path
+
+
+def _run(fn, data: Data, args: dict) -> dict:
+    """Run one tool on model-supplied arguments; a bad argument or missing file becomes an error the model sees."""
+    uid = args.get("unit_id")
+    if "unit_id" in args and not (isinstance(uid, str) and _UNIT.fullmatch(uid)):
+        return {"error": f"unit_id must be an area code such as BD3026 (from find_area), got {uid!r}"}
+    try:
+        return fn(data, **args)
+    except Exception as e:  # noqa: BLE001 - reported to the model as a failed call, never raised out of the loop
+        return {"error": f"{type(e).__name__}: {e}"}
+
 
 _NUM = re.compile(r"(?<![\w.])-?\d[\d,]*(?:\.\d+)?")
 _BN = str.maketrans("০১২৩৪৫৬৭৮৯", "0123456789")
@@ -205,7 +223,7 @@ def ask(question: str, client=None, data: Data | None = None) -> dict:
         results = []
         for u in uses:
             fn = FUNCS.get(u.name)
-            res = fn(data, **u.input) if fn else {"error": f"unknown tool {u.name}"}
+            res = _run(fn, data, u.input) if fn else {"error": f"unknown tool {u.name}"}
             calls.append({"name": u.name, "input": u.input, "result": res})
             results.append({"type": "tool_result", "tool_use_id": u.id, "content": json.dumps(res, ensure_ascii=False), **({"is_error": True} if "error" in res else {})})
         messages.append({"role": "user", "content": results})
