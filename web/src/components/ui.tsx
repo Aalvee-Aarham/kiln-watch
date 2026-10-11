@@ -26,6 +26,7 @@ export function DemoBanner() {
 
 export function SeasonBanner() {
   const nrtState = useJson<NrtSeason>('nrt/current_season.json')
+  const q = useLang() === 'bn' ? '?lang=bn' : ''
   const [dismissed, setDismissed] = useState(() => {
     try { return sessionStorage.getItem('banner-dismissed') === '1' } catch { return false }
   })
@@ -45,7 +46,8 @@ export function SeasonBanner() {
           <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-err" />
         </span>
       )}
-      <p>Today is Day <span className="font-semibold">{dayNumber}</span> of the {nrt.season} burning season. <span className="font-semibold">{unusualCount}</span> districts have had unusual fire activity.</p>
+      <p>Today is Day <span className="font-semibold">{dayNumber}</span> of the {nrt.season} burning season. <Link to={'/' + q} state={{ scrollTo: 'right-now' }} aria-label={`${unusualCount} districts with unusual fire activity: see Right now on the home page`}
+        className="rounded-[2px] font-semibold hover:underline">{unusualCount}</Link> districts have had unusual fire activity.</p>
       <button className="ml-auto p-1 opacity-60 hover:opacity-100 sm:ml-4" aria-label="Dismiss banner" onClick={() => { setDismissed(true); try { sessionStorage.setItem('banner-dismissed', '1') } catch { /* ignore */ } }}>
         <Icon name="cross" />
       </button>

@@ -1,8 +1,8 @@
-import { Link } from 'react-router'
-import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useMeta, useTitle } from '../components/ui'
+import { Link, useLocation } from 'react-router'
+import { Icon, Loading, Skeleton, Sparkline, useKilnActivity, useMeta, useReducedMotion, useTitle } from '../components/ui'
 import { Flow, Gloss, Ours, Provenance, TryLink, useQ } from '../components/plain'
 import Ledger from '../components/Ledger'
-import { useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import { busyMonths, meanDuration, SEASON_MONTHS, typicalSeason, whenText, monthOfSeasonDay } from '../lib/plain'
@@ -29,6 +29,30 @@ export default function HomePage() {
   const prev = ka?.tests.find((r) => r.test === 'GL' && r.criterion.startsWith('Prevalence'))?.value
   const fire = useMemo(() => (cal.data ? busyMonths(seasonMean(cal.data)) : null), [cal.data])
   const meta = useMeta().data
+  // The season banner links here with { scrollTo }: HashRouter owns the URL fragment, so the target travels in history state.
+  const loc = useLocation()
+  const reduced = useReducedMotion()
+  useEffect(() => {
+    const id = (loc.state as { scrollTo?: string } | null)?.scrollTo
+    const el = id ? document.getElementById(id) : null
+    const main = document.getElementById('main')
+    if (!el || !main) return
+    el.scrollIntoView({ behavior: reduced ? 'auto' : 'smooth', block: 'start' })
+    // Arriving from another page, the ledger and findings above are still loading and push the target down.
+    // Re-pin it whenever the page height changes, for at most 2.5 s, and let go as soon as the reader scrolls.
+    let h = main.offsetHeight
+    const ro = new ResizeObserver(() => {
+      if (main.offsetHeight === h) return
+      h = main.offsetHeight
+      el.scrollIntoView({ behavior: 'auto', block: 'start' })
+    })
+    ro.observe(main)
+    const userEvents = ['wheel', 'touchstart', 'keydown', 'pointerdown'] as const
+    const stop = () => { ro.disconnect(); clearTimeout(timer); userEvents.forEach((e) => removeEventListener(e, stop)) }
+    const timer = setTimeout(stop, 2500)
+    userEvents.forEach((e) => addEventListener(e, stop, { passive: true }))
+    return stop
+  }, [loc.key, loc.state, reduced])
   const harvest = useMemo(() => {
     if (!cal.data || !meta) return null
     const tot = cal.data.split.map((x) => ({ key: x.key, v: x.values.reduce((a, b) => a + (b ?? 0), 0) }))
@@ -99,7 +123,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="grid gap-8 border-t border-line pt-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
+      <section id="right-now" className="grid scroll-mt-[calc(var(--header-h,96px)+0.75rem)] gap-8 border-t border-line pt-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)]">
         <div className="space-y-3">
           <h2 className="h-display text-[clamp(1.9rem,4vw,2.6rem)]">Right now</h2>
           <p className="prose-measure text-muted">Updated every day from NASA’s near-real-time fire data. This season started on 1 July.</p>
