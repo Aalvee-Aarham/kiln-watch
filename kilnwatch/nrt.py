@@ -18,6 +18,13 @@ SNPP_END = date(2026, 11, 2)
 SEASON_CSV = C.NRT_DIR / "season.csv"
 
 
+def above_p90(h, p90) -> np.ndarray:
+    """The live "unusual day" test: a dense season series (index 0 = 1 July) above that day of season's p90 normal
+    (the calendar's 366 values). Shared by the NRT job and news-pair, so the comparison is written once."""
+    h = np.asarray(h, dtype=float)
+    return h > np.asarray(p90, dtype=float)[np.arange(len(h)) % 366]
+
+
 def fetch(days: int) -> pd.DataFrame:
     """Last `days` days for each NRT source; an empty or 404 response is not an error."""
     import io
@@ -138,7 +145,7 @@ def run(days=5) -> dict:
         f = cal_dir / f"{dist_id}.json"
         if f.exists():
             p90 = np.asarray(json.loads(f.read_text(encoding="utf-8"))["normal"]["p90"])
-            above = int(np.sum(h > p90[np.arange(n_days) % 366]))
+            above = int(np.sum(above_p90(h, p90)))
         districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above}
     out = {"updated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "provisional": True, "season": season, "day0": day0.strftime("%Y-%m-%d"),
            "beta_imputed_frac": round(imputed, 4),
