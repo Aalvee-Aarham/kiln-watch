@@ -702,3 +702,28 @@ def test_openai_compatible_call_sends_json_mode_seed_and_key(monkeypatch):
     assert sent["url"] == "https://api.mistral.ai/v1/chat/completions"
     assert sent["body"]["response_format"] == {"type": "json_object"} and "random_seed" in sent["body"] and "seed" not in sent["body"]
     assert sent["headers"]["Authorization"] == "Bearer k-test" and sent["timeout"] > 0
+
+
+# --- plain air-quality news is not a burning story ----------------------------------------------
+def test_air_story_needs_a_burning_source_in_its_quote():
+    assert not X.air_story_ok("air_health", "Dhaka ranked first among cities with the most polluted air, AQI 316.")
+    assert X.air_story_ok("air_health", "Emissions from brick kilns have increased.")
+    assert X.air_story_ok("air_health", "রংপুরে খড় পোড়ানোর ধোঁয়ায় বাতাস ভারী।")
+    assert not X.air_story_ok("air_health", "ঢাকার বাতাস আজ বিশ্বের সবচেয়ে দূষিত।")
+    assert X.air_story_ok("burning", "Dhaka's air is the worst today.")  # the rule is for air_health only
+
+
+def test_stored_plain_air_stories_are_dropped_once(monkeypatch):
+    store = S.empty()
+    air = {"news_id": "a", "kind": "air_health", "quote": "Dhaka's AQI was 316 today."}
+    kiln = {"news_id": "b", "kind": "air_health", "quote": "Smoke from brick kilns covers the town."}
+    store["items"] = [air, kiln]
+    assert news.apply_air_rule(store) == 1
+    assert store["items"] == [kiln] and store["seen"]["a"] == "not_relevant" and store["dropped"] == {"not_relevant": 1}
+    assert news.apply_air_rule(store) == 0
+
+
+def test_air_keywords_are_no_longer_searched():
+    terms = {t.lower() for _, t in (line.split(",", 1) for line in open(C.STATIC / "news_keywords.csv", encoding="utf-8").read().splitlines()[1:])}
+    assert not terms & {"air pollution", "aqi", "smog", "বায়ুদূষণ"}
+    assert {"brick kiln", "crop residue", "ইটভাটা"} <= terms

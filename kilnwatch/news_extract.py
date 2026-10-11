@@ -32,6 +32,13 @@ KINDS_ALL = ("burning", "enforcement", "kilns_operating", "air_health", "policy"
 EXCERPT_FIRST_PARAGRAPHS = 3
 MIN_FALLBACK_PARAGRAPH_WORDS = 5
 FIRST_SEASON = "2012-13"
+# An air_health story counts only when its verbatim quote names a burning source (plan §2): plain air-quality news is
+# dropped as not relevant, however the model labelled it.
+AIR_SOURCE = re.compile(r"kiln|brick|burn|straw|stubble|crop residue|ভাটা|পোড়া|পোড়ান|খড়|নাড়া", re.I)
+
+
+def air_story_ok(kind: str, quote: str) -> bool:
+    return kind != "air_health" or bool(AIR_SOURCE.search(nfc(quote)))
 MODEL_TIMEOUT_MS = 120_000
 MODEL_MAX_RETRY_DELAY_S = 30.0
 
@@ -575,6 +582,8 @@ def guard(out: dict, excerpt_text: str, candidates: list[str], allow_national: b
         return None, "quote_not_verbatim"
     if not (numbers_ok(out["claim_en"], out["quote"]) and numbers_ok(out["claim_bn"], out["quote"])):
         return None, "number_not_in_quote"
+    if not air_story_ok(out["kind"], out["quote"]):
+        return None, "not_relevant"
     ev, stated = event_date(out.get("event_date_local"), published)
     if season_of(ev) < FIRST_SEASON or ev > today or published > today:
         return None, "outside_range"

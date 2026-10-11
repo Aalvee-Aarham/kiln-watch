@@ -27,6 +27,7 @@ from .news_extract import (
     ModelStop,
     ModelTransient,
     QuotaExhausted,
+    air_story_ok,
     configured_providers,
     excerpt,
     extract,
@@ -419,6 +420,16 @@ def history(run: Run) -> None:
 
 # --- store -------------------------------------------------------------------
 
+def apply_air_rule(store: dict) -> int:
+    """Drop stored air_health stories whose quote names no burning source (the rule came after they were stored)."""
+    out = [i for i in store["items"] if not air_story_ok(i["kind"], i["quote"])]
+    for i in out:
+        store["items"].remove(i)
+        store["seen"][i["news_id"]] = "not_relevant"
+        store["dropped"]["not_relevant"] = store["dropped"].get("not_relevant", 0) + 1
+    return len(out)
+
+
 def stage_check(store: dict) -> None:
     """Every stored item passes validate_item; fail loudly otherwise."""
     bad = {i.get("news_id", "?"): S.validate_item(i) for i in store["items"]}
@@ -530,6 +541,8 @@ def run(backfill: bool = False, check_sources: bool = False, dry_run: bool = Fal
         return 2
     reset_providers()
     store = S.load()
+    if apply_air_rule(store) and not dry_run:
+        S.save(store)
     stage_check(store)
     r = Run(store, sources, make_fetcher(), Keywords.load(), Gazetteer.load(), load_blocklist(), today, budget, dry_run)
     if not backfill:
