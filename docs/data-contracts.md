@@ -30,6 +30,7 @@ Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export,
 | `outlook.json` | `Outlook`: the two-week unusual-fire outlook per district (P(at least one unusual day in the next 14 days) by week from 1 Nov, given whether the last 14 had one, plus the district × week climatology) and its leave-one-season-out backtest (Brier skill vs that climatology, district bootstrap). **Optional: written only when the backtest is estimable; `ships` is true only when the lower 95% bound of skill is above 0, and the site shows the outlook only then** | 200 KB |
 | `ask.json` | `AskCache`: cached Ask Kiln Watch answers with the tool calls and results behind each. **Optional: written only by `ask --build-cache`** | — |
 | `nrt/current_season.json` | `NrtSeason`: season-to-date national + per-district harmonized activity, `provisional: true`, `above_p90_days` | 300 KB |
+| `news/index.json` · `news/places.json` · `news/<season>.json` · `news/place/<unit_id>.json` | Newspaper stories beside our data (docs/news_plan.md §6): coverage, rules and counts; "How common is fire here?" per district; each season's stories sharded by month, each with what satellites saw, the season so far, the verdict and its earlier-news count; every story naming one district. District or national (`BGD`) ids only, no coordinates. **Optional: written only by `news-pair`; absent means no news page** | 50 KB · 50 KB · 400 KB gz · 100 KB gz |
 
 ## Branch-dependent fields
 
@@ -71,4 +72,4 @@ Area-level only, never per kiln or per cluster:
 
 ## Fixtures (`web/fixtures/`)
 
-Five complete data sets, one per gate branch: `full`, `from2012`, `partial`, `nightfire`, `nokiln` (synthetic, from `export.write_fixtures`) — except **`nokiln`, which is a verbatim offline copy of the real export**, flagged in `meta.demo` (`mode: 'real-offline-copy'`, source SHA, NRT timestamp) and shown as a grey banner by the site. CI builds and checks all five. See [web-frontend.md](web-frontend.md) for how the build picks one.
+Five complete data sets, one per gate branch: `full`, `from2012`, `partial`, `nightfire`, `nokiln` (synthetic, from `export.write_fixtures`) — except **`nokiln`, which is a verbatim offline copy of the real export**, flagged in `meta.demo` (`mode: 'real-offline-copy'`, source SHA, NRT timestamp) and shown as a grey banner by the site. CI builds and checks all five. Only `full` carries a synthetic `news/` set (fictional outlets on reserved example domains, no random draws); `nokiln` gets the real one once `data/releases/news-store.json` is committed. See [web-frontend.md](web-frontend.md) for how the build picks one.

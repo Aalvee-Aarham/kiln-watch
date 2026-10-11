@@ -30,6 +30,7 @@ Plain-language pages, organised around the four judging questions (redesign v2):
 | `#/experts` | `ExpertsPage` | Hub to the expert pages, repo, pre-registration |
 | `#/region` (also `#/world`) | `RegionPage` | The world map (`WorldMap`): every country, state/province and city, opening on South Asia; search any place; the side panel shows what Kiln Watch has there: for a Bangladesh city, its district's fire season, this season, the two-week outlook and kiln season; for a division, its districts ranked by unusual days; for Pakistan, India and Afghanistan, the kiln test and its learned kiln months; elsewhere, that it is outside the study area |
 | `#/ask` | `AskPage` | Ask Kiln Watch: cached answers written by Claude from the project's functions, with the tool results behind each figure (`ask.json`, optional) |
+| `#/news` | `NewsPage` | Newspaper stories beside our data: what the paper says, what satellites saw, "How common is fire here?" with a verdict, and earlier news about fires in the same district; filters in the URL; sources and coverage panel. Shown, with its nav item, only when `news/index.json` exists. The Area page links to it in one line |
 
 Legacy expert routes are kept so shared links survive: `#/story`, `#/explore[/:level[/:unitId]]`, `#/explore/box/:box`, `#/experts/kilns/:unitId?` (renders a StatusMessage when kilns are hidden), `#/season`, `#/evidence`, `#/method`. Everything except Home is lazy-loaded.
 
@@ -49,6 +50,7 @@ The header nav (`AppShell`) shows How / Area / World / Impact / Trust / Kilns (t
 | `world.ts` | World-map logic, pure and tested: fitting a box into the frame, zoom limits, which cities to name at a zoom, greedy label placement, ranked place search |
 | `basemap.ts` | The Map / Satellite / Night lights choice shared by both maps |
 | `outlook.ts` | Today's two-week outlook for a district from `outlook.json` and the live season (mirrors `kilnwatch/ask.py two_week_outlook`) |
+| `news.ts` | News page logic, pure and tested: story grouping, filters, and the plain-language sentences for each satellite part and verdict (thresholds from `news/index.json` `rules`) |
 | `plain.ts` | Plain-language numbers and dates ("early December", typical season) — pure, tested |
 | `ritu.ts` | The six Bengali seasons (revised calendar) + aman/boro harvest spans |
 | `url.ts` | Whole view state in the URL (`useUrlState`) |

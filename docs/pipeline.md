@@ -24,6 +24,9 @@ One Python package, `kilnwatch/`, turns raw NASA/ESA satellite data into the sta
 | `export.py` | The public / regulator / fixtures / publish tiers; name and value safety checks; per-file size budgets |
 | `research.py` | The research release: the public export re-shaped as tidy CSV + Parquet tables (daily/monthly/weekly-interval calendars, season metrics, calibration betas, national series, kiln seasons by area) with a data dictionary, CC BY 4.0 and a SHA-256 manifest; refuses kiln-level and coordinate columns |
 | `ask.py` | Ask Kiln Watch: five deterministic tools over the public export (with dataset id, source URL and data build on every result), a bounded tool-use loop (≤ 6 model calls, Claude Opus 5.5), and `guard()`, which blocks any answer stating a number no tool returned |
+| `news.py` | The news stage (docs/news_plan.md §5.1): finds stories through the newspapers' own sitemaps, fetches them politely (robots.txt, `Google-Extended` opt-outs, no evasion), lets Gemini read an excerpt (`news_extract.py`, the one place the model is called), checks every answer in code and stores the checked items. Sources: `news_sources.py` + `data/static/news_sources.csv` |
+| `news_store.py` | The news item store `data/news/store.json`: the only interface between `news` (writes) and `news-pair` (reads); never holds article text or satellite numbers |
+| `news_pair.py` | `news-pair`: adds what satellites saw, "How common is fire here?" with its verdict, and earlier news to each story from the public export's calendars, NRT and kiln activity (no AI, no network) → `web/public/data/news/` |
 | `geography.py` | Builds the world map's reference geography in `data/static` from Natural Earth downloads (`python -m kilnwatch.geography <dir>`): countries, states (South Asia simplified finer), cities as records; unnamed minor areas are labelled by their country |
 | `stats.py` | `bootstrap_ci` (block), stratified `perm_test`, `wilson`, `chow_test` |
 | `pipeline.py` | Stage glue behind `grid`, `harmonize`, `metrics`: record assembly, national series, per-unit calendars, AOI GeoJSON, grid tiles, `events.json`, money-shot figures, `reports/baseline.json` |
@@ -51,6 +54,8 @@ python -m kilnwatch <stage> [flags]
 | `export` | `--regulator` · `--fixtures` · `--check-public DIR` · `--publish` · `--research [PUBLIC_DIR]` | `--research` writes the CSV + Parquet research release to `research/` from a public export (default `web/public/data`; `web/fixtures/nokiln/data` is the real offline copy) |
 | `ask` | `"question"` · `--src DIR` · `--build-cache` | Ask Kiln Watch: Claude answers by calling the project's functions (never computing); `--build-cache` answers the demo questions into `ask.json` for the offline `#/ask` page. Needs `ANTHROPIC_API_KEY`; see [AI_USE.md](AI_USE.md) |
 | `nrt` | `--days 5` | The daily update run by CI |
+| `news` | `--backfill` · `--check-sources` · `--dry-run` · `--publish` · `--policy-review` · `--limit N` | Needs `GEMINI_API_KEY`; not part of `all`. Daily: new stories, then history with any model calls left; `--publish` uploads the store as release asset `news-current` |
+| `news-pair` | `--src DIR` · `--store FILE` | Deterministic; run by the deploy job against the exact data it deploys |
 | `all` | — | ingest → grid → kilns → gates → harmonize → classify → metrics → validate → activity (cache only) → export. **Excludes `gee`** (fails fast with exit 2 if `data/raw/gee/clear/admin` is missing) **and `transfer`** (run it separately). If harmonize's result checks fail (A6d LOSO coverage, A6e seam), its outputs are already written, so `all` runs the remaining stages and then exits 1 naming the failed checks; any other stage failure stops `all` at once |
 
 ## Stage inputs and outputs
@@ -70,6 +75,8 @@ python -m kilnwatch <stage> [flags]
 | `transfer` | APAD PK/IN, SentinelKilnDB, geoBoundaries, GEE cache | transfer block of the kiln-activity payload; `reports/transfer_report.md` |
 | `export` | `data/interim/public` | `web/public/data/` (real), `web/fixtures/<branch>/` (synthetic), `regulator/` (offline), GitHub Release `data-current` |
 | `nrt` | FIRMS NRT, frozen models, committed calendars | `data/nrt/season.csv`, `web/public/data/nrt/current_season.json` |
+| `news` | Newspaper sitemaps and article pages, `data/static/news_*.csv`, `data/static/district_aliases.csv`, boundaries | `data/news/store.json`; GitHub Release asset `news-current` |
+| `news-pair` | The store, the public export (calendars, NRT, kiln activity, outlook), `data/static/news_blocklist.csv` | `web/public/data/news/` |
 
 Committed model artifacts (needed by CI even without data): `data/models/{cells,clear_clim,harm_draws}.parquet`, `kiln_clf.joblib`, `thresholds.json`.
 
@@ -85,7 +92,7 @@ Derived keys today: `CALIB_SEASONS` (2012-13 … 2020-21), `DBSCAN_EPS_M` (318.2
 
 ## Determinism
 
-Every stochastic step — bootstraps, permutation tests, control sampling, splits, model training, transfer sampling — draws from `config.rng(stage)` = `default_rng(SEED + SEED_OFFSETS[stage])` with `SEED = 20261114` and one offset per stage (`kilns:1 … activity:7, transfer:8`). Fixture transfer data is additionally draw-free so reruns keep other fixture files byte-identical.
+The `news` stage passes a seed from `config.rng("news")` where the Gemini API accepts one and freezes each article's extraction; the audit sample uses `config.rng("news_audit")`. Every stochastic step — bootstraps, permutation tests, control sampling, splits, model training, transfer sampling — draws from `config.rng(stage)` = `default_rng(SEED + SEED_OFFSETS[stage])` with `SEED = 20261114` and one offset per stage (`kilns:1 … activity:7, transfer:8`). Fixture transfer data is additionally draw-free so reruns keep other fixture files byte-identical.
 
 ## Reproduce order
 
