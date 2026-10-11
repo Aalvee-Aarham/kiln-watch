@@ -18,6 +18,21 @@ SNPP_END = date(2026, 11, 2)
 SEASON_CSV = C.NRT_DIR / "season.csv"
 
 
+def era_of(today: date) -> str:
+    """S-NPP ('N') through its last data day; NOAA-20 ('J1') chained through S-NPP from the next day."""
+    return "N" if today <= SNPP_END else "J1"
+
+
+def sources_for(today: date) -> list[str]:
+    """NRT sources still delivering: S-NPP stops on its end date and NOAA-20 carries the record alone."""
+    return [s for s in NRT_SOURCES if not (s == "VIIRS_SNPP_NRT" and today > SNPP_END)]
+
+
+def era_beta_weights(b1, b2, key, era: str) -> np.ndarray:
+    """β weights for the era's sensor: the A<-N step alone for S-NPP, chained A<-N<-J1 (w = b1 * b2) after."""
+    return b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
+
+
 def fetch(days: int) -> pd.DataFrame:
     """Last `days` days for each NRT source; an empty or 404 response is not an error."""
     import io
@@ -26,9 +41,7 @@ def fetch(days: int) -> pd.DataFrame:
 
     s = session()
     frames = []
-    for src in NRT_SOURCES:
-        if src == "VIIRS_SNPP_NRT" and date.today() > SNPP_END:
-            continue
+    for src in sources_for(date.today()):
         for start in range(0, days, 5):
             d0 = date.today() - timedelta(days=start + min(5, days - start) - 1)
             w, so, e, n = C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N
@@ -66,15 +79,15 @@ def update_season_csv(days: int) -> pd.DataFrame:
     df = df.drop_duplicates(["sensor", "lat", "lon", "t_utc"]).sort_values("t_utc")
     df = df[pd.to_datetime(df.date_local) >= pd.Timestamp(f"{season[:4]}-07-01")]
     df["season"] = season
-    tmp = SEASON_CSV.with_suffix(".tmp")
-    df.to_csv(tmp, index=False)
-    tmp.replace(SEASON_CSV)
+    from .ingest import atomic_write
+
+    atomic_write(SEASON_CSV, df.to_csv(index=False))
     return df
 
 
 def run(days=5) -> dict:
     from .classify import build_features
-    from .export import _dump, split_labels
+    from .export import dump_json, split_labels
 
     df = update_season_csv(days)
     season = season_of(date.today())
@@ -112,10 +125,10 @@ def run(days=5) -> dict:
             df["cat"] = harvest_key(df.date_local)
         df["cat"] = df["cat"].fillna("unknown") if "cat" in df else "unknown"
         # era sensor: S-NPP until it ends, then NOAA-20 chained through S-NPP
-        era = "N" if date.today() <= SNPP_END else "J1"
+        era = era_of(date.today())
         e = df[df.sensor == era].drop_duplicates(["cell_id", "date_local", "pass"])
         key = pd.MultiIndex.from_arrays([e.division, pd.to_datetime(e.date_local).dt.month, e["pass"], e["loc"]])
-        w = b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
+        w = era_beta_weights(b1, b2, key, era)
         imputed = float(np.mean(~np.isfinite(w)))  # fraction of detections whose β weight fell back to the median
         e = e.assign(w=np.nan_to_num(w, nan=np.nanmedian(b1)), d=(pd.to_datetime(e.date_local) - day0).dt.days)
         doy = (day0 + pd.to_timedelta(np.arange(n_days), "D")).dayofyear
@@ -144,24 +157,24 @@ def run(days=5) -> dict:
            "beta_imputed_frac": round(imputed, 4),
            "national": {"h": np.round(nat["h"], 3).tolist(), "split": [{"key": k, "values": np.round(nat[k], 3).tolist()} for k in keys]},
            "districts": districts}
-    _dump(out, C.WEB_DATA / "nrt" / "current_season.json")
+    dump_json(out, C.WEB_DATA / "nrt" / "current_season.json")
     log.info("NRT: %d detections this season; written current_season.json", len(df))
     return out
 
 
 def write_models_for_nrt() -> None:
     """Committed artifacts the CI NRT job needs: cell → district/division/loc and the clear-fraction climatology."""
-    from .ingest import read_units
+    from .ingest import _parquet, read_units
+    from .kilns import kiln_cells
     from .metrics import clear_climatology
-    from .pipeline import _kiln_cells
 
     uc = pd.read_parquet(C.INTERIM / "unit_cells.parquet")
     units = read_units()
     dist = uc[uc.level == "district"].drop_duplicates("cell_id")[["cell_id", "unit_id"]].rename(columns={"unit_id": "district"})
     div = uc[uc.level == "division"].drop_duplicates("cell_id").merge(units[["unit_id", "name_en"]], on="unit_id")[["cell_id", "name_en"]].rename(columns={"name_en": "division"})
     cells = dist.merge(div, on="cell_id")
-    cells["loc"] = np.where(cells.cell_id.isin(_kiln_cells()), "kiln", "other")
-    cells.to_parquet(C.MODELS / "cells.parquet", index=False)
+    cells["loc"] = np.where(cells.cell_id.isin(kiln_cells()), "kiln", "other")
+    _parquet(cells, C.MODELS / "cells.parquet")
     clear = pd.read_parquet(C.INTERIM / "clear.parquet")
     cn = clear[(clear.sensor == "N") & clear.unit_id.isin(dist.district.unique())]
     cc = clear_climatology(cn)[["unit_id", "doy", "clear_frac"]]
@@ -169,4 +182,4 @@ def write_models_for_nrt() -> None:
     cn = cn.assign(w=cn.unit_id.map(tot) * cn.clear_frac)
     nat = cn.groupby("date_local").w.sum() / tot.sum()
     natc = nat.groupby(nat.index.dayofyear).median().rename("clear_frac").reset_index().rename(columns={"date_local": "doy"}).assign(unit_id="national")
-    pd.concat([cc, natc], ignore_index=True).astype({"clear_frac": "float32"}).to_parquet(C.MODELS / "clear_clim.parquet", index=False)
+    _parquet(pd.concat([cc, natc], ignore_index=True).astype({"clear_frac": "float32"}), C.MODELS / "clear_clim.parquet")

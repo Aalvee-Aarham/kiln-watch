@@ -9,6 +9,11 @@ from pathlib import Path
 from . import config as C
 
 
+def _gee_cache_ready(root: Path) -> bool:
+    """`all` fails fast without the Earth Engine clear-fraction cache (docs/pipeline.md §7.1)."""
+    return (root / "gee" / "clear" / "admin").exists()
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="kilnwatch", description="Kiln Watch pipeline")
     sub = ap.add_subparsers(dest="stage", required=True)
@@ -114,7 +119,7 @@ def main(argv=None) -> int:
         from . import verify_firms
         verify_firms.run(a.sources, a.start, a.end, a.cached_only)
     elif a.stage == "all":
-        if not (C.RAW / "gee" / "clear" / "admin").exists():
+        if not _gee_cache_ready(C.RAW):
             print("ERROR GeeCacheMissing: data/raw/gee/clear/admin is missing. Run `python -m kilnwatch gee` first.", file=sys.stderr)
             return 2
         from . import activity, classify, export, gates, ingest, kilns, pipeline, validate

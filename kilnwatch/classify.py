@@ -17,6 +17,7 @@ from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
 
 from . import config as C
+from .ingest import atomic_write
 from .kilns import R_EARTH, _rad
 
 log = logging.getLogger("kilnwatch.classify")
@@ -183,8 +184,8 @@ def run() -> dict:
     sha = _git_sha()
     C.MODELS.mkdir(parents=True, exist_ok=True)
     beats = rep["pr_auc"]["p50"] > max(rep["prevalence"], rep["baseline_pr_auc"])
-    (C.MODELS / "thresholds.json").write_text(json.dumps({"t_lo": t_lo, "t_hi": t_hi, "features": FEATURES, "git_sha": sha,
-                                                           "model": "hgb" if beats else "rule"}, indent=1), encoding="utf-8")
+    atomic_write(C.MODELS / "thresholds.json", json.dumps({"t_lo": t_lo, "t_hi": t_hi, "features": FEATURES, "git_sha": sha,
+                                                           "model": "hgb" if beats else "rule"}, indent=1))
     joblib.dump(model, C.MODELS / "kiln_clf.joblib")
     # thresholds frozen above BEFORE the temporal and cross-sensor holdouts run
     season = viirs.season.astype(str)
@@ -205,7 +206,7 @@ def run() -> dict:
     assert "cross_sensor_N_J1" in kinds, "A7d: cross-sensor N->J1 holdout missing"
     th = json.loads((C.MODELS / "thresholds.json").read_text(encoding="utf-8"))
     th["nrt_ok"] = nrt_ok  # thresholds themselves stay frozen; this only records whether NOAA-21 may be labelled
-    (C.MODELS / "thresholds.json").write_text(json.dumps(th, indent=1), encoding="utf-8")
+    atomic_write(C.MODELS / "thresholds.json", json.dumps(th, indent=1))
     # label-set comparison and persistence ablation (spatial CV on S-NPP)
     ls_rows = [{"kind": "footprint_only", "pr_auc": rep["pr_auc"]}]
     y2, w2 = labelsets["with_type2"]
@@ -237,7 +238,7 @@ def run() -> dict:
            "logit_pr_auc": rep["logit_pr_auc"], "importance": imp, "holdouts": holdouts, "labelset": ls_rows,
            "ablation_no_persistence": ablation, "thresholds": [t_lo, t_hi], "beats_baseline": bool(beats), "nrt_ok": nrt_ok,
            "n_pos": int(yl.sum()), "n_neg": int(len(yl) - yl.sum())}
-    (C.INTERIM / "classifier.json").write_text(json.dumps(out, default=float), encoding="utf-8")
+    atomic_write(C.INTERIM / "classifier.json", json.dumps(out, default=float))
     _report(out)
     _repro_check(model, X)
     _write_candidates(labels, det, kilns)
@@ -258,16 +259,17 @@ def _write_candidates(labels, det, kilns):
     cand["district"] = cand.cell_id.map(dist)
     reg = C.INTERIM / "regulator"
     reg.mkdir(parents=True, exist_ok=True)
-    cand.to_csv(reg / "candidate_unmapped_kilns.csv", index=False)
+    atomic_write(reg / "candidate_unmapped_kilns.csv", cand.to_csv(index=False))
     by = cand.district.value_counts().to_dict()
-    (C.INTERIM / "candidates_by_district.json").write_text(json.dumps({"n": int(len(cand)), "by_district": {k: int(v) for k, v in by.items()}}), encoding="utf-8")
+    atomic_write(C.INTERIM / "candidates_by_district.json", json.dumps({"n": int(len(cand)), "by_district": {k: int(v) for k, v in by.items()}}))
 
 
 def _importance(model, X, y, rng, n_rows=20000):
     from sklearn.inspection import permutation_importance
 
     i = rng.choice(len(y), size=min(n_rows, len(y)), replace=False)
-    r = permutation_importance(model, X.iloc[i], y[i], scoring="average_precision", n_repeats=3, random_state=C.SEED)
+    r = permutation_importance(model, X.iloc[i], y[i], scoring="average_precision", n_repeats=3,
+                               random_state=C.SEED + C.SEED_OFFSETS["classify"])
     return sorted([{"feature": f, "value": round(float(v), 4)} for f, v in zip(X.columns, r.importances_mean)], key=lambda d: -d["value"])
 
 
@@ -320,7 +322,7 @@ def _report(o):
     L += ["", f"Without persistence features (p5, p30): {o['ablation_no_persistence']['p50']:.3f}",
           f"NRT may use the model on NOAA-21: {o['nrt_ok']}", "", "## Permutation importance"]
     L += [f"- {d['feature']}: {d['value']}" for d in o["importance"]]
-    (C.REPORTS / "classifier_report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    atomic_write(C.REPORTS / "classifier_report.md", "\n".join(L) + "\n")
 
 
 def transfer_test(district: str = C.TRANSFER_DISTRICT) -> dict:
@@ -385,5 +387,5 @@ def transfer_test(district: str = C.TRANSFER_DISTRICT) -> dict:
         kd = set(pd.to_datetime(det.loc[pos, "date_local"]))
         out["dr_computed"] = True
         out["dr_kiln_area"] = len(kd & clear_days) / max(len(clear_days), 1)
-    (C.INTERIM / "transfer.json").write_text(json.dumps(out, default=float), encoding="utf-8")
+    atomic_write(C.INTERIM / "transfer.json", json.dumps(out, default=float))
     return out

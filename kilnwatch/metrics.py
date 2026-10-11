@@ -12,7 +12,8 @@ log = logging.getLogger("kilnwatch.metrics")
 DAY0 = pd.Timestamp("2003-01-01")
 SNPP_START = pd.Timestamp("2012-07-01")   # record assembly: S-NPP converted to MYD-eq from season 2012-13
 SNPP_END = pd.Timestamp("2026-11-02")     # S-NPP delivery ends 2 Nov 2026 1300 UTC
-HARVEST = {"aman": (305, 365), "boro": (91, 151)}  # day-of-year windows (Nov–Dec; Apr–May), see data/static/crop_calendar.csv
+HARVEST = {"aman": {11, 12}, "boro": {4, 5}}  # harvest months (Nov–Dec; Apr–May), see data/static/crop_calendar.csv;
+# month-based, not day-of-year, so leap-year boundary days (e.g. 31 Dec = doy 366) keep their window
 
 
 def day_index(d) -> np.ndarray:
@@ -120,10 +121,10 @@ def clear_climatology(clear: pd.DataFrame) -> pd.DataFrame:
 
 
 def harvest_key(dates: pd.Series) -> np.ndarray:
-    doy = pd.to_datetime(dates).dt.dayofyear.to_numpy()
-    out = np.full(len(doy), "other", dtype=object)
-    for k, (a, b) in HARVEST.items():
-        out[(doy >= a) & (doy <= b)] = k
+    m = pd.to_datetime(dates).dt.month.to_numpy()
+    out = np.full(len(m), "other", dtype=object)
+    for k, months in HARVEST.items():
+        out[np.isin(m, list(months))] = k
     return out
 
 

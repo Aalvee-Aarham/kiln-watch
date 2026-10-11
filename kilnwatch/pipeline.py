@@ -8,8 +8,9 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
-from .grid import cell_id, season_series, to_celldays, unit_cells
-from .ingest import _parquet, read_units
+from .grid import season_series, to_celldays, unit_cells
+from .ingest import _parquet, atomic_write, read_units
+from .kilns import kiln_cells
 
 log = logging.getLogger("kilnwatch.pipeline")
 PUB = C.INTERIM / "public"
@@ -44,12 +45,6 @@ def grid_stage() -> None:
     log.info("cell-days %d; unit cells %d (BD %d)", len(cd), len(uc), n_bd)
 
 
-def _kiln_cells() -> set:
-    inv = pd.read_parquet(C.INTERIM / "inventory.parquet")
-    bd = inv[inv.country == "BD"]
-    return set(cell_id(bd.lat.to_numpy(), bd.lon.to_numpy()).tolist())
-
-
 def _celldays_enriched() -> pd.DataFrame:
     cd = pd.read_parquet(C.INTERIM / "celldays.parquet")
     uc = pd.read_parquet(C.INTERIM / "unit_cells.parquet")
@@ -57,7 +52,7 @@ def _celldays_enriched() -> pd.DataFrame:
     div_of = uc[uc.level == "division"].drop_duplicates("cell_id").merge(units[["unit_id", "name_en"]], on="unit_id").set_index("cell_id").name_en
     cd["division"] = cd.cell_id.map(div_of)
     cd = cd.dropna(subset=["division"])
-    kc = _kiln_cells()
+    kc = kiln_cells()
     cd["loc"] = np.where(cd.cell_id.isin(kc), "kiln", "other")
     cd["month"] = cd.date_local.dt.month
     for c in ("sensor", "pass"):
@@ -79,7 +74,7 @@ def harmonize_stage() -> None:
     extra = [cdiv[cdiv.sensor == "N"].assign(sensor=s) for s in ("J1", "J2")]
     cdiv = pd.concat([cdiv] + extra, ignore_index=True)
     cd = cd.assign(sensor=cd.sensor.astype(str), **{"pass": cd["pass"].astype(str)})
-    rates = H.build_rates(cd, ucd, _kiln_cells(), cdiv[["unit_id", "date_local", "sensor", "clear_frac"]])
+    rates = H.build_rates(cd, ucd, kiln_cells(), cdiv[["unit_id", "date_local", "sensor", "clear_frac"]])
     rates["division"] = rates.division.map(divs.set_index("unit_id").name_en)
     _parquet(rates, C.INTERIM / "rates_div.parquet")
     summary = H.run()
@@ -89,7 +84,6 @@ def harmonize_stage() -> None:
     s = summary
     ok_seam = seam["ratio"] <= C.SEAM_RATIO_MAX and seam["chow_p_raw"] < 0.01 and seam["chow_p_harm"] > 0.05
     h1 = H.pair_days(rates, "J1", "N")
-    sp_nrt = None
     harm = {
         "selected_model": s["selected_model"], "yearly": yearly,
         "betas": [{"step": r.step, "division": r.division, "month": int(r.month), "pass": r["pass"], "loc": r["loc"],
@@ -98,17 +92,15 @@ def harmonize_stage() -> None:
         "loso_by_season": [{"season": x["season"], "model": x["model"], "mae": x["mae"], "bias": x["bias"], "covered": x["covered"]} for x in s["loso_by_season"]],
         "loso_pooled": s["loso_pooled"], "seam": seam,
     }
-    if sp_nrt:
-        harm["sp_nrt_ratio"] = sp_nrt
-    from .export import _dump, nan_to_none
+    from .export import dump_json, nan_to_none
 
-    _dump(nan_to_none(harm), PUB / "harmonization.json")
+    dump_json(nan_to_none(harm), PUB / "harmonization.json")
     _harm_report(s, seam, ok_seam, betas, len(h1))
     # A6f determinism: hash of the frozen draws
     import hashlib
 
     sha = hashlib.sha256((C.MODELS / "harm_draws.parquet").read_bytes()).hexdigest()
-    (C.INTERIM / "harm_draws.sha256").write_text(sha)
+    atomic_write(C.INTERIM / "harm_draws.sha256", sha)
     lo, hi = C.LOSO_COVERAGE_TARGET
     cov = s["loso_pooled"]["covered"]["p50"]
     if not (lo <= cov <= hi):
@@ -195,7 +187,7 @@ def _harm_report(s, seam, ok_seam, betas, n_j1):
 # --- metrics: calendars -------------------------------------------------------------------
 def metrics_stage(levels=("district", "upazila")) -> None:
     from . import metrics as M
-    from .export import _dump, split_labels
+    from .export import dump_json, split_labels
 
     branch = C.load_derived()["GATE_BRANCH"]["value"]
     keys = [s["key"] for s in split_labels(branch)]
@@ -222,7 +214,7 @@ def metrics_stage(levels=("district", "upazila")) -> None:
             cal, share = _calendar(uid, g, clear[clear.unit_id == uid], int(total.get(uid, 0)), level == "district", keys, branch, rng)
             if cal is None:
                 continue
-            _dump(cal, PUB / "calendar" / f"{uid}.json")
+            dump_json(cal, PUB / "calendar" / f"{uid}.json")
             out_units.append((uid, share))
         log.info("%s calendars: %d", level, len(lu))
     _write_aoi(units, dict(out_units), branch)
@@ -326,7 +318,7 @@ def _calendar(uid, g, clear, cells, is_district, keys, branch, rng):
 def _write_aoi(units, shares, branch):
     import geopandas as gpd
 
-    from .export import _dump
+    from .export import dump_json
 
     inv = pd.read_parquet(C.INTERIM / "inventory.parquet")
     bd = inv[inv.country == "BD"]
@@ -342,7 +334,7 @@ def _write_aoi(units, shares, branch):
         for f in gj["features"]:
             f.pop("id", None)
             f["geometry"]["coordinates"] = _round(f["geometry"]["coordinates"])
-        _dump(gj, PUB / "aoi" / f"{level}s.geojson")
+        dump_json(gj, PUB / "aoi" / f"{level}s.geojson")
 
 
 def _round(c):
@@ -350,7 +342,7 @@ def _round(c):
 
 
 def _write_grid_tiles(cd):
-    from .export import _dump
+    from .export import dump_json
 
     sidx = {"T": 0, "A": 1, "N": 2, "J1": 3}
     x = cd[cd.sensor.isin(["A", "N"])]
@@ -361,13 +353,13 @@ def _write_grid_tiles(cd):
     sp = x.sensor.map(sidx) * 2 + (x["pass"] == "N").astype(int)
     df = pd.DataFrame({"tile": tile.to_numpy(), "cell": x.cell_id.to_numpy(), "day": day.to_numpy(), "sp": sp.to_numpy()})
     for t, g in df.groupby("tile"):
-        _dump({"tile": t, "day0": "2003-01-01", "rows": g[["cell", "day", "sp"]].to_numpy().tolist()}, PUB / "grid" / f"{t}.json")
+        dump_json({"tile": t, "day0": "2003-01-01", "rows": g[["cell", "day", "sp"]].to_numpy().tolist()}, PUB / "grid" / f"{t}.json")
 
 
 def _write_events():
-    from .export import _dump, events_payload
+    from .export import dump_json, events_payload
 
-    _dump(events_payload(), PUB / "events.json")
+    dump_json(events_payload(), PUB / "events.json")
 
 
 def figures() -> None:
@@ -417,5 +409,5 @@ def write_baseline() -> dict:
     b = {"gate_branch": C.load_derived()["GATE_BRANCH"]["value"], "seam": h["seam"], "loso_pooled": h["loso_pooled"],
          "selected_model": h["selected_model"], "gates": [g for g in v["gates"] if g["gate"] in ("G1", "G2")],
          "holdouts": v["classifier"]["holdouts"], "pr_auc": v["classifier"]["pr_auc"]}
-    (C.REPORTS / "baseline.json").write_text(json.dumps(b, indent=1), encoding="utf-8")
+    atomic_write(C.REPORTS / "baseline.json", json.dumps(b, indent=1))
     return b

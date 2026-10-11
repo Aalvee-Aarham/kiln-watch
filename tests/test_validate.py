@@ -9,6 +9,8 @@ def test_ccc_closed_form():
     assert ccc(x, x) == pytest.approx(1.0)
     # mean 2 vs 4, variances 2/3 and 8/3, covariance 4/3: 2*(4/3) / (2/3 + 8/3 + 4) = 8/22
     assert ccc(x, 2 * x) == pytest.approx(8 / 22)
+    # both series constant (an all-zero monsoon month): undefined, not a ZeroDivisionError that kills the export
+    assert np.isnan(ccc(np.zeros(10), np.zeros(10)))
 
 
 def _cal(uid, seed):

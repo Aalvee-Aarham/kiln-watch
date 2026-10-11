@@ -62,21 +62,42 @@ _pace_lock = threading.Lock()
 _pace_n = [0]
 
 
+def _status_used(s) -> int | None:
+    """Transactions used in the quota window, or None when the status endpoint itself fails."""
+    try:
+        return int(s.get(f"{FIRMS}/mapserver/mapkey_status/?MAP_KEY={C.FIRMS_MAP_KEY}", timeout=30).json()["current_transactions"])
+    except Exception:
+        return None
+
+
 def _pace(s, every=20, ceiling=4300) -> None:
-    """Every `every` calls, read the quota status and wait (bounded) while usage is near the 5000/10 min limit."""
+    """Every `every` calls, wait (bounded) while usage is near the 5000/10 min limit.
+
+    A failed status read must not disable pacing (exactly when FIRMS is degraded is when the
+    quota bites), so after a few unreadable reads we wait one interval as if at the ceiling.
+    All sleeps happen outside `_pace_lock` so worker threads never queue behind one.
+    """
     with _pace_lock:
         _pace_n[0] += 1
-        if _pace_n[0] % every:
+        due = _pace_n[0] % every == 0
+    if not due:
+        return
+    misses = 0
+    for _ in range(20):  # bounded: quota window is 10 min, so 20 x 60 s always spans one
+        used = _status_used(s)
+        if used is None:
+            misses += 1
+            if misses >= 3:
+                log.warning("FIRMS quota status unreadable; waiting 60 s as if at the limit")
+                time.sleep(60)
+                return
+            time.sleep(10)
+            continue
+        if used < ceiling:
             return
-        for _ in range(20):
-            try:
-                used = s.get(f"{FIRMS}/mapserver/mapkey_status/?MAP_KEY={C.FIRMS_MAP_KEY}", timeout=30).json()["current_transactions"]
-            except Exception:
-                return
-            if used < ceiling:
-                return
-            log.info("FIRMS usage %d/5000; waiting 60 s", used)
-            time.sleep(60)
+        misses = 0
+        log.info("FIRMS usage %d/5000; waiting 60 s", used)
+        time.sleep(60)
 
 
 def area_window(source: str, start: date, s, bbox=None, days=5, force=False, root: Path = FIRMS_DIR) -> Path:
@@ -91,6 +112,7 @@ def area_window(source: str, start: date, s, bbox=None, days=5, force=False, roo
     _pace(s)
     w, so, e, n = bbox or (C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N)
     url = f"{FIRMS}/api/area/csv/{C.FIRMS_MAP_KEY}/{source}/{w},{so},{e},{n}/{days}/{start.isoformat()}"
+    invalid_key = 0
     for attempt in range(12):  # bounded: quota window is 10 min, so 12 x 90 s always spans one
         r = s.get(url, timeout=120)
         if r.status_code == 404:
@@ -98,6 +120,12 @@ def area_window(source: str, start: date, s, bbox=None, days=5, force=False, roo
             return path
         # Over quota FIRMS answers 400 "Exceeding…" or, intermittently, "Invalid MAP_KEY."
         if r.status_code == 400 and ("Exceeding" in r.text[:200] or "Invalid MAP_KEY" in r.text[:200]):
+            if "Invalid MAP_KEY" in r.text[:200]:
+                # A genuinely bad key never recovers, unlike the intermittent quota wording;
+                # stop after a few instead of sleeping 12 x 90 s for every window.
+                invalid_key += 1
+                if invalid_key >= 3:
+                    raise RuntimeError(f"FIRMS rejected the MAP_KEY {invalid_key} times (400 Invalid MAP_KEY); check FIRMS_MAP_KEY")
             log.warning("FIRMS quota reached (%s %s); sleeping 90 s", source, start)
             time.sleep(90)
             continue
@@ -105,6 +133,16 @@ def area_window(source: str, start: date, s, bbox=None, days=5, force=False, roo
         atomic_write(path, r.text)
         return path
     raise RuntimeError(f"FIRMS quota not recovered for {source} {start}")
+
+
+class MissingWindows(RuntimeError):
+    """Some FIRMS windows failed after their retries. Every other window is cached, so a rerun resumes; until then the
+    archive has holes that would read as fire-free days, so the stage stops instead of building on it."""
+
+
+def _redact(e: Exception) -> str:
+    """FIRMS URLs carry the MAP_KEY, and requests quotes the URL in its errors."""
+    return str(e).replace(C.FIRMS_MAP_KEY, "<MAP_KEY>") if C.FIRMS_MAP_KEY else str(e)
 
 
 def backfill(source: str, start: date, end: date, workers=4, force_recent_days=0, root: Path = FIRMS_DIR) -> int:
@@ -115,25 +153,35 @@ def backfill(source: str, start: date, end: date, workers=4, force_recent_days=0
         starts.append(d)
         d += timedelta(days=5)
     recent = date.today() - timedelta(days=force_recent_days)
+    failed: list[date] = []
 
     def job(st):
         try:
             return area_window(source, st, s, force=force_recent_days > 0 and st + timedelta(days=5) >= recent, root=root)
-        except Exception as e:  # missing windows are retried on the next run (cache is per window)
-            log.error("%s %s failed: %s", source, st, e)
+        except Exception as e:  # finish the other windows first (cache is per window), then fail below
+            failed.append(st)
+            log.error("%s %s failed: %s", source, st, _redact(e))
 
     with ThreadPoolExecutor(workers) as ex:
         list(ex.map(job, starts))
+    if failed:
+        raise MissingWindows(f"{source}: {len(failed)} of {len(starts)} windows failed (first {min(failed)}); rerun to resume")
     log.info("%s: %d windows", source, len(starts))
     return len(starts)
 
 
 def fetch_all_firms() -> None:
     av = data_availability().set_index("data_id")
+    missing = []
     for src in SOURCES:
         lo = max(pd.Timestamp(av.loc[src, "min_date"]).date(), START.get(src, date(2000, 1, 1)))
         hi = pd.Timestamp(av.loc[src, "max_date"]).date()
-        backfill(src, lo, hi, workers=2, force_recent_days=10 if src.endswith("NRT") else 0)
+        try:
+            backfill(src, lo, hi, workers=2, force_recent_days=10 if src.endswith("NRT") else 0)
+        except MissingWindows as e:  # fill every source's cache before stopping
+            missing.append(str(e))
+    if missing:
+        raise MissingWindows("; ".join(missing))
 
 
 # --- normalise -----------------------------------------------------------------
@@ -327,7 +375,11 @@ def fetch_openaq(years=range(2017, 2026)) -> pd.DataFrame:
     s = session()
     s.headers["X-API-Key"] = C.OPENAQ_API_KEY
     out = C.RAW / "openaq"
-    locs = s.get("https://api.openaq.org/v3/locations", params={"bbox": "90.30,23.65,90.50,23.90", "limit": 100, "parameters_id": 2}, timeout=60).json()["results"]
+    r = s.get("https://api.openaq.org/v3/locations", params={"bbox": "90.30,23.65,90.50,23.90", "limit": 100, "parameters_id": 2}, timeout=60)
+    r.raise_for_status()
+    locs = r.json().get("results", [])
+    if not locs:
+        raise RuntimeError("OpenAQ returned no Dhaka locations; PM2.5 validation cannot run (check OPENAQ_API_KEY)")
     frames = []
     for loc in locs:
         for sen in loc.get("sensors", []):
@@ -339,7 +391,10 @@ def fetch_openaq(years=range(2017, 2026)) -> pd.DataFrame:
                     time.sleep(1.0)
                     r = s.get(f"https://api.openaq.org/v3/sensors/{sen['id']}/days",
                               params={"datetime_from": f"{y}-01-01", "datetime_to": f"{y}-12-31", "limit": 400}, timeout=60)
-                    atomic_write(f, r.text if r.ok else "{}")
+                    if not r.ok:  # not cached, so the next run retries it
+                        log.warning("OpenAQ sensor %s %d: HTTP %s; skipped", sen["id"], y, r.status_code)
+                        continue
+                    atomic_write(f, r.text)
                 res = json.loads(f.read_text() or "{}").get("results", [])
                 for x in res:
                     frames.append({"sensor_id": sen["id"], "date": x["period"]["datetimeFrom"]["local"][:10], "pm25": x["value"]})

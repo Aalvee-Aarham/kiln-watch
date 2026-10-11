@@ -25,3 +25,13 @@ def test_controls_ladder():
     cl = pd.DataFrame({"cluster_id": [0], "lat": [23.025], "lon": [90.025], "district": ["D"], "division": ["V"]})
     ctrl = sample_controls(cl, kl, dist, div, n=3, rng=np.random.default_rng(0), attempts=2000)
     assert len(ctrl) == 3 and set(ctrl.rung_used) == {2}
+
+
+def test_link_radius_is_metres():
+    from kilnwatch.kilns import link
+
+    pts = pd.DataFrame({"lat": [24.0], "lon": [90.0], "unit_type": ["cluster"], "unit_id": ["K1"]})
+    det = pd.DataFrame({"lat": [24.0, 24.0], "lon": [90.01, 91.0]}, index=[10, 11])
+    near = link(det, pts, 1500.0)  # 0.01 deg of longitude at 24 N is ~1018 m: inside 1500, outside 200
+    assert near.det_idx.tolist() == [10] and near.unit_id.tolist() == ["K1"]
+    assert link(det, pts, 200.0).empty

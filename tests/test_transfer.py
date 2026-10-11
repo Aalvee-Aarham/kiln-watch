@@ -3,12 +3,12 @@ import pandas as pd
 
 from kilnwatch import activity as A
 from kilnwatch.export import assert_public_safe
+from kilnwatch.kilns import haversine_m
 from kilnwatch.transfer import (
     LAST_YEAR,
     NOT_LAND,
     RINGS_FAR,
     SEASON_ORDER,
-    _km,
     evaluate,
     learn_window,
     missing_chunks,
@@ -39,8 +39,8 @@ def test_far_rings_keep_controls_away_from_kiln_light():
                          np.random.default_rng(4), rings=RINGS_FAR)
     lat, lon = 30.0 + ctrl.dlat.to_numpy(), 72.0 + ctrl.dlon.to_numpy()
     assert len(ctrl) == 3
-    assert min(_km(a, b, kl.lat.to_numpy(), kl.lon.to_numpy()).min() for a, b in zip(lat, lon)) >= 6
-    assert _km(30.0, 72.0, lat, lon).max() <= 40
+    assert min(haversine_m(a, b, kl.lat.to_numpy(), kl.lon.to_numpy()).min() / 1000 for a, b in zip(lat, lon)) >= 6
+    assert haversine_m(30.0, 72.0, lat, lon).max() / 1000 <= 40
 
 
 def test_fresh_sample_never_reuses_the_first():
@@ -60,7 +60,7 @@ def test_sentinelkilndb_positions_and_tile_repeats(tmp_path):
                   "yolo_obb_label": [box(0.5, 0.5) + "\n" + box(1.0, 0.5), box(0.5, 0.5), ""]}).to_parquet(tmp_path / "l.parquet")
     k = sentinelkilndb(tmp_path / "l.parquet")
     assert len(k) == 2
-    assert _km(k.lat.to_numpy(), k.lon.to_numpy(), np.array([lat0, lat0]), np.array([lon0, lon0 + east])).max() < 0.01
+    assert haversine_m(k.lat.to_numpy(), k.lon.to_numpy(), np.array([lat0, lat0]), np.array([lon0, lon0 + east])).max() / 1000 < 0.01
 
 # season-month profiles, Jul..Jun
 BD = [0, 0, 0, 0, 0.5, 1, 1, 1, 1, 1, 0.5, 0.2]             # kilns Dec–Apr, quiet Jul–Oct
@@ -111,12 +111,12 @@ def test_ring_controls_keep_their_distances():
     assert len(ctrl) == 6 and not ctrl.attrs["dropped"]
     m = ctrl.merge(reps, on="cluster_id")
     lat, lon = m.lat + m.dlat, m.lon + m.dlon
-    d_rep = _km(m.lat.to_numpy(), m.lon.to_numpy(), lat.to_numpy(), lon.to_numpy())
+    d_rep = haversine_m(m.lat.to_numpy(), m.lon.to_numpy(), lat.to_numpy(), lon.to_numpy()) / 1000
     assert (d_rep >= 5 - 1e-6).all() and (d_rep <= 10 + 1e-6).all()           # rung 0 succeeds on open land
-    nearest = np.array([_km(a, b, kl.lat.to_numpy(), kl.lon.to_numpy()).min() for a, b in zip(lat, lon)])
+    nearest = np.array([haversine_m(a, b, kl.lat.to_numpy(), kl.lon.to_numpy()).min() for a, b in zip(lat, lon)]) / 1000
     assert (nearest >= 5 - 1e-6).all()
     for _, g in m.assign(la=lat, lo=lon).groupby("cluster_id"):
-        d = _km(g.la.to_numpy()[:, None], g.lo.to_numpy()[:, None], g.la.to_numpy()[None, :], g.lo.to_numpy()[None, :])
+        d = haversine_m(g.la.to_numpy()[:, None], g.lo.to_numpy()[:, None], g.la.to_numpy()[None, :], g.lo.to_numpy()[None, :]) / 1000
         assert d[np.triu_indices(3, 1)].min() >= 5
 
 

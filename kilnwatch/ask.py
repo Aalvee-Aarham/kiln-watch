@@ -232,12 +232,12 @@ def ask(question: str, client=None, data: Data | None = None) -> dict:
 
 def build_cache(src: Path = C.WEB_DATA, client=None, out: Path | None = None) -> dict:
     """Answer the demo questions once and write them to `ask.json` in the export, for the offline site."""
-    from .export import _dump
+    from .export import dump_json
 
     data = Data(src)
     items = [{**ask(q, client, data), "lang": lang} for q, lang in DEMO_QUESTIONS]
     payload = {"model": MODEL, "generated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"),
                "data_build": (data.json("meta.json") or {}).get("git_sha"), "answers": items}
-    _dump(payload, Path(out or Path(src) / "ask.json"))
+    dump_json(payload, Path(out or Path(src) / "ask.json"))
     log.info("ask cache: %d answers, %d blocked", len(items), sum(i["blocked"] for i in items))
     return payload

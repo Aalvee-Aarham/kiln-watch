@@ -43,3 +43,31 @@ def test_rebuild_drops_an_outlook_it_cannot_estimate(tmp_path):
     (d / "outlook.json").write_text('{"ships": true}')
     add_overlap(d)
     assert not (d / "outlook.json").exists()
+
+
+def test_check_budgets_flags_flat_oversize_only(tmp_path):
+    from kilnwatch.export import check_budgets
+
+    (tmp_path / "meta.json").write_text("x" * 50_001)  # one byte over its 50 KB budget
+    (tmp_path / "harmonization.json").write_text("x" * 1_000)  # comfortably under: not flagged
+    assert check_budgets(tmp_path) == [f"meta.json: {50_001} > 50000"]
+
+
+def test_check_budgets_flags_incompressible_calendars(tmp_path):
+    import os
+
+    from kilnwatch.export import check_budgets
+
+    (tmp_path / "calendar").mkdir()
+    (tmp_path / "calendar" / "BD50.json").write_bytes(os.urandom(160_000))  # random bytes barely compress
+    (tmp_path / "calendar" / "BD51.json").write_text("x" * 200_000)  # compresses far under the gzip limit
+    errs = check_budgets(tmp_path)
+    assert len(errs) == 1 and errs[0].startswith("calendar/BD50.json")
+
+
+def test_check_budgets_total_cap(tmp_path):
+    from kilnwatch.export import check_budgets
+
+    with open(tmp_path / "big.bin", "wb") as f:
+        f.truncate(100_000_001)  # sparse file: the size is what the budget sums
+    assert any(e.startswith("total") for e in check_budgets(tmp_path))

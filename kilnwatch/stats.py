@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import numpy as np
+import pandas as pd
 from scipy import stats as st
 
 
-def bootstrap_ci(x, stat=np.mean, n=1000, block=None, rng=None, level=0.95) -> tuple[float, float, float]:
-    """(point, lo, hi). block=k resamples contiguous blocks of length k (week-block bootstrap)."""
-    rng = rng if rng is not None else np.random.default_rng(0)
+def bootstrap_ci(x, stat=np.mean, n=1000, block=None, *, rng, level=0.95) -> tuple[float, float, float]:
+    """(point, lo, hi). block=k resamples contiguous blocks of length k (week-block bootstrap).
+
+    rng is required (invariant 7): every draw comes from config.rng(stage) so seed offsets stay auditable."""
     x = np.asarray(x, dtype=float)
     if len(x) == 0:
         return (np.nan, np.nan, np.nan)
@@ -23,9 +25,10 @@ def bootstrap_ci(x, stat=np.mean, n=1000, block=None, rng=None, level=0.95) -> t
     return point, float(np.nanquantile(draws, a)), float(np.nanquantile(draws, 1 - a))
 
 
-def perm_test(values, is_kiln, strata, stat=None, n=10_000, rng=None) -> float:
-    """One-sided p for stat(kiln) - stat(control) >= observed, shuffling labels within strata (bounded n)."""
-    rng = rng if rng is not None else np.random.default_rng(0)
+def perm_test(values, is_kiln, strata, stat=None, n=10_000, *, rng) -> float:
+    """One-sided p for stat(kiln) - stat(control) >= observed, shuffling labels within strata (bounded n).
+
+    rng is required (invariant 7): every draw comes from config.rng(stage) so seed offsets stay auditable."""
     stat = stat or (lambda a, b: np.mean(a) / max(np.mean(b), 1e-12))
     v = np.asarray(values, dtype=float)
     lab = np.asarray(is_kiln, dtype=bool)
@@ -39,6 +42,16 @@ def perm_test(values, is_kiln, strata, stat=None, n=10_000, rng=None) -> float:
             perm[g] = rng.permutation(lab[g])
         hits += stat(v[perm], v[~perm]) >= obs
     return (hits + 1) / (n + 1)
+
+
+def spearman(a, b) -> float | None:
+    """Rank correlation, None below 3 pairs or when either side is constant (shared by verify_firms and its tests)."""
+    if len(a) < 3:
+        return None
+    ra, rb = pd.Series(list(a)).rank().to_numpy(), pd.Series(list(b)).rank().to_numpy()
+    if np.std(ra) == 0 or np.std(rb) == 0:
+        return None
+    return round(float(np.corrcoef(ra, rb)[0, 1]), 3)
 
 
 def wilson(k: int, n: int, level=0.95) -> tuple[float, float]:

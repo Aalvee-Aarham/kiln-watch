@@ -18,7 +18,8 @@ from sklearn.neighbors import BallTree
 
 from . import activity as A
 from . import config as C
-from .kilns import R_EARTH, _rad, cluster
+from .ingest import _parquet, atomic_write
+from .kilns import R_EARTH, _rad, cluster, haversine_m
 
 log = logging.getLogger("kilnwatch.transfer")
 COUNTRIES = {
@@ -137,7 +138,7 @@ def ring_controls(reps: pd.DataFrame, wc_class: dict, kiln_lat, kiln_lon, inside
                 if same:
                     ok &= cls == wc_class[c.cluster_id]
                 for la, lo in zip(lat[ok], lon[ok]):
-                    if got and _km(la, lo, np.array([g[0] for g in got]), np.array([g[1] for g in got])).min() < 5:
+                    if got and (haversine_m(la, lo, np.array([g[0] for g in got]), np.array([g[1] for g in got])) / 1000).min() < 5:
                         continue
                     got.append((float(la), float(lo), rung))
                     if len(got) == n:
@@ -165,12 +166,6 @@ def shuffle_controls(ctrl: pd.DataFrame, rng) -> pd.DataFrame:
     res = pd.concat(out, ignore_index=True) if out else ctrl.copy()
     res.attrs = dict(ctrl.attrs)
     return res
-
-
-def _km(lat1, lon1, lat2, lon2):
-    p1, p2 = np.radians(lat1), np.radians(lat2)
-    a = np.sin((p2 - p1) / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(np.radians(np.asarray(lon2) - lon1) / 2) ** 2
-    return 2 * R_EARTH / 1000 * np.arcsin(np.sqrt(a))
 
 
 # --- local calendar (pure) ----------------------------------------------------------
@@ -261,8 +256,9 @@ def prepare(cc: str, design: str = "A2") -> dict:
         if d["shuffle"]:
             ctrl = shuffle_controls(ctrl, rng)
         if design != "A2":
-            ctrl.to_parquet(cached, index=False)
-            cached.with_suffix(".json").write_text(json.dumps({"dropped": [int(x) for x in ctrl.attrs["dropped"]]}), encoding="utf-8")
+            # json first, both atomic: the parquet's existence is what marks the cache complete
+            atomic_write(cached.with_suffix(".json"), json.dumps({"dropped": [int(x) for x in ctrl.attrs["dropped"]]}))
+            _parquet(ctrl, cached)
     dropped = set(ctrl.attrs["dropped"])
     return {"kilns": kilns, "clusters": clusters, "reps": reps, "ctrl": ctrl, "wc_class": wc_class,
             "cal": np.array([c for c in cal if c not in dropped]), "conf": np.array([c for c in conf if c not in dropped]),
@@ -339,7 +335,7 @@ def prepare_summary(countries=tuple(COUNTRIES), design: str = "A2") -> dict:
                    "calibration": len(p["cal"]), "confirmation": len(p["conf"]), "rungs": p["ctrl"].rung_used.value_counts().sort_index().to_dict(),
                    "wc_classes": pd.Series([p["wc_class"][c] for c in np.concatenate([p["cal"], p["conf"]])]).value_counts().to_dict()}
         log.info("%s prepare: %s", cc, out[cc])
-    (C.INTERIM / f"transfer_prep_{design}_{'_'.join(countries)}.json").write_text(json.dumps(out, default=A._num, indent=1), encoding="utf-8")
+    atomic_write(C.INTERIM / f"transfer_prep_{design}_{'_'.join(countries)}.json", json.dumps(out, default=A._num, indent=1))
     return out
 
 
@@ -353,9 +349,7 @@ def run(countries=tuple(COUNTRIES), kinds=("ntl", "s1"), extract=True, design: s
         done[(cc, design)] = country_result(cc, prep, kinds, extract, design)
     res = {"countries": [done[(c, g)] for c in COUNTRIES for g in DESIGNS if (c, g) in done]}
     res["bangladesh"] = bangladesh_reference(np.random.default_rng(C.SEED + C.SEED_OFFSETS["transfer"] + 20))
-    tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(res, default=A._num, indent=0), encoding="utf-8")
-    tmp.replace(path)
+    atomic_write(path, json.dumps(res, default=A._num, indent=0))
     _write_public(res)
     _write_report(res)
     return res
@@ -381,13 +375,13 @@ def public_payload(res: dict) -> dict:
 
 
 def _write_public(res: dict) -> None:
-    from .export import _dump, assert_public_safe, nan_to_none
+    from .export import assert_public_safe, dump_json, nan_to_none
 
     p = C.INTERIM / "public" / "kiln_activity.json"
     pub = json.loads(p.read_text(encoding="utf-8"))
     pub["transfer"] = nan_to_none(json.loads(json.dumps(public_payload(res), default=A._num)))
     assert_public_safe(pub)
-    _dump(pub, p)
+    dump_json(pub, p)
 
 
 MONTH = ["", "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
