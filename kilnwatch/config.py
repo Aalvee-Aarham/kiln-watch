@@ -46,9 +46,30 @@ MAX_CLUSTER_DIAM_M = 5_000
 MAX_CLUSTER_SHARE = 0.02
 CONTROL_ATTEMPTS_MAX = 2_000
 SEED = 20261114
-SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7, "transfer": 8}
+SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7, "transfer": 8,
+                "news": 9, "news_audit": 10}
 FORBIDDEN_PUBLIC_KEYS = {"kiln_id", "cluster_id", "candidate", "kiln_lat", "kiln_lon"}
 TRANSFER_DISTRICT = "Faisalabad"
+
+# --- FIXED: news page (docs/news_plan.md) ------------------------------------
+NEWS_MODEL = "gemini-3.8-flash"
+NEWS_FEED_FROM = "2025-07-01"  # the main feed's default view: seasons 2025-26 on
+NEWS_HISTORY_FROM = "2012-07-01"  # history start: season 2012-13, the VIIRS era
+NEWS_BURN_WINDOW_DAYS = 7
+NEWS_ENFORCE_WINDOW_DAYS = 14
+NEWS_CLOUDY_MIN_DAYS = 4  # days of the 7-day window not observed -> "can't tell", not a count
+NEWS_RARE_SEASON_FRAC = 0.5  # verdict "rare" below this share of seasons with burning; awaiting team confirmation
+NEWS_EARLIER_SHOWN = 3
+NEWS_EVENT_MAX_LAG_DAYS = 30
+NEWS_CLAIM_MAX_WORDS = 30
+NEWS_QUOTE_MAX_WORDS = 25
+NEWS_EXCERPT_MAX_WORDS = 600
+NEWS_FETCH_DELAY_S = 3.0
+NEWS_MAX_FETCH_PER_HOST_PER_RUN = 60
+NEWS_MAX_LLM_CALLS_PER_RUN = 150
+NEWS_MAX_RETRIES = 3
+NEWS_MAX_ITEMS_PER_MONTH = 1_000  # every public news array stays far below the cluster and kiln counts
+NEWS_USER_AGENT = "KilnWatch-News/1.0 (+https://github.com/Aalvee-Aarham/kiln-watch)"
 
 # --- Paths -------------------------------------------------------------------
 DATA = ROOT / "data"
@@ -57,6 +78,7 @@ INTERIM = DATA / "interim"
 MODELS = DATA / "models"
 STATIC = DATA / "static"
 NRT_DIR = DATA / "nrt"
+NEWS_DIR = DATA / "news"
 REPORTS = ROOT / "reports"
 FIGURES = REPORTS / "figures"
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -66,6 +88,7 @@ REGULATOR_DIR = ROOT / "regulator"
 FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
 OPENAQ_API_KEY = os.environ.get("OPENAQ_API_KEY", "")
 EE_PROJECT = os.environ.get("EE_PROJECT", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # news stage only; never a VITE_ variable
 
 # --- DERIVED (config_derived.json) -----------------------------------------
 DERIVED_PATH = Path(__file__).with_name("config_derived.json")

@@ -6,6 +6,7 @@ __pycache__/
 data/raw/
 data/interim/
 data/nrt/
+data/news/
 regulator/
 web/node_modules/
 web/dist/

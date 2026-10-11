@@ -128,6 +128,67 @@ export interface TransferCountry {
 
 export interface FC { type: 'FeatureCollection'; features: { type: 'Feature'; properties: UnitProps; geometry: GeoJSON.Geometry }[] }
 
+// news/ (docs/news_plan.md §6): newspaper stories beside our own satellite data, written by kilnwatch/news_pair.py.
+// Optional files: absent = no news page. Area-level only: district unit_ids or 'BGD' (national); no coordinates.
+// Every number here comes from our data, never from the model; the model writes only claim_en/claim_bn and picks quote.
+export type NewsKind = 'burning' | 'enforcement' | 'kilns_operating' | 'air_health'
+
+/** news/index.json: coverage, rules and counts. Loaded by the news page and the Area page. */
+export interface NewsIndex {
+  generated_at: string; store_updated_at: string | null; data_build: string; model: string
+  seasons: string[]                                    // every season with stories, newest first
+  rules: { burn_window_days: number; enforce_window_days: number; cloudy_min_days: number; rare_season_frac: number; earlier_shown: number }
+  sources: { key: string; outlet: string; lang: 'en' | 'bn'; status: 'active' | 'excluded'
+             reason?: string; read_back_to?: string | null; last_scanned?: string | null }[]
+  counts: Record<string, Record<string, number>>       // season -> unit_id ('BGD' = national) -> stories naming it
+  dropped: { reason: string; n: number }[]             // guard failures, shown for transparency
+}
+
+/** news/places.json entry: "How common is fire here?" for one district (or 'BGD'), from its calendar. */
+export interface NewsPlace {
+  unit_id: string; name_en: string; name_bn: string    // 'BGD': Bangladesh / বাংলাদেশ
+  record_from: string | null                          // first season in the satellite record, e.g. "2003-04"
+  seasons_in_record: number
+  seasons_with_burning: number                         // seasons whose measured burning season lasted > 0 days (duration p50)
+  typical_duration_days: number | null                 // median measured duration
+  typical: { first_month: number; busiest_month: number; last_month: number } | null  // busyMonths rule; calendar months 1-12
+  news_total: number; news_from: string | null         // earlier-news coverage, for the count line
+}
+export type NewsPlaces = Record<string, NewsPlace>     // unit_id ('BGD' = national) -> place
+
+export interface NewsWindow {
+  from: string; to: string
+  unusual_days: number | null                          // district level; null = can't tell (cloud) or a national story
+  not_observed_days: number | null                     // null = not checked (current season, provisional)
+  districts_unusual?: number                           // national stories: districts with >= 1 unusual day
+}
+export type NewsSat =
+  | { type: 'window'; level: 'district' | 'national'; provisional: boolean; before: NewsWindow; after?: NewsWindow | null }  // after: enforcement only; null until complete
+  | { type: 'kiln_months'; usual_months: number[] | null; inside: boolean | null }
+  | { type: 'burning_season'; usual_months: number[] | null; inside: boolean | null; outlook_frac?: number | null }
+
+export interface NewsItem {
+  news_id: string                                      // first 12 hex of sha256(canonical URL)
+  url: string; outlet: string; lang: 'en' | 'bn'
+  title: string                                        // from the article page, verbatim
+  published_date_local: string
+  event_date_local: string; event_date_stated: boolean // event date = publication date when the article gives none
+  kind: NewsKind
+  unit_ids: string[]                                   // ordered by first mention; the satellite parts use unit_ids[0]; ['BGD'] = national
+  claim_en: string; claim_bn: string
+  quote: string                                        // verbatim, in the article's language
+  sat: NewsSat                                         // what satellites saw around the event date
+  season_so_far: { unusual_days: number | null; not_observed_days: number | null; districts_unusual?: number; provisional: boolean; to: string }
+  how_common: 'common_now' | 'outside_season' | 'rare' | null  // null for national stories (no national normal)
+  earlier_news: number                                 // stories about unit_ids[0] published before this one
+}
+/** news/<season>.json: one season's stories, sharded by month ("2025-12"). */
+export interface NewsSeason { season: string; months: Record<string, NewsItem[]> }
+
+/** news/place/<unit_id>.json: every published story naming one district (or 'BGD'), sharded by month, newest first. */
+export interface NewsPlaceStory { news_id: string; date_local: string; season: string; kind: NewsKind; outlet: string; lang: 'en' | 'bn'; title: string; url: string }
+export interface NewsPlaceStories { unit_id: string; months: Record<string, NewsPlaceStory[]> }
+
 /** ask.json: cached Ask Kiln Watch answers (kilnwatch/ask.py build_cache). Optional file. */
 export interface AskCache {
   model: string; generated_at: string; data_build: string | null
