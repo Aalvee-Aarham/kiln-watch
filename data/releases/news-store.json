@@ -1,0 +1,247 @@
+{
+ "coverage": {
+  "bdnews24": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-10"
+  },
+  "bdnews24_bn": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-11"
+  },
+  "dailystar": {
+   "gaps": [],
+   "history_cursor": "2026-01-13",
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-01-13"
+  },
+  "dhakatribune": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-10"
+  },
+  "jugantor": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-10"
+  },
+  "prothomalo": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-10"
+  },
+  "prothomalo_en": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-09"
+  },
+  "samakal": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-11"
+  },
+  "tbs": {
+   "gaps": [],
+   "history_cursor": null,
+   "last_scanned": "2026-10-12",
+   "read_back_to": "2026-10-10"
+  }
+ },
+ "dropped": {
+  "no_place": 7,
+  "not_relevant": 21,
+  "number_not_in_quote": 2,
+  "quote_not_verbatim": 3,
+  "too_long": 1
+ },
+ "items": [
+  {
+   "claim_bn": "আজ ঢাকা বিশ্বের সবচেয়ে দূষিত বাতাসের শহরের তালিকায় ৩১৬ এয়ার কোয়ালিটি ইনডেক্স স্কোর নিয়ে প্রথম স্থানে রয়েছে।",
+   "claim_en": "Dhaka ranked first among cities with the most polluted air in the world today with an AQI score of 316.",
+   "event_date_local": "2026-01-25",
+   "event_date_stated": true,
+   "extracted_at": "2026-10-11T20:44:29+00:00",
+   "kind": "air_health",
+   "lang": "en",
+   "model": "gemini-3.1-flash-lite",
+   "news_id": "5eac881ab5f5",
+   "outlet": "The Daily Star",
+   "published_date_local": "2026-01-25",
+   "quote": "This morning, Dhaka ranked first among cities with the most polluted air in the world with AQI score of 316.",
+   "season": "2025-26",
+   "source": "dailystar",
+   "text_sha256": "9be2bf60150c296059865aa78259d5e11f70e7c68b0b69668c68f59468558265",
+   "title": "Is outdoor exercise healthy in Dhaka? Think again...",
+   "unit_ids": [
+    "BD3026"
+   ],
+   "url": "https://www.thedailystar.net/environment/pollution/air-pollution/news/outdoor-exercise-healthy-dhaka-think-again-4089861"
+  },
+  {
+   "claim_bn": "নেত্রকোণায় ৩৬টি ইটভাটার মধ্যে ৩২টিই অবৈধ, যা জ্বালানি হিসেবে কাঠ ব্যবহার করে এবং কৃষি জমি বা নিষিদ্ধ এলাকায় স্থাপিত হয়েছে।",
+   "claim_en": "Out of 36 brick kilns in Netrakona, 32 are operating illegally, violating environmental regulations by using firewood and establishing sites on agricultural or restricted land.",
+   "event_date_local": "2026-02-28",
+   "event_date_stated": false,
+   "extracted_at": "2026-10-11T20:44:10+00:00",
+   "kind": "kilns_operating",
+   "lang": "en",
+   "model": "gemini-3.1-flash-lite",
+   "news_id": "b9298467e68f",
+   "outlet": "The Daily Star",
+   "published_date_local": "2026-02-28",
+   "quote": "Of the 36 brick kilns operating across nine upazilas in Netrakona, 32 have been identified as illegal, according to the Department of Environment (DoE).",
+   "season": "2025-26",
+   "source": "dailystar",
+   "text_sha256": "f0d41441db47a00306f3b581bd56e1f20a6ee4f736ee8fc6348cb6c8ab1fcb9f",
+   "title": "32 out of 36 brick kilns in Netrakona illegal: DoE",
+   "unit_ids": [
+    "BD4572"
+   ],
+   "url": "https://www.thedailystar.net/news/bangladesh/news/32-out-36-brick-kilns-netrakona-illegal-doe-4116866"
+  },
+  {
+   "claim_bn": "ইটের ভাটার ধোঁয়া ও বায়ু দূষণের কারণে ঢাকা ও নারায়ণগঞ্জে অ্যাজমা ও সিওপিডি-র মতো শ্বাসকষ্টজনিত রোগ বৃদ্ধি পেয়েছে।",
+   "claim_en": "Air pollution, including emissions from brick kilns, is causing a significant rise in respiratory diseases like asthma and COPD in Dhaka and Narayanganj.",
+   "event_date_local": "2026-03-14",
+   "event_date_stated": false,
+   "extracted_at": "2026-10-11T20:43:45+00:00",
+   "kind": "air_health",
+   "lang": "en",
+   "model": "gemini-3.1-flash-lite",
+   "news_id": "a9e22d970ed6",
+   "outlet": "The Daily Star",
+   "published_date_local": "2026-03-14",
+   "quote": "Air pollution of various types -- dust, vehicle fumes and emissions from brick kilns – has increased, posing significant health risks, particularly respiratory problems.",
+   "season": "2025-26",
+   "source": "dailystar",
+   "text_sha256": "5d812afcc12a81dd6393601bb232a7ebfcf5f216918a664d38926dcb41e57f8e",
+   "title": "Air pollution driving up respiratory diseases",
+   "unit_ids": [
+    "BD3026",
+    "BD3067"
+   ],
+   "url": "https://www.thedailystar.net/environment/pollution/air-pollution/news/air-pollution-driving-respiratory-diseases-4128196"
+  },
+  {
+   "claim_bn": "ঢাকা থেকে কুমিল্লা পর্যন্ত মহাসড়কে বর্জ্য পোড়াতে দেখা গেছে এবং উচ্চ আদালতের নির্দেশে সাভারে কিছু ইটভাটা পুনরায় চালু হয়েছে।",
+   "claim_en": "Waste burning was observed along the highway from Dhaka to Cumilla, passing through Narayanganj, while some brick kilns in Savar resumed operations following High Court directives.",
+   "event_date_local": "2026-03-14",
+   "event_date_stated": false,
+   "extracted_at": "2026-10-11T20:43:29+00:00",
+   "kind": "burning",
+   "lang": "en",
+   "model": "gemini-3.1-flash-lite",
+   "news_id": "dc3d845b418b",
+   "outlet": "The Daily Star",
+   "published_date_local": "2026-03-14",
+   "quote": "Numerous burning or smouldering piles of waste were observed on both sides of the road through Jatrabari, Narayanganj, Gazaria, Nimsar, Burichang, Shahdaulatpur, and Barura.",
+   "season": "2025-26",
+   "source": "dailystar",
+   "text_sha256": "67ad619bb5f672d68aa58658fa7136eb11033c69bd4a125624416775711e8c05",
+   "title": "Smoke fills the air we breathe",
+   "unit_ids": [
+    "BD3026",
+    "BD2019",
+    "BD3067"
+   ],
+   "url": "https://www.thedailystar.net/environment/pollution/air-pollution/news/smoke-fills-the-air-we-breathe-4128191"
+  },
+  {
+   "claim_bn": "মাতুয়াইল ও আমিন বাজারের ল্যান্ডফিলে বর্জ্য পোড়ানো এবং খোলা জায়গায় ময়লা পোড়ানোর ফলে ঢাকার বায়ুর মান মারাত্মকভাবে ক্ষতিগ্রস্ত হচ্ছে এবং দূষণ বাড়ছে।",
+   "claim_en": "Open waste burning and landfill fires at Matuail and Amin Bazar are significantly deteriorating Dhaka's air quality and contributing to hazardous pollution levels.",
+   "event_date_local": "2026-03-15",
+   "event_date_stated": false,
+   "extracted_at": "2026-10-11T20:43:16+00:00",
+   "kind": "burning",
+   "lang": "en",
+   "model": "gemini-3.1-flash-lite",
+   "news_id": "042d4d9a785f",
+   "outlet": "The Daily Star",
+   "published_date_local": "2026-03-15",
+   "quote": "Moreover, along highways going out of Dhaka, waste collectors and traders frequently burn rubbish (especially polythene), releasing large amounts of toxic pollutants.",
+   "season": "2025-26",
+   "source": "dailystar",
+   "text_sha256": "725d74941a0603b9fc626379612ece24b02a4a968486bcefbbc304265dfede14",
+   "title": "Stop landfill fires, open waste burning",
+   "unit_ids": [
+    "BD3026"
+   ],
+   "url": "https://www.thedailystar.net/opinion/news/stop-landfill-fires-open-waste-burning-4128771"
+  },
+  {
+   "claim_bn": "জীবাশ্ম জ্বালানির ওপর अत्यधिक নির্ভরতার কারণে ঢাকা বিশ্বের অন্যতম দূষিত রাজধানী শহর হিসেবে রয়ে গেছে, যা জনস্বাস্থ্য ও অর্থনীতির ওপর নেতিবাচক প্রভাব ফেলছে।",
+   "claim_en": "Dhaka continues to be ranked among the world's most polluted capital cities due to heavy reliance on fossil fuels, which severely impacts public health and the economy.",
+   "event_date_local": "2026-06-13",
+   "event_date_stated": false,
+   "extracted_at": "2026-10-11T20:41:09+00:00",
+   "kind": "air_health",
+   "lang": "en",
+   "model": "gemini-3.1-flash-lite",
+   "news_id": "8f82b731fe82",
+   "outlet": "The Daily Star",
+   "published_date_local": "2026-06-13",
+   "quote": "Meanwhile, Dhaka still ranks among the most polluted capital cities in the world.",
+   "season": "2025-26",
+   "source": "dailystar",
+   "text_sha256": "1732c33e7c20c3952edc9dd53a85d0df2b4d0a825860b50bdc8bd5ccd48af59f",
+   "title": "Air pollution: What Beijing got right that Dhaka still hasn't",
+   "unit_ids": [
+    "BD3026"
+   ],
+   "url": "https://www.thedailystar.net/opinion/views/news/air-pollution-what-beijing-got-right-dhaka-still-hasnt-4197401"
+  }
+ ],
+ "model": "gemini-3.8-flash",
+ "seen": {
+  "03d5b768b4d8": "quote_not_verbatim",
+  "03d7396c35f1": "not_relevant",
+  "042d4d9a785f": "kept",
+  "0803984d77e1": "not_relevant",
+  "15ef51ab21b9": "not_relevant",
+  "1d27a4720137": "not_relevant",
+  "2b72cf184166": "not_relevant",
+  "3146e68712d3": "not_relevant",
+  "38180f232c1c": "no_place",
+  "589158e9be2e": "not_relevant",
+  "5eac881ab5f5": "kept",
+  "609b9f95cc89": "not_relevant",
+  "67f1b28cc486": "quote_not_verbatim",
+  "71248b870aa5": "not_relevant",
+  "83a540aecd06": "not_relevant",
+  "8867d430533b": "not_relevant",
+  "8f82b731fe82": "kept",
+  "9073a27755dc": "not_relevant",
+  "9972227f796a": "not_relevant",
+  "9a21ace61910": "no_place",
+  "9e28ca87c17f": "number_not_in_quote",
+  "a129f19e6947": "not_relevant",
+  "a9e22d970ed6": "kept",
+  "b3a8fabfbe5c": "quote_not_verbatim",
+  "b3b0b635c1ad": "no_place",
+  "b9298467e68f": "kept",
+  "ba6c8ce02b62": "not_relevant",
+  "c1626843ebdf": "no_place",
+  "c61e29b0343b": "not_relevant",
+  "ceda54506edb": "not_relevant",
+  "d2a210c24ce6": "not_relevant",
+  "da65114c66e2": "no_place",
+  "dc3d845b418b": "kept",
+  "de4ed59b744c": "no_place",
+  "e359a8ee26b0": "number_not_in_quote",
+  "ea7ad7e98ddc": "not_relevant",
+  "edc268d2ec46": "not_relevant",
+  "ee6fc4526f63": "no_place",
+  "ef6ce5b5d473": "too_long",
+  "f3d9edaf8036": "not_relevant"
+ },
+ "updated_at": "2026-10-11T20:44:42+00:00",
+ "version": 1
+}
