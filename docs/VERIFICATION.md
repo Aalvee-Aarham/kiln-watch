@@ -21,3 +21,8 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | A1-K | Kiln activity (Amendment 1): the national kiln-season curve peaks Dec–Feb and is flat Jul–Sep; 3 districts spot-checked against local knowledge of their kiln season | | | |
 | A1-K | Kiln activity: the Bangla non-claims in `kilnwatch/activity.py` read correctly to a native speaker | | | |
 | P0 | Local Lead confirms in writing how pre-event work (5–6 Oct 2026) is treated; README/submission disclosure updated with the ruling | | | |
+| NEWS | 30 random published news stories (drawn with `config.rng("news_audit")`) checked against the articles: the claim matches, the districts are right, the quote is verbatim, no kiln, owner or private person is named | | | |
+| NEWS | The "How common is fire here?" verdict for 5 districts matches their Area page and local knowledge of their burning season; the "rare" threshold (`NEWS_RARE_SEASON_FRAC`) confirmed by the team | | | |
+| NEWS | The Bangla claims, verdicts and news page text read correctly to a native speaker | | | |
+| NEWS | `#/news` works on a phone in day and night themes; the Area page link opens the filtered list; "Earlier news" opens | | | |
+| NEWS | The Gemini terms question (`docs/news_plan.md` §10 item 1) is settled before the `GEMINI_API_KEY` secret is added | | | |
