@@ -1,5 +1,5 @@
 import { Component, useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
-import { NavLink, Link, useLocation } from 'react-router'
+import { NavLink, Link, useLocation, useNavigationType } from 'react-router'
 import { chartPng } from '../lib/chartRegistry'
 import { useJson } from '../lib/data'
 import { fmtNumber, useLang, useT, type Key } from '../lib/i18n'
@@ -153,6 +153,17 @@ export function AppShell({ children }: { children: ReactNode }) {
     ro.observe(h)
     return () => ro.disconnect()
   }, [])
+  // A new page opens at its top. Only when the section changes: picking a unit (/area/X → /area/Y) keeps the reader's place.
+  // Back/forward (POP) leave scrolling to the browser, and the season banner's { scrollTo } link positions itself.
+  const navType = useNavigationType()
+  const section = loc.pathname.split('/')[1] ?? ''
+  const prevSection = useRef(section)
+  useLayoutEffect(() => {
+    if (prevSection.current === section) return
+    prevSection.current = section
+    if (navType === 'POP' || (loc.state as { scrollTo?: string } | null)?.scrollTo) return
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' })
+  }, [section, navType, loc.state])
   // keep the active tab visible in the scrolling pill row (no animation: it follows a navigation)
   useEffect(() => { navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [loc.pathname])
   return (
