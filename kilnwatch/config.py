@@ -64,6 +64,8 @@ NEWS_PROVIDERS = (
     {"name": "gemini-3.6-flash", "api": "gemini", "model": "gemini-3.6-flash", "key": "GEMINI_API_KEY"},
     {"name": "gemini-3.8-flash", "api": "gemini", "model": "gemini-3.8-flash", "key": "GEMINI_API_KEY"},
     {"name": "gemini-3-flash-preview", "api": "gemini", "model": "gemini-3-flash-preview", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-2.5-flash-lite", "api": "gemini", "model": "gemini-2.5-flash-lite", "key": "GEMINI_API_KEY"},  # spares: older models,
+    {"name": "gemini-2.5-flash", "api": "gemini", "model": "gemini-2.5-flash", "key": "GEMINI_API_KEY"},  # their own daily limits
     # Groq: two production models, each with its own free limit.
     {"name": "groq-gpt-oss", "api": "openai", "model": "openai/gpt-oss-120b", "key": "GROQ_API_KEY", "base_url": "https://api.groq.com/openai/v1"},
     {"name": "groq-llama", "api": "openai", "model": "llama-3.3-70b-versatile", "key": "GROQ_API_KEY", "base_url": "https://api.groq.com/openai/v1"},
