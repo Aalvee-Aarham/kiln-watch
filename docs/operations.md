@@ -13,7 +13,7 @@
 |---|---|
 | `FIRMS_MAP_KEY` | FIRMS archive + daily NRT (free MAP_KEY) |
 | `OPENAQ_API_KEY` | Dhaka PM2.5 validation |
-| `GROQ_API_KEY`, `CEREBRAS_API_KEY`, `MISTRAL_API_KEY`, `GITHUB_MODELS_TOKEN` | Optional fallback readers for the `news` stage (`NEWS_PROVIDERS`), tried in that order after Gemini; unset = skipped. In CI the first three are optional secrets and GitHub Models uses the job's own token |
+| `GROQ_API_KEY`, `CEREBRAS_API_KEY`, `MISTRAL_API_KEY`, `GITHUB_MODELS_TOKEN` | Optional fallback readers for the `news` stage (`NEWS_PROVIDERS`), tried in that order after the five Gemini models (one Gemini key only — rotating keys to beat the free limit breaks Google's terms); unset = skipped. In CI the first three are optional secrets and GitHub Models uses the job's own token |
 | `GEMINI_API_KEY` | The `news` stage (Gemini reads article excerpts). Also a GitHub secret: **adding it turns the daily news job on**; settle the Gemini terms question first (docs/news_plan.md §10). Never a `VITE_` variable |
 | `EE_PROJECT` | Earth Engine project (clear fractions, night lights, radar) |
 | `EE_API_KEY`, `EOG_USER`, `EOG_PASSWORD` | Not needed by the current pipeline |
