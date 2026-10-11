@@ -141,10 +141,10 @@ function Details({ sel, feature, geometry, city, cities, countryName, onCity, on
 /** What Kiln Watch has for the picked place: Bangladesh's own numbers, the kiln tests abroad, or nothing yet. */
 function Coverage({ adm0, kind, city, geometry }: { adm0: string; kind: Pick['kind']; city?: City; geometry?: GeoJSON.Geometry }) {
   if (adm0 === 'BGD') return <div className="space-y-3 border-t border-line pt-3"><BangladeshFacts kind={kind} city={city} geometry={geometry} /></div>
+  // The kiln-test box speaks only where the method was tested (Pakistan, India, Afghanistan), from the published results.
   if (SOUTH_ASIA.includes(adm0)) return <div className="space-y-3 border-t border-line pt-3">
-    <p>Fire calendar coming. Kiln method already tested:</p>
-    <KilnAbroad adm0={adm0} />
-    <p className="text-sm text-muted">The Bangladesh method has been tested in Pakistan and India with mixed results — all published.</p></div>
+    <p>Not analysed yet. South Asia’s harmonized fire calendar is being built, with its own calibration, tested before it is shown.</p>
+    <KilnAbroad adm0={adm0} /></div>
   return <p className="border-t border-line pt-3 text-sm text-muted">Outside the study area. Kiln Watch analyses Bangladesh in depth, and South Asia next.</p>
 }
 
