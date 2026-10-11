@@ -24,6 +24,7 @@ const ExplorerPage = lazy(() => import('./pages/ExplorerPage'))
 const EvidencePage = lazy(() => import('./pages/EvidencePage'))
 const KilnSeasonsPage = lazy(() => import('./pages/KilnSeasonsPage'))
 const AskPage = lazy(() => import('./pages/AskPage'))
+const NewsPage = lazy(() => import('./pages/NewsPage'))
 const RegionPage = lazy(() => import('./pages/RegionPage'))
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
             <Route path="/impact/:who?/:unitId?" element={<ImpactPage />} />
             <Route path="/trust" element={<TrustPage />} />
             <Route path="/experts" element={<ExpertsPage />} />
+            <Route path="/news" element={<NewsPage />} />
             <Route path="/ask" element={<AskPage />} />
             <Route path="/region" element={<RegionPage />} />
             <Route path="/world" element={<RegionPage />} />

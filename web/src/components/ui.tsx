@@ -5,7 +5,7 @@ import { useJson } from '../lib/data'
 import { fmtNumber, useLang, useT, type Key } from '../lib/i18n'
 import { toggleTheme, useTheme } from '../lib/theme'
 import { harvestSpans, rituSpans, type Layout } from '../lib/ritu'
-import type { CI, Events, KilnActivity, Meta, NrtSeason } from '../lib/types'
+import type { CI, Events, KilnActivity, Meta, NewsIndex, NrtSeason } from '../lib/types'
 
 export function useMeta() { return useJson<Meta>('meta.json') }
 
@@ -66,6 +66,11 @@ export function useKilnsVisible() {
   return !!ka?.layer || (!!meta && meta.gate_branch !== 'partial' && meta.gate_branch !== 'nokiln')
 }
 
+/** Optional news index (docs/news_plan.md §6); a missing file means "no news page". */
+export function useNewsIndex() { return useJson<NewsIndex>('news/index.json') }
+/** The News nav item and the Area page's news line show only when news/index.json loads. */
+export function useNewsVisible() { return !!useNewsIndex().data }
+
 /** prefers-reduced-motion, live. */
 export function useReducedMotion() {
   return useSyncExternalStore(
@@ -118,6 +123,7 @@ const ICONS = {
   pin: 'M8 14.5s4.5-4 4.5-8a4.5 4.5 0 0 0-9 0c0 4 4.5 8 4.5 8zM8 5v.01',
   plus: 'M8 3v10M3 8h10',
   minus: 'M3 8h10',
+  external: 'M9.5 2.5h4v4M13.5 2.5 7.5 8.5M11.5 9.5v4h-9v-9h4',
 } as const
 export type IconName = keyof typeof ICONS
 export const Icon = ({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) => (
@@ -136,10 +142,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navRef = useRef<HTMLElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const showKilns = useKilnsVisible()
+  const showNews = useNewsVisible()
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
