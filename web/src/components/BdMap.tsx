@@ -174,14 +174,16 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       const v = panFrom.view
       setView(clampView({ ...v, x: v.x - (b[0] - a[0]), y: v.y - (b[1] - a[1]) }, fit))
     }
+    const dbl = (e: MouseEvent) => zoomAt(e.clientX, e.clientY, 1.8)
     const up = () => { panFrom = null; document.documentElement.classList.remove('is-panning') }
     el.addEventListener('wheel', wheel, { passive: false })
     el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
-    el.addEventListener('dblclick', (e) => zoomAt(e.clientX, e.clientY, 1.8))
+    el.addEventListener('dblclick', dbl)
     return () => {
       el.removeEventListener('wheel', wheel)
       el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move)
+      el.removeEventListener('dblclick', dbl) // a named handler: toggling draw mode must not stack zooms
       el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up)
       clearTimeout(hintT)
       document.documentElement.classList.remove('is-panning')

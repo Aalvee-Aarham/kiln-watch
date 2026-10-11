@@ -139,6 +139,8 @@ export default function WorldMap({ countries, states, region, cities, selected, 
   const towns = placeLabels(visibleCities(cities, view, 600), px, selCity) // 600 candidates, thinned to what can be read
   const tip = (name: string) => (e: React.PointerEvent) => { const r = wrapRef.current!.getBoundingClientRect(); setHover({ name, x: e.clientX - r.left, y: e.clientY - r.top }) }
   const click = (p: Pick) => () => { if (!moved.current) onPick(p) }
+  // keyboard path, same as BdMap: every pickable shape is a tab stop with Enter/Space to pick
+  const keyPick = (p: Pick) => (e: React.KeyboardEvent) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onPick(p) } }
 
   return (
     <div className="space-y-2">
@@ -159,22 +161,29 @@ export default function WorldMap({ countries, states, region, cities, selected, 
       </div>
       <div ref={wrapRef} className={`relative h-[min(620px,75vh)] min-h-[420px] w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none ${layer !== 'none' ? 'wm-imagery' : ''}`}>
         <svg viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} preserveAspectRatio="none" className="h-full w-full touch-none" role="group"
-          aria-label="World map, opening on South Asia. Drag to move, use the zoom buttons, or search for a place.">
+          aria-label="World map, opening on South Asia. Drag to move, use the zoom buttons, Tab to a place and press Enter, or search.">
           {layer !== 'none' && IMAGES.map(([b, day, night]) => (
             <image key={b.join()} href={layer === 'day' ? day : night} x={b[0]} y={-b[3]} width={b[2] - b[0]} height={b[3] - b[1]} preserveAspectRatio="none" aria-hidden />))}
           {layer === 'none' && vis.c.map((s) => <path key={s.id} d={s.d} className="wm-land" aria-hidden />)}
           {vis.s.map((s) => (
-            <path key={s.id} d={s.d} className="wm-state" onClick={click({ kind: 'state', id: s.id })} onPointerMove={tip(s.name)} onPointerLeave={() => setHover(null)} aria-hidden />))}
+            <path key={s.id} d={s.d} className="wm-state" onClick={click({ kind: 'state', id: s.id })} onKeyDown={keyPick({ kind: 'state', id: s.id })}
+              onPointerMove={tip(s.name)} onPointerLeave={() => setHover(null)}
+              tabIndex={0} role="button" aria-label={s.name} aria-pressed={selected?.kind === 'state' && selected.id === s.id} />))}
           {vis.c.map((s) => (
-            <path key={s.id} d={s.d} className={`wm-country${showStates ? '' : ' is-pick'}`} aria-hidden
+            <path key={s.id} d={s.d} className={`wm-country${showStates ? '' : ' is-pick'}`}
               style={layer === 'none' ? (s.id === 'BGD' ? { fill: 'var(--color-fire-3)', fillOpacity: 0.6 } : transferCountries.includes(s.id) ? { fill: 'var(--color-warn)', fillOpacity: 0.4 } : {}) : {}}
-              {...(showStates ? {} : { onClick: click({ kind: 'country', id: s.id }), onPointerMove: tip(s.name), onPointerLeave: () => setHover(null) })} />))}
+              {...(showStates ? { 'aria-hidden': true } : {
+                onClick: click({ kind: 'country', id: s.id }), onKeyDown: keyPick({ kind: 'country', id: s.id }),
+                onPointerMove: tip(s.name), onPointerLeave: () => setHover(null),
+                tabIndex: 0, role: 'button', 'aria-label': s.name,
+                'aria-pressed': selected?.kind === 'country' && selected.id === s.id,
+              })} />))}
           {vis.r.map((s) => <path key={s.id} d={s.d} className="wm-sa" aria-hidden />)}
           {sel && <path d={sel.d} className="wm-sel" aria-hidden />}
           {towns.map((c) => {
             const id = `${c.name}|${c.adm0}|${c.lat}`, on = selCity === c
             return (
-              <g key={id} onClick={click({ kind: 'city', id })} className="cursor-pointer">
+              <g key={id} onClick={click({ kind: 'city', id })} onKeyDown={keyPick({ kind: 'city', id })} tabIndex={0} role="button" aria-label={c.name} className="wm-city-btn cursor-pointer">
                 <circle cx={c.lon} cy={-c.lat} r={(c.capital ? 4 : 3) * px} className={`wm-city${c.capital ? ' is-capital' : ''}${on ? ' is-sel' : ''}`}><title>{c.name}</title></circle>
                 <text x={c.lon + 6 * px} y={-c.lat + 4 * px} fontSize={labelPx(c) * px} fontWeight={c.capital || c.rank <= 2 || on ? 600 : 400}
                   className="wm-name" style={{ strokeWidth: 3 * px }}>{c.name}</text>

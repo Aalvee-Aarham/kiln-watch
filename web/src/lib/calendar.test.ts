@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { aggregateBox, dense, resolveSplit, seasonMean, seriesFor } from './calendar'
+import { cellId } from './box'
 import type { Calendar, GridTile, Meta } from './types'
 import cases from '../../../tests/fixtures/grid_cases.json'
 
@@ -33,8 +34,7 @@ describe('calendar', () => {
     let expected = 0
     for (let k = 0; k < 400; k++) {
       const lat = 23.5 + 0.005 + 0.01 * (k % 50), lon = 90.0 + 0.005 + 0.01 * Math.floor(k / 8)
-      const cid = Math.floor((lat - 20) / 0.01 + 1e-9) * 3000 + Math.floor((lon - 68) / 0.01 + 1e-9)
-      rows.push([cid, 100, 2 * 2]) // sensor N, day pass
+      rows.push([cellId(meta, lat, lon), 100, 2 * 2]) // sensor N, day pass — id from meta.grid, never a literal
       expected += 0.25
     }
     const out = aggregateBox([{ tile: '90_23', day0: '2003-01-01', rows }], meta, box, undefined, total, 0.25)

@@ -692,6 +692,21 @@
   outline: none;
 }
 
+/* keyboard picks on the world map show the same focus stroke as the Bangladesh map */
+.wm-state:focus-visible,
+.wm-country:focus-visible,
+.wm-city-btn:focus-visible .wm-city {
+  stroke: var(--color-ink);
+  stroke-width: 1.8;
+  outline: none;
+}
+
+.wm-state:focus:not(:focus-visible),
+.wm-country:focus:not(:focus-visible),
+.wm-city-btn:focus:not(:focus-visible) {
+  outline: none;
+}
+
 /* a mouse pick shows as the selection stroke, not a focus box */
 .bd-sel {
   stroke: var(--color-orbit);
