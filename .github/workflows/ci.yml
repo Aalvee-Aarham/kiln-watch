@@ -1,22 +1,23 @@
 name: ci
 on: [push, pull_request]
+permissions: { contents: read }
 jobs:
   python:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
         with: { fetch-depth: 0 }
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
         with: { python-version: '3.11', cache: pip }
-      - run: pip install -r requirements.txt
+      - run: pip install -r requirements.txt -c constraints.txt
       - run: ruff check .
       - run: pytest -q   # synthetic only; tests/test_isolation.py enforces NFR10
   web-fixtures:
     runs-on: ubuntu-latest
     defaults: { run: { working-directory: web } }
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: npm ci
       - run: npm run lint
@@ -27,5 +28,7 @@ jobs:
         run: |
           ! grep -rEq '"(kiln_id|cluster_id|candidate|kiln_lat|kiln_lon)"' dist/data
           cd .. && pip install -q pandas numpy && python -m kilnwatch export --check-public web/dist/data
+      - name: E2E (every page; dist/ is the nokiln build, the last in the loop)
+        run: npx playwright install --with-deps chromium && npm run e2e
       - name: Bundle size
         run: du -sh dist/assets && find dist/assets -name '*.js' -exec sh -c 'gzip -c "$1" | wc -c | xargs echo "$1 gz:"' _ {} \;
