@@ -1,0 +1,13 @@
+key,outlet,domain,lang,news_sitemap,archive,status,reason,checked_on
+dailystar,The Daily Star,thedailystar.net,en,https://www.thedailystar.net/googlenews.xml,dailystar_yearly,active,,2026-10-11
+prothomalo_en,Prothom Alo English,en.prothomalo.com,en,https://en.prothomalo.com/news_sitemap.xml,none,active,,2026-10-11
+tbs,The Business Standard,tbsnews.net,en,https://www.tbsnews.net/googlenews.xml,none,active,,2026-10-11
+dhakatribune,Dhaka Tribune,dhakatribune.com,en,https://www.dhakatribune.com/news-sitemap.xml,dhakatribune_monthly,active,,2026-10-11
+bdnews24,bdnews24,bdnews24.com,en,https://bdnews24.com/news_sitemap.xml,none,active,,2026-10-11
+prothomalo,Prothom Alo,prothomalo.com,bn,https://www.prothomalo.com/news_sitemap.xml,none,active,,2026-10-11
+samakal,Samakal,samakal.com,bn,https://samakal.com/news_sitemap.xml,samakal_daily,active,,2026-10-11
+jugantor,Jugantor,jugantor.com,bn,https://www.jugantor.com/news_sitemap.xml,none,active,,2026-10-11
+bdnews24_bn,bdnews24 Bangla,bangla.bdnews24.com,bn,https://bangla.bdnews24.com/news_sitemap.xml,none,active,,2026-10-11
+fe,The Financial Express,thefinancialexpress.com.bd,en,,none,excluded,no news feed found (/rss and /feed return HTML),2026-10-11
+newage,New Age,newagebd.net,en,,none,excluded,listed news sitemap returns 404,2026-10-11
+kalerkantho,Kaler Kantho,kalerkantho.com,bn,,none,excluded,sitemap answers 403 to our requests; we don't work around blocks,2026-10-11
