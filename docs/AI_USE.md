@@ -24,3 +24,15 @@ Space Apps allows AI-generated content when the tools are named, the prompts are
 | Data it sees | Only the public, area-level export the website already publishes: no kiln locations, no personal data |
 | Where answers appear | `#/ask`, from a cache written by `python -m kilnwatch ask --build-cache`, so the page works offline and shows the raw function results behind each answer |
 | Limits | At most 6 model calls per question; refusals and blocked answers are shown as such, never filled in |
+
+## 3. AI inside the product: the news page
+
+| Item | Detail |
+|---|---|
+| Model | Gemini (`gemini-3.8-flash`, `NEWS_MODEL` in `kilnwatch/config.py`) through the Gemini API, structured output. **Free tier: team decision of 11 Oct 2026** — on the free tier Google may use what is sent to improve its products, and human reviewers may read it (docs/news_plan.md §10) |
+| Code | `kilnwatch/news_extract.py` (the one place the model is called), `kilnwatch/news.py` (finding, fetching, checking); plan: `docs/news_plan.md` |
+| What the AI does | Reads an excerpt of a newspaper article we fetched ourselves and returns: the kind of story, which of the districts the text names it is about, the event date if the article states one, a claim of at most 30 words in English and Bangla, and one verbatim quote |
+| What the AI never does | Find articles (the newspapers' own sitemaps do), choose a district the text doesn't name, or write a number: code checks the quote is verbatim and every number in the claims appears in the quote, and drops the story otherwise. All satellite figures and the "how common" verdict come from deterministic code (`kilnwatch/news_pair.py`) |
+| Data it sees | Excerpts (at most 600 words) of public articles from Bangladeshi newspapers; article text is never stored or published |
+| Where output appears | `#/news`, labelled "Collected by AI from newspapers. Not reviewed by a person." A blocklist file removes bad items; a person audits a random sample (docs/VERIFICATION.md) |
+| Limits | At most `NEWS_MAX_LLM_CALLS_PER_RUN` model calls per run; the daily job stays off until the `GEMINI_API_KEY` secret is added |
