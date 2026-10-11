@@ -21,3 +21,6 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | A1-K | Kiln activity (Amendment 1): the national kiln-season curve peaks Dec–Feb and is flat Jul–Sep; 3 districts spot-checked against local knowledge of their kiln season | | | |
 | A1-K | Kiln activity: the Bangla non-claims in `kilnwatch/activity.py` read correctly to a native speaker | | | |
 | P0 | Local Lead confirms in writing how pre-event work (5–6 Oct 2026) is treated; README/submission disclosure updated with the ruling | | | |
+| SPACE | `#/space` runs smoothly on a real phone and a laptop in both globes (Detailed online, Light offline); with the network off the Light globe loads and all three chapters work | | | |
+| SPACE | The modelled Aqua and Suomi NPP day-pass times over Bangladesh on one date are within ~30 min of a real overpass predictor's (e.g. the SSEC/NASA overpass tools) | | | |
+| SPACE | The Bangla nav label “মহাকাশ থেকে দেখা” / “মহাকাশ” reads correctly to a native speaker | | | |

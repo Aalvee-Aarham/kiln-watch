@@ -85,6 +85,7 @@ export default function RegionPage() {
       </div>
       <p className="text-xs text-muted">Outlines and place names: Natural Earth (public domain), simplified; boundaries are shown as drawn there and imply no position on any claim.
         Populations are Natural Earth estimates. Backgrounds: NASA Blue Marble Next Generation and Black Marble 2016, via NASA GIBS.</p>
+      <div className="flex flex-wrap gap-2"><TryLink to="/space">See Bangladesh’s fires from orbit, on a 3D globe</TryLink></div>
     </div>
   )
 }
