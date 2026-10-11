@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { StatusMessage, useTitle, Icon, useKilnActivity } from '../components/ui'
 import { PageHead } from '../components/plain'
 import { useJson } from '../lib/data'
-import { buildSystemPrompt, type Facts } from '../lib/geminiPrompt'
+import { buildSystemPrompt, unsupportedNumbers, type Facts } from '../lib/geminiPrompt'
 import { busyMonths, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
 import { seasonMean } from '../lib/calendar'
 import type { AskCache, Calendar, FC, NrtSeason } from '../lib/types'
@@ -13,10 +13,10 @@ function ApiKeyInput({ apiKey, setApiKey }: { apiKey: string, setApiKey: (k: str
     <details className="mt-4 text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
       <summary className="cursor-pointer font-medium text-orbit">Settings: Gemini API Key (Demo Mode)</summary>
       <div className="mt-2 flex max-w-lg flex-col gap-2 rounded-[6px] border border-line p-3 shadow-sm">
-        <label className="font-semibold text-ink">Gemini API Key</label>
-        <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
+        <label htmlFor="kw-gemini-key" className="font-semibold text-ink">Gemini API Key</label>
+        <input id="kw-gemini-key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
           placeholder="AIzaSy..." className="field w-full" />
-        <p className="text-xs text-muted">Your key stays in this browser only — never sent to our server.</p>
+        <p className="text-xs text-muted">Your key is saved in this browser and sent only to Google’s Gemini API, never to us.</p>
       </div>
     </details>
   )
@@ -27,7 +27,7 @@ function LiveChat({ apiKey }: { apiKey: string }) {
   const nrt = useJson<NrtSeason>('nrt/current_season.json').data
   const ka = useKilnActivity().data
 
-  const [unit, setUnit] = useState('21') // Default to Dhaka
+  const [unit, setUnit] = useState('BD3026') // Dhaka
   const sortedDists = (dists?.features ?? []).map(f => ({ id: f.properties.unit_id, name: f.properties.name_en })).sort((a, b) => a.name.localeCompare(b.name))
   const selectedUnit = unit && sortedDists.length > 0 ? unit : sortedDists[0]?.id
   useEffect(() => { if (sortedDists.length > 0 && !sortedDists.find(d => d.id === unit)) setUnit(sortedDists[0].id) }, [sortedDists, unit])
@@ -40,7 +40,7 @@ function LiveChat({ apiKey }: { apiKey: string }) {
   const [loading, setLoading] = useState(false)
 
   const askModel = async () => {
-    if (!q.trim() || !cal || !nrt) return
+    if (loading || !q.trim() || !cal || !nrt) return
     setLoading(true)
     setAns(null)
 
@@ -57,22 +57,18 @@ function LiveChat({ apiKey }: { apiKey: string }) {
       }
       const sys = buildSystemPrompt(facts)
 
-      const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent?key=${apiKey}`, {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // a header, so the key never lands in URL logs
         body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sys + '\n\nUser Question: ' + q }] }] })
       })
       if (!res.ok) throw new Error(`API error: ${res.status}`)
       const data = await res.json()
       const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No answer returned.'
 
-      // Guardrail: strip numbers not in context
-      const contextStr = sys
-      const nums = [...text.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m => m[0])
-      const badNum = nums.find(n => !contextStr.includes(n))
-
-      if (badNum) {
-        setAns(<StatusMessage kind="error">Blocked: the model hallucinated the number "{badNum}" which is not in our data. We show nothing rather than an unchecked figure.</StatusMessage>)
+      const bad = unsupportedNumbers(text, sys)
+      if (bad.length) {
+        setAns(<StatusMessage kind="error">Blocked: the answer stated {bad.length === 1 ? 'a number' : 'numbers'} our data did not give ({bad.join(', ')}). We show nothing rather than an unchecked figure.</StatusMessage>)
       } else {
         setAns(text)
       }
@@ -86,14 +82,14 @@ function LiveChat({ apiKey }: { apiKey: string }) {
 
   return (
     <div className="panel space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        Select a district context for the AI:
+      <label className="flex flex-wrap items-center gap-2 text-sm text-muted">
+        District the AI answers about:
         <select className="field py-1 px-2" value={selectedUnit} onChange={e => setUnit(e.target.value)}>
           {sortedDists.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
         </select>
-      </div>
+      </label>
       <div className="flex gap-2">
-        <input className="field flex-1" value={q} onChange={e => setQ(e.target.value)}
+        <input className="field flex-1" aria-label="Your question" value={q} onChange={e => setQ(e.target.value)}
           onKeyDown={e => { if (e.key === 'Enter') askModel() }} placeholder={`Ask about ${name}'s fire season...`} />
         <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={askModel} disabled={loading || !q.trim()}>Ask</button>
       </div>
@@ -108,8 +104,8 @@ export default function AskPage() {
   const ask = useJson<AskCache>('ask.json')
 
   const [apiKey, setApiKey] = useState(() => {
-    try { return localStorage.getItem('kw-gemini-key') ?? import.meta.env.VITE_GEMINI_KEY ?? '' }
-    catch { return import.meta.env.VITE_GEMINI_KEY ?? '' }
+    // Never from a build-time env var: anything baked into the build is public on the static site.
+    try { return localStorage.getItem('kw-gemini-key') ?? '' } catch { return '' }
   })
   useEffect(() => { try { localStorage.setItem('kw-gemini-key', apiKey) } catch { /* ignore */ } }, [apiKey])
 

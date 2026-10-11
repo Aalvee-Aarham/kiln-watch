@@ -24,3 +24,13 @@ Space Apps allows AI-generated content when the tools are named, the prompts are
 | Data it sees | Only the public, area-level export the website already publishes: no kiln locations, no personal data |
 | Where answers appear | `#/ask`, from a cache written by `python -m kilnwatch ask --build-cache`, so the page works offline and shows the raw function results behind each answer |
 | Limits | At most 6 model calls per question; refusals and blocked answers are shown as such, never filled in |
+
+### Live chat on the website (Gemini, bring your own key)
+
+| Item | Detail |
+|---|---|
+| Model | Google Gemini (`gemini-3.1-flash-lite`), called from the visitor's browser with a key the visitor enters; the site ships no key |
+| Code | `web/src/pages/AskPage.tsx`; prompt: `buildSystemPrompt` in `web/src/lib/geminiPrompt.ts` |
+| What the AI does | Answers about one chosen district from a fixed set of facts the page computes (busy months, unusual days this season, kiln season) and places in the prompt. It calls no project functions |
+| What the AI never does | State a number the facts did not contain: `unsupportedNumbers()` (same rule as `guard()`, unit-tested) blocks any such answer |
+| Data it sees | The same public, area-level figures shown on the page; the question the visitor types goes to Google |

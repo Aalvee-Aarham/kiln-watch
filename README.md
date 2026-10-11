@@ -62,6 +62,7 @@ Ask a question in plain English or Bangla, for example *"When is burning season 
 - **Our code computes; the AI explains.** Every figure comes from a tested project function reading NASA FIRMS data in the public export. A check blocks any answer that states a number no function returned, and the page shows "blocked" rather than an unchecked figure.
 - **You can see the data behind each answer:** every function call, its result, the dataset and the data build.
 - **Where to use it.** `python -m kilnwatch ask "your question"` answers any question live (needs an `ANTHROPIC_API_KEY`). The website's AI agent page (`#/ask`) shows saved answers to demo questions, generated with `python -m kilnwatch ask --build-cache`, so it works offline. Until answers are generated for a data build, the page says so.
+- **Live chat with your own key.** The `#/ask` page can also answer live with Google Gemini, using a key you paste in (kept in your browser, sent only to Google). That path does not call the five functions: the page gives Gemini a fixed set of facts for one district, and the same number check blocks any figure outside them. See [`docs/AI_USE.md`](docs/AI_USE.md).
 - **Limits.** It answers about Bangladesh areas only, the same areas the website covers. Code: [`kilnwatch/ask.py`](kilnwatch/ask.py); disclosure: [`docs/AI_USE.md`](docs/AI_USE.md).
 
 ## Extension 1: crop burning windows
@@ -290,7 +291,7 @@ The first `npm run e2e` may ask you to run `npx playwright install chromium`.
 | 6 | `python -m kilnwatch gates` | Pre-registered feasibility gates G0–G3 → `GATE_BRANCH` |
 | 7 | `python -m kilnwatch harmonize` | Calibration chain Aqua ← S-NPP ← NOAA-20 (NOAA-21 not yet calibrated), pooling ladder, M0/M1, leave-one-season-out, seam test |
 | 8 | `python -m kilnwatch classify` | Source classifier, 4 holdouts, label-set comparison, persistence ablation, transfer test |
-| 9 | `python -m kilnwatch metrics` | ~570 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
+| 9 | `python -m kilnwatch metrics` | ~560 per-unit calendars, normals, flags, season metrics, map layers, grid tiles |
 | 10 | `python -m kilnwatch validate` | Validation layers (shape across seasons, TROPOMI NO₂ DiD, Dhaka PM2.5 lags) |
 | 11 | `python -m kilnwatch activity --extract all` | Amendment 1: Black Marble night lights (half-monthly, 2012–) and Sentinel-1 radar (monthly, 2015–) at every kiln cluster and its 3 matched controls; tests GL/GS on the held-out clusters; kiln-season calendars per area (slow, resumable) |
 | 11b | `python -m kilnwatch transfer` | Amendment 2: the kiln method in **Pakistan and India**. APAD kilns, a seeded 2,000-cluster sample per country, distance-ring controls, Black Marble night lights (and Sentinel-1 radar on a subsample), tested with Bangladesh's months and with months learned on 400 calibration clusters. `--prepare-only` builds samples and controls without any outcome data (slow, resumable) |

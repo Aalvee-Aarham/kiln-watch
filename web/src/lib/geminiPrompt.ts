@@ -20,3 +20,14 @@ ${facts.kilnSeason ? `- Brick Kilns: Kilns in this district typically work ${fac
 
 If asked about something not in this context, politely explain that you only have data about the fire season, unusual days, and kiln activity for this specific district based on Kiln Watch's satellite analysis.`
 }
+
+// Same rule as kilnwatch/ask.py numbers()/guard(): Bangla digits count, numbers compare by value, not as substrings.
+const NUM = /(?<![\w.])-?\d[\d,]*(?:\.\d+)?/g
+const toLatin = (s: string) => s.replace(/[০-৯]/g, (d) => String(d.charCodeAt(0) - 0x09e6))
+export const numbers = (text: string) => new Set([...toLatin(text).matchAll(NUM)].map((m) => Number(m[0].replace(/,/g, ''))))
+
+/** Numbers stated in the answer that the context never gave (empty = the answer passes). */
+export function unsupportedNumbers(answer: string, context: string): number[] {
+  const allowed = numbers(context)
+  return [...numbers(answer)].filter((n) => !allowed.has(n)).sort((a, b) => a - b)
+}
