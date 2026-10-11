@@ -29,7 +29,7 @@ Space Apps allows AI-generated content when the tools are named, the prompts are
 
 | Item | Detail |
 |---|---|
-| Model | Gemini (`gemini-3.8-flash`, `NEWS_MODEL` in `kilnwatch/config.py`) through the Gemini API, structured output. **Free tier: team decision of 11 Oct 2026** — on the free tier Google may use what is sent to improve its products, and human reviewers may read it (docs/news_plan.md §10) |
+| Model | Gemini Flash-Lite (`gemini-3.1-flash-lite`) through the Gemini API with structured output; when it is out of quota or fails, the fallbacks in `NEWS_PROVIDERS` (`kilnwatch/config.py`) in order: `gemini-3.5-flash-lite`, Groq, Cerebras, Mistral, GitHub Models (OpenAI-compatible APIs, free tiers). Each stored story records which model read it. **Free tier: team decision of 11 Oct 2026** — on the free tier Google may use what is sent to improve its products, and human reviewers may read it (docs/news_plan.md §10) |
 | Code | `kilnwatch/news_extract.py` (the one place the model is called), `kilnwatch/news.py` (finding, fetching, checking); plan: `docs/news_plan.md` |
 | What the AI does | Reads an excerpt of a newspaper article we fetched ourselves and returns: the kind of story, which of the districts the text names it is about, the event date if the article states one, a claim of at most 30 words in English and Bangla, and one verbatim quote |
 | What the AI never does | Find articles (the newspapers' own sitemaps do), choose a district the text doesn't name, or write a number: code checks the quote is verbatim and every number in the claims appears in the quote, and drops the story otherwise. All satellite figures and the "how common" verdict come from deterministic code (`kilnwatch/news_pair.py`) |

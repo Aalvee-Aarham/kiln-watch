@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import csv
 import json
+import logging
 import re
 import unicodedata
 from dataclasses import dataclass
@@ -21,6 +22,7 @@ from .ask import numbers
 from .news_sources import local_date
 from .news_store import NATIONAL
 
+log = logging.getLogger("kilnwatch.news")
 KEYWORDS_CSV = C.STATIC / "news_keywords.csv"
 ALIASES_CSV = C.STATIC / "district_aliases.csv"
 NAMES_BN_CSV = C.STATIC / "names_bn.csv"
@@ -387,10 +389,25 @@ quote: one sentence copied character for character from the excerpt, at most {C.
 in the article's language."""
 
 _client = None
+_spent: set[str] = set()  # providers out of quota or refusing, for the rest of this run
 
 
 def _seed() -> int:
     return int(C.rng("news").integers(0, 2**31 - 1))  # derived from SEED + SEED_OFFSETS["news"] (Inv. 7)
+
+
+def provider_key(p: dict) -> str:
+    return getattr(C, p["key"], "") or ""
+
+
+def configured_providers() -> list[dict]:
+    """NEWS_PROVIDERS whose key is set, in order."""
+    return [p for p in C.NEWS_PROVIDERS if provider_key(p)]
+
+
+def reset_providers() -> None:
+    """Start of a run: every configured provider may be tried again."""
+    _spent.clear()
 
 
 def schema(allowed_units: list[str]) -> dict:
@@ -404,47 +421,107 @@ def schema(allowed_units: list[str]) -> dict:
                 "claim_en": {"type": "string"}, "claim_bn": {"type": "string"}, "quote": {"type": "string"}}}
 
 
-def extract(excerpt_text: str, allowed_units: list[str], labels: dict[str, str], published: date) -> dict:
-    """Ask the model to read one excerpt. Every SDK call is in here (provider swap = rewrite this function).
-    Returns the parsed JSON object; raises QuotaExhausted / ModelTransient / ModelStop / ModelOutputInvalid."""
+def _classify(code, e: Exception | None = None):
+    """Raise the run-level meaning of a provider failure, by status code (never by message)."""
+    if code == 429:
+        raise QuotaExhausted("429")
+    connection = e is not None and any(k in c.__name__ for c in type(e).__mro__ for k in ("Connection", "Timeout"))
+    if connection or code == 408 or (isinstance(code, int) and code >= 500):
+        raise ModelTransient(str(code or type(e).__name__))
+    raise ModelStop(f"provider error {code or (type(e).__name__ if e else 'unknown')}")
+
+
+def _call_gemini(p: dict, prompt: str, sch: dict) -> str:
     global _client
     from google import genai
 
-    if not C.GEMINI_API_KEY:
-        raise ModelStop("GEMINI_API_KEY is not set")
     if _client is None:
         # The SDK would otherwise retry a 429 and sleep for its Retry-After, which can be hours on a spent free-tier
         # quota (Inv. 9): retry only timeouts and 5xx, a bounded number of times, and surface 429 at once.
         from google.genai import types
 
-        _client = genai.Client(api_key=C.GEMINI_API_KEY, http_options=types.HttpOptions(
+        _client = genai.Client(api_key=provider_key(p), http_options=types.HttpOptions(
             timeout=MODEL_TIMEOUT_MS, retry_options=types.HttpRetryOptions(
                 attempts=C.NEWS_MAX_RETRIES, max_delay=MODEL_MAX_RETRY_DELAY_S, http_status_codes=[408, 500, 502, 503, 504])))
-    places = "\n".join(f"- {u}: {labels[u]}" for u in allowed_units)
-    prompt = (f"Candidate places (use only these codes):\n{places}\n\nPublished (local date): {published.isoformat()}\n\n"
-              f"<article_excerpt>\n{excerpt_text}\n</article_excerpt>")
     try:
         r = _client.interactions.create(
-            model=C.NEWS_MODEL, system_instruction=SYSTEM, input=prompt,
-            response_format={"type": "text", "mime_type": "application/json", "schema": schema(allowed_units)},
+            model=p["model"], system_instruction=SYSTEM, input=prompt,
+            response_format={"type": "text", "mime_type": "application/json", "schema": sch},
             generation_config={"seed": _seed()}, store=False)
     except Exception as e:  # noqa: BLE001 - the SDK raises google.genai.errors.APIError or, on this API, its own
-        # compat error classes (RateLimitError, APIConnectionError, ...); classify by status code, never by message
-        code = getattr(e, "status_code", None) or getattr(e, "code", None)
-        if code == 429:
-            raise QuotaExhausted("429") from None
-        connection = any(k in type(c).__name__ for c in type(e).__mro__ for k in ("Connection", "Timeout"))
-        if connection or code == 408 or (isinstance(code, int) and code >= 500):
-            raise ModelTransient(str(code or type(e).__name__)) from None
-        raise ModelStop(f"provider error {code or type(e).__name__}") from None
-    text = getattr(r, "output_text", None) or ""
+        # compat error classes (RateLimitError, APIConnectionError, ...)
+        _classify(getattr(e, "status_code", None) or getattr(e, "code", None), e)
+    return getattr(r, "output_text", None) or ""
+
+
+def _call_openai(p: dict, prompt: str, sch: dict) -> str:
+    """OpenAI-compatible chat completions (Groq, Cerebras, Mistral, GitHub Models). JSON mode plus the schema in the
+    prompt: not every provider enforces a schema, so the guards in this module check the reply either way."""
+    import requests
+
+    body = {"model": p["model"], "response_format": {"type": "json_object"}, p.get("seed_param", "seed"): _seed(),
+            "messages": [{"role": "system", "content": SYSTEM},
+                         {"role": "user", "content": f"{prompt}\n\nReply with one JSON object that follows this JSON schema:\n{json.dumps(sch)}"}]}
     try:
-        out = json.loads(text)
+        r = requests.post(p["base_url"].rstrip("/") + "/chat/completions", json=body, timeout=MODEL_TIMEOUT_MS / 1000,
+                          headers={"Authorization": f"Bearer {provider_key(p)}", "Content-Type": "application/json"})
+    except requests.RequestException as e:
+        _classify(None, e)
+    if r.status_code != 200:
+        _classify(r.status_code)
+    try:
+        return r.json()["choices"][0]["message"]["content"] or ""
+    except (ValueError, KeyError, IndexError, TypeError):
+        raise ModelOutputInvalid("reply has no message") from None
+
+
+def parse_reply(text: str) -> dict:
+    """The JSON object in a reply, tolerating a ```json fence around it."""
+    t = text.strip()
+    if t.startswith("```"):
+        t = re.sub(r"^```[a-zA-Z]*\s*|\s*```$", "", t)
+    try:
+        out = json.loads(t)
     except ValueError:
         raise ModelOutputInvalid("reply is not JSON") from None
     if not isinstance(out, dict):
         raise ModelOutputInvalid("reply is not an object")
     return out
+
+
+def extract(excerpt_text: str, allowed_units: list[str], labels: dict[str, str], published: date) -> dict:
+    """Ask the configured providers, in NEWS_PROVIDERS order, to read one excerpt; every provider call is in here.
+
+    Returns the parsed JSON object with `_model` naming who read it. A provider out of quota or refusing is dropped for
+    the rest of the run and the next one is asked; a timeout or 5xx, or a reply that is not JSON, moves to the next one
+    for this article only. Raises QuotaExhausted when every provider is spent, ModelTransient / ModelOutputInvalid when
+    the last answer was that, ModelStop when no provider is configured."""
+    places = "\n".join(f"- {u}: {labels[u]}" for u in allowed_units)
+    prompt = (f"Candidate places (use only these codes):\n{places}\n\nPublished (local date): {published.isoformat()}\n\n"
+              f"<article_excerpt>\n{excerpt_text}\n</article_excerpt>")
+    sch = schema(allowed_units)
+    ready = configured_providers()
+    if not ready:
+        raise ModelStop("no news model provider has a key (GEMINI_API_KEY or a fallback in NEWS_PROVIDERS)")
+    failure: Exception | None = None
+    for p in ready:  # bounded: one attempt per provider per article (Inv. 9)
+        if p["name"] in _spent:
+            continue
+        try:
+            text = (_call_gemini if p["api"] == "gemini" else _call_openai)(p, prompt, sch)
+            out = parse_reply(text)
+        except (QuotaExhausted, ModelStop) as e:
+            log.warning("news model %s unavailable for this run (%s); trying the next provider", p["name"], e)
+            _spent.add(p["name"])
+            continue
+        except (ModelTransient, ModelOutputInvalid) as e:
+            failure = e
+            continue
+        out["_model"] = p["name"] if p["name"] == p["model"] else f"{p['name']}:{p['model']}"
+        return out
+    if failure is not None:
+        raise failure
+    raise QuotaExhausted("every news model provider is out of quota or unavailable")
 
 
 # --- guards (step 7) ---------------------------------------------------------

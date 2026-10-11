@@ -27,11 +27,13 @@ from .news_extract import (
     ModelStop,
     ModelTransient,
     QuotaExhausted,
+    configured_providers,
     excerpt,
     extract,
     guard,
     national_ok,
     parse_page,
+    reset_providers,
     slug_text,
 )
 from .news_sources import Blocked, CapReached, Entry, Fetcher, FetchError, Gone, RobotsDisallowed, Source, load_sources, parse_sitemap, site_check, today_local
@@ -334,13 +336,14 @@ def process(run: Run, ln: Link) -> str:
         return "transient"
     except ModelOutputInvalid:
         return drop(run, ln, "schema_invalid")
+    model = out.pop("_model", C.NEWS_MODEL)
     fields, reason = guard(out, ex, cands, allow_nat, pub, run.today)
     if reason:
         return drop(run, ln, reason)
     item = {"news_id": S.news_id(ln.url), "url": ln.url, "source": ln.source.key, "outlet": ln.source.outlet,
             "lang": ln.source.lang, "title": title, "published_date_local": pub.isoformat(), **fields,
             "text_sha256": hashlib.sha256(text.encode("utf-8")).hexdigest(),
-            "extracted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": C.NEWS_MODEL}
+            "extracted_at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "model": model}
     if S.validate_item(item):
         return drop(run, ln, "schema_invalid")
     S.merge(run.store, [item])
@@ -522,9 +525,10 @@ def run(backfill: bool = False, check_sources: bool = False, dry_run: bool = Fal
         log.error("news: --limit must be >= 0")
         return 2
     budget = C.NEWS_MAX_LLM_CALLS_PER_RUN if limit is None else min(limit, C.NEWS_MAX_LLM_CALLS_PER_RUN)
-    if not dry_run and budget > 0 and not C.GEMINI_API_KEY:
-        log.error("news: GEMINI_API_KEY is not set (put it in .env); --dry-run and --check-sources need no key")
+    if not dry_run and budget > 0 and not configured_providers():
+        log.error("news: no model key is set (GEMINI_API_KEY, or a fallback in NEWS_PROVIDERS, in .env); --dry-run and --check-sources need none")
         return 2
+    reset_providers()
     store = S.load()
     stage_check(store)
     r = Run(store, sources, make_fetcher(), Keywords.load(), Gazetteer.load(), load_blocklist(), today, budget, dry_run)

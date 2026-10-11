@@ -33,10 +33,14 @@ jobs:
     if: github.event_name != 'push'  # daily cron and manual runs only: a push to main must not spend model quota
     runs-on: ubuntu-latest
     continue-on-error: true
-    permissions: { contents: write }  # uploads the store to the news-current release asset
+    permissions: { contents: write, models: read }  # store -> news-current asset; GitHub Models as the last fallback
     env:
       GH_TOKEN: ${{ github.token }}
       GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}  # optional fallbacks (NEWS_PROVIDERS); unset = skipped
+      CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      GITHUB_MODELS_TOKEN: ${{ github.token }}
     steps:
       - if: env.GEMINI_API_KEY == ''
         run: echo "::notice::news is off (no GEMINI_API_KEY secret)"

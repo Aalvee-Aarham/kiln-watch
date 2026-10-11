@@ -595,3 +595,110 @@ def test_limit_never_exceeds_the_per_run_cap(monkeypatch):
     assert news.run(limit=10_000) == 0
     assert seen["budget"] == C.NEWS_MAX_LLM_CALLS_PER_RUN
     assert news.run(limit=-1) == 2
+
+
+# --- the model fallback chain (NEWS_PROVIDERS), providers mocked ---------------------------------
+from kilnwatch import news_extract as X  # noqa: E402
+
+GOOD_REPLY = json.dumps({"kind": "burning", "unit_ids": ["BD3026"], "event_date_local": None,
+                         "claim_en": "Fields burned.", "claim_bn": "মাঠে আগুন।", "quote": "Fields burned."})
+CHAIN = ({"name": "a", "api": "openai", "model": "m-a", "key": "KEY_A", "base_url": "https://a.example"},
+         {"name": "b", "api": "openai", "model": "m-b", "key": "KEY_B", "base_url": "https://b.example"},
+         {"name": "c", "api": "openai", "model": "m-c", "key": "KEY_C", "base_url": "https://c.example"})
+
+
+def chain(monkeypatch, replies, keys=("KEY_A", "KEY_B", "KEY_C")):
+    """replies: provider name -> list of outcomes ('ok', 429, 503, 401, 'bad'); records the call order."""
+    calls = []
+    monkeypatch.setattr(C, "NEWS_PROVIDERS", CHAIN)
+    for k in ("KEY_A", "KEY_B", "KEY_C"):
+        monkeypatch.setattr(C, k, "x" if k in keys else "", raising=False)
+
+    def call(p, prompt, sch):
+        calls.append(p["name"])
+        r = replies[p["name"]].pop(0)
+        if r == "ok":
+            return GOOD_REPLY
+        if r == "bad":
+            return "not json"
+        X._classify(r)
+
+    monkeypatch.setattr(X, "_call_openai", call)
+    X.reset_providers()
+    return calls
+
+
+def ask():
+    return X.extract("Fields burned.", ["BD3026"], {"BD3026": "Dhaka"}, date(2026, 1, 14))
+
+
+def test_first_provider_answers_and_is_named(monkeypatch):
+    calls = chain(monkeypatch, {"a": ["ok"]})
+    assert ask()["_model"] == "a:m-a" and calls == ["a"]
+
+
+def test_quota_moves_to_the_next_provider_for_the_rest_of_the_run(monkeypatch):
+    calls = chain(monkeypatch, {"a": [429], "b": ["ok", "ok"]})
+    assert ask()["_model"] == "b:m-b"
+    assert ask()["_model"] == "b:m-b"
+    assert calls == ["a", "b", "b"]  # a is not asked again this run
+
+
+def test_refusal_drops_the_provider_and_transient_errors_only_skip_it_once(monkeypatch):
+    calls = chain(monkeypatch, {"a": [401], "b": [503, "ok"], "c": ["ok"]})
+    assert ask()["_model"] == "c:m-c"  # a refused (dropped), b had a 5xx (skipped for this article)
+    assert ask()["_model"] == "b:m-b"  # b is tried again on the next article
+    assert calls == ["a", "b", "c", "b"]
+
+
+def test_providers_without_a_key_are_skipped(monkeypatch):
+    calls = chain(monkeypatch, {"b": ["ok"]}, keys=("KEY_B",))
+    assert ask()["_model"] == "b:m-b" and calls == ["b"]
+
+
+def test_every_provider_spent_raises_quota_and_none_configured_raises_stop(monkeypatch):
+    chain(monkeypatch, {"a": [429], "b": [429], "c": [401]})
+    with pytest.raises(X.QuotaExhausted):
+        ask()
+    chain(monkeypatch, {}, keys=())
+    with pytest.raises(X.ModelStop):
+        ask()
+
+
+def test_last_failure_is_reported_when_nobody_answers(monkeypatch):
+    chain(monkeypatch, {"a": ["bad"], "b": [503], "c": [429]})
+    with pytest.raises(X.ModelTransient):
+        ask()
+    chain(monkeypatch, {"a": [429], "b": [429], "c": ["bad"]})
+    with pytest.raises(X.ModelOutputInvalid):
+        ask()
+
+
+def test_a_fenced_json_reply_is_read():
+    assert X.parse_reply("```json\n" + GOOD_REPLY + "\n```")["kind"] == "burning"
+    with pytest.raises(X.ModelOutputInvalid):
+        X.parse_reply("[1, 2]")
+
+
+def test_openai_compatible_call_sends_json_mode_seed_and_key(monkeypatch):
+    import requests
+    sent = {}
+
+    class R:
+        status_code = 200
+
+        def json(self):
+            return {"choices": [{"message": {"content": GOOD_REPLY}}]}
+
+    def post(url, json=None, timeout=None, headers=None):
+        sent.update(url=url, body=json, headers=headers, timeout=timeout)
+        return R()
+
+    monkeypatch.setattr(requests, "post", post)
+    monkeypatch.setattr(C, "MISTRAL_API_KEY", "k-test")
+    p = {"name": "mistral", "api": "openai", "model": "mistral-small-latest", "key": "MISTRAL_API_KEY",
+         "base_url": "https://api.mistral.ai/v1/", "seed_param": "random_seed"}
+    assert X.parse_reply(X._call_openai(p, "prompt", X.schema(["BD3026"])))["kind"] == "burning"
+    assert sent["url"] == "https://api.mistral.ai/v1/chat/completions"
+    assert sent["body"]["response_format"] == {"type": "json_object"} and "random_seed" in sent["body"] and "seed" not in sent["body"]
+    assert sent["headers"]["Authorization"] == "Bearer k-test" and sent["timeout"] > 0

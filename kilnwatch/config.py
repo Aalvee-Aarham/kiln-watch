@@ -52,7 +52,19 @@ FORBIDDEN_PUBLIC_KEYS = {"kiln_id", "cluster_id", "candidate", "kiln_lat", "kiln
 TRANSFER_DISTRICT = "Faisalabad"
 
 # --- FIXED: news page (docs/news_plan.md) ------------------------------------
-NEWS_MODEL = "gemini-3.8-flash"
+NEWS_MODEL = "gemini-3.1-flash-lite"  # the primary reader; fallbacks below
+# Tried in order for every article: a provider out of quota (429) or refusing (bad key/model) is dropped for the rest of
+# the run; a provider whose key is not set is skipped. All but Gemini speak the OpenAI-compatible chat API. Free tiers;
+# each provider's own terms apply (docs/news_plan.md §10). Model ids change: confirm them when adding a key.
+NEWS_PROVIDERS = (
+    {"name": "gemini-3.1-flash-lite", "api": "gemini", "model": "gemini-3.1-flash-lite", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-3.5-flash-lite", "api": "gemini", "model": "gemini-3.5-flash-lite", "key": "GEMINI_API_KEY"},  # its own free quota
+    {"name": "groq", "api": "openai", "model": "llama-3.3-70b-versatile", "key": "GROQ_API_KEY", "base_url": "https://api.groq.com/openai/v1"},
+    {"name": "cerebras", "api": "openai", "model": "gpt-oss-120b", "key": "CEREBRAS_API_KEY", "base_url": "https://api.cerebras.ai/v1"},
+    {"name": "mistral", "api": "openai", "model": "mistral-small-latest", "key": "MISTRAL_API_KEY", "base_url": "https://api.mistral.ai/v1",
+     "seed_param": "random_seed"},
+    {"name": "github-models", "api": "openai", "model": "openai/gpt-4o-mini", "key": "GITHUB_MODELS_TOKEN", "base_url": "https://models.github.ai/inference"},
+)
 NEWS_FEED_FROM = "2025-07-01"  # the main feed's default view: seasons 2025-26 on
 NEWS_HISTORY_FROM = "2012-07-01"  # history start: season 2012-13, the VIIRS era
 NEWS_BURN_WINDOW_DAYS = 7
@@ -89,6 +101,10 @@ FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
 OPENAQ_API_KEY = os.environ.get("OPENAQ_API_KEY", "")
 EE_PROJECT = os.environ.get("EE_PROJECT", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # news stage only; never a VITE_ variable
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")  # news fallbacks (NEWS_PROVIDERS); all optional
+CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY", "")
+MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "")
+GITHUB_MODELS_TOKEN = os.environ.get("GITHUB_MODELS_TOKEN", "")  # a PAT with models:read; CI passes the workflow token
 
 # --- DERIVED (config_derived.json) -----------------------------------------
 DERIVED_PATH = Path(__file__).with_name("config_derived.json")
