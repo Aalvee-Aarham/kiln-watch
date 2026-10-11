@@ -10,7 +10,6 @@ import nightImg from '../assets/basemap/black-marble-2016_bd.jpg'
 
 
 const MIN_KM2 = 100 // same floor as parseBox: reject at draw time, not after navigation
-const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 type View = { x: number; y: number; w: number; h: number }
 type Feat = { id: string; nameEn: string; nameBn: string; d: string; cx: number; cy: number; x0: number; y0: number; x1: number; y1: number }
@@ -114,7 +113,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
 
   const animateTo = (target: View, from?: View) => {
     cancelAnimationFrame(raf.current)
-    if (REDUCED || !from) { setView(target); return }
+    if (!from || matchMedia('(prefers-reduced-motion: reduce)').matches) { setView(target); return }
     const t0 = performance.now()
     const step = (now: number) => {
       const t = easeOutQuart(Math.min(1, (now - t0) / 420))
@@ -174,8 +173,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       const v = panFrom.view
       setView(clampView({ ...v, x: v.x - (b[0] - a[0]), y: v.y - (b[1] - a[1]) }, fit))
     }
-    const dbl = (e: MouseEvent) => zoomAt(e.clientX, e.clientY, 1.8)
     const up = () => { panFrom = null; document.documentElement.classList.remove('is-panning') }
+    const dbl = (e: MouseEvent) => zoomAt(e.clientX, e.clientY, 1.8)
     el.addEventListener('wheel', wheel, { passive: false })
     el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
@@ -183,8 +182,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     return () => {
       el.removeEventListener('wheel', wheel)
       el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move)
-      el.removeEventListener('dblclick', dbl) // a named handler: toggling draw mode must not stack zooms
       el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up)
+      el.removeEventListener('dblclick', dbl) // a named handler: toggling draw mode must not stack zooms
       clearTimeout(hintT)
       document.documentElement.classList.remove('is-panning')
     }

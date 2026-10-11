@@ -14,7 +14,6 @@ import bdDay from '../assets/basemap/bluemarble-ng_bd.jpg'
 import bdNight from '../assets/basemap/black-marble-2016_bd.jpg'
 
 const IMAGES: [Box, string, string][] = [[[-180, -90, 180, 90], worldDay, worldNight], [SOUTH_ASIA_BOX, saDay, saNight], [BBOX, bdDay, bdNight]]
-const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 const WORLD: Box = [-180, -60, 180, 80]
 
 export type Pick = { kind: 'state' | 'country' | 'city'; id: string }
@@ -57,6 +56,10 @@ export default function WorldMap({ countries, states, region, cities, selected, 
   const [hint, setHint] = useState(false)
   const moved = useRef(false)
   const raf = useRef(0)
+  // A zoom in flight writes the viewBox straight to the <svg> each frame and renders React once at each end: re-rendering
+  // every path per frame dropped frames on a slow phone. `span` covers the whole flight, so nothing it passes is culled.
+  const [span, setSpan] = useState<View | null>(null)
+  const live = useRef<View | null>(null)
   const C = useMemo(() => shapes(countries), [countries])
   const S = useMemo(() => shapes(states), [states])
   const R = useMemo(() => shapes(region), [region])
@@ -71,18 +74,31 @@ export default function WorldMap({ countries, states, region, cities, selected, 
   }, [])
   useEffect(() => { setView((v) => clampView({ ...v, h: v.w * aspect }, aspect)) }, [aspect])
 
-  const animateTo = (t: View) => {
+  /** Stop a zoom in flight where it is, so a drag or a new zoom starts from what is on screen. */
+  const settle = () => {
     cancelAnimationFrame(raf.current)
-    const from = viewRef.current
-    if (REDUCED) { setView(t); return }
+    if (!live.current) return
+    viewRef.current = live.current
+    setView(live.current); setSpan(null); live.current = null
+  }
+  const animateTo = (t: View) => {
+    settle()
+    const from = viewRef.current, svg = wrapRef.current?.querySelector('svg')
+    if (!svg || matchMedia('(prefers-reduced-motion: reduce)').matches) { setView(t); return }
+    const x0 = Math.min(from.x, t.x), y0 = Math.min(from.y, t.y)
+    setSpan({ x: x0, y: y0, w: Math.max(from.x + from.w, t.x + t.w) - x0, h: Math.max(from.y + from.h, t.y + t.h) - y0 })
     const t0 = performance.now()
     const step = (now: number) => {
       const k = 1 - (1 - Math.min(1, (now - t0) / 450)) ** 4
-      // interpolate the zoom geometrically so a long zoom-in feels even
+      // interpolate the zoom geometrically so a long zoom-in feels even (and every frame stays inside `span`)
       const w = from.w * (t.w / from.w) ** k
       const cx = from.x + from.w / 2 + (t.x + t.w / 2 - from.x - from.w / 2) * k, cy = from.y + from.h / 2 + (t.y + t.h / 2 - from.y - from.h / 2) * k
-      setView({ x: cx - w / 2, y: cy - (w * aspect) / 2, w, h: w * aspect })
-      if (k < 1) raf.current = requestAnimationFrame(step)
+      const v = { x: cx - w / 2, y: cy - (w * aspect) / 2, w, h: w * aspect }
+      if (k < 1) {
+        live.current = v
+        svg.setAttribute('viewBox', `${v.x} ${v.y} ${v.w} ${v.h}`)
+        raf.current = requestAnimationFrame(step)
+      } else { live.current = null; setView(v); setSpan(null) }
     }
     raf.current = requestAnimationFrame(step)
   }
@@ -95,6 +111,7 @@ export default function WorldMap({ countries, states, region, cities, selected, 
     return [v.x + ((cx - r.left) / r.width) * v.w, v.y + ((cy - r.top) / r.height) * v.h]
   }
   const zoomBy = (f: number, cx?: number, cy?: number) => {
+    settle()
     const v = viewRef.current
     const [px, py] = cx == null ? [v.x + v.w / 2, v.y + v.h / 2] : toDeg(cx, cy!)
     setView(zoomView(v, f, px, py, aspect))
@@ -105,7 +122,7 @@ export default function WorldMap({ countries, states, region, cities, selected, 
     const el = wrapRef.current?.querySelector('svg')
     if (!el) return
     let from: { cx: number; cy: number; v: View } | null = null, hintT = 0
-    const down = (e: PointerEvent) => { if (e.button === 0 && e.isPrimary) { from = { cx: e.clientX, cy: e.clientY, v: viewRef.current }; moved.current = false } }
+    const down = (e: PointerEvent) => { if (e.button === 0 && e.isPrimary) { settle(); from = { cx: e.clientX, cy: e.clientY, v: viewRef.current }; moved.current = false } }
     const move = (e: PointerEvent) => {
       if (!from) return
       const dx = e.clientX - from.cx, dy = e.clientY - from.cy
@@ -133,10 +150,12 @@ export default function WorldMap({ countries, states, region, cities, selected, 
 
   const px = view.w / size.w // degrees per screen pixel: labels and dots keep their screen size at any zoom
   const showStates = view.w <= STATES_W
-  const vis = { c: C.filter((s) => overlaps(s, view)), s: showStates ? S.filter((s) => overlaps(s, view)) : [], r: R.filter((s) => overlaps(s, view)) }
+  const cull = span ?? view
+  const vis = { c: C.filter((s) => overlaps(s, cull)), s: showStates ? S.filter((s) => overlaps(s, view)) : [], r: R.filter((s) => overlaps(s, cull)) }
   const sel = selected && (selected.kind === 'state' ? S : selected.kind === 'country' ? C : []).find((s) => s.id === selected.id)
   const selCity = selected?.kind === 'city' ? cities.find((c) => `${c.name}|${c.adm0}|${c.lat}` === selected.id) : undefined
-  const towns = placeLabels(visibleCities(cities, view, 600), px, selCity) // 600 candidates, thinned to what can be read
+  // 600 candidates, thinned to what can be read; none mid-zoom, where their screen size would follow the viewBox
+  const towns = span ? [] : placeLabels(visibleCities(cities, view, 600), px, selCity)
   const tip = (name: string) => (e: React.PointerEvent) => { const r = wrapRef.current!.getBoundingClientRect(); setHover({ name, x: e.clientX - r.left, y: e.clientY - r.top }) }
   const click = (p: Pick) => () => { if (!moved.current) onPick(p) }
   // keyboard path, same as BdMap: every pickable shape is a tab stop with Enter/Space to pick

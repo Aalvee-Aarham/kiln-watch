@@ -118,6 +118,7 @@ const ICONS = {
   pin: 'M8 14.5s4.5-4 4.5-8a4.5 4.5 0 0 0-9 0c0 4 4.5 8 4.5 8zM8 5v.01',
   plus: 'M8 3v10M3 8h10',
   minus: 'M3 8h10',
+  spinner: 'M8 1.5a6.5 6.5 0 1 1-6.5 6.5',
 } as const
 export type IconName = keyof typeof ICONS
 export const Icon = ({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) => (

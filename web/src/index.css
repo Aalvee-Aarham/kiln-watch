@@ -845,7 +845,7 @@
 }
 
 .map-sel {
-  animation: sel-pulse 0.9s ease-out 2;
+  animation: sel-pulse 0.9s ease-in-out 2;
 }
 
 /* Theme switch: circular reveal from the toggle (View Transitions; rare action, 400ms). */
