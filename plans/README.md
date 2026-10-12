@@ -19,7 +19,7 @@ and update your row when done.
 | 005 | Hosted live Ask worker (Cloudflare, server-side agent) | P2 | L | 001, 002, 003 | TODO — gated on human decisions (Step 0) |
 | 006 | Agentic data-ops (twice-weekly verify cron, deploy-failure issues, `release` command) | P3 | M | — | TODO — drift rule needs team approval (Step 0) |
 | 007 | Rehearse the 2 Nov S-NPP → NOAA-20 switch; show which satellite is live | **P1 — before 2 Nov 2026** | M | — | DONE |
-| 008 | LICENSE (MIT, as the README states) + CITATION.cff + .zenodo.json | P2 — before 13 Nov | S | — | TODO |
+| 008 | LICENSE (MIT, as the README states) + CITATION.cff + .zenodo.json | P2 — before 13 Nov | S | — | DONE |
 | 009 | Static Atom feed of districts with unusual fire activity | P3 | S-M | 007 | TODO |
 
 **Suggested order with the 13 Nov judging in mind:** 007 first (hard date:

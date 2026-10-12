@@ -321,7 +321,7 @@ Public files contain area-level statistics only. Kiln ids, cluster ids, candidat
 
 ## Credits and licences
 
-Code: MIT. Data:
+Code: MIT ([LICENSE](LICENSE)). Data:
 - NASA FIRMS (MODIS C6.1, VIIRS 375 m)
 - Google Earth Engine datasets: MOD14A1/MYD14A1/VNP14A1, ESA WorldCover, Sentinel-5P, ERA5-Land
 - NASA Black Marble VNP46A2 night lights (Román et al. 2018); Copernicus Sentinel-1 SAR (ESA); NASA ECOSTRESS L2T LSTE v2 and Landsat 8/9 Collection 2 (kiln pilots only)
@@ -331,6 +331,10 @@ Code: MIT. Data:
 - NASA GIBS: Blue Marble Next Generation and Black Marble 2016 map backgrounds
 - geoBoundaries ADM0 outlines of Pakistan (OpenStreetMap, ODbL 1.0) and India (CC0 1.0), for Amendment 2 controls
 - OpenAQ (CC BY 4.0)
+
+### Cite
+
+Use GitHub's "Cite this repository" button (from [`CITATION.cff`](CITATION.cff)). The research data release carries its own CC BY 4.0 licence and citation line.
 
 ## Team
 
