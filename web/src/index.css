@@ -707,6 +707,45 @@
   pointer-events: none;
 }
 
+/* World context (BdMap `world`, #/news/map): land and borders under the districts, Bangladesh outlined bold on top. */
+.bd-world {
+  /* land a step from the sea (the page ground) in either theme; borders a step further */
+  fill: color-mix(in oklch, var(--color-ink) 13%, var(--color-bg));
+  stroke: color-mix(in oklch, var(--color-ink) 30%, var(--color-bg));
+  stroke-width: 0.8;
+  pointer-events: none;
+}
+
+.bd-world.on-imagery {
+  fill: none;
+  stroke: rgb(255 255 255 / 0.4);
+}
+
+.bd-home-halo,
+.bd-home {
+  fill: none;
+  pointer-events: none;
+  stroke-linejoin: round;
+}
+
+/* masked to outside the country: half of each width shows, so 3 px of heat on 4 px of page ground beyond it */
+.bd-home-halo {
+  stroke: var(--color-bg);
+  stroke-width: 14;
+  stroke-opacity: 0.7;
+}
+
+.bd-home {
+  stroke: var(--color-heat);
+  stroke-width: 6;
+}
+
+.bd-home-label {
+  fill: var(--color-heat);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
 /* News pins (#/news/map): one per district with stories, at the district centre. */
 .bd-pin {
   cursor: pointer;

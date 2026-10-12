@@ -34,6 +34,7 @@ export default function NewsMapPage() {
   const index = useNewsIndex()
   const places = useJson<NewsPlaces>(index.data ? 'news/places.json' : null)
   const dists = useJson<FC>('aoi/districts.geojson')
+  const world = useJson<FC>('aoi/world_countries.geojson') // context only; the map works without it
   const nrt = useJson<NrtSeason>('nrt/current_season.json')
   const seasons = index.data?.seasons ?? []
   const seasonParam = sp.get('season')
@@ -125,7 +126,7 @@ export default function NewsMapPage() {
 
       <section aria-label={t('newsMapTitle')} className="relative order-1 h-[52%] shrink-0 lg:order-2 lg:h-auto lg:min-w-0 lg:flex-1">
         <BdMap fc={dists.data} selected={selected !== NATIONAL ? selected : undefined} onSelect={pickDistrict} drawing={false} onBox={() => {}}
-          values={values} labels pins={pins} onPin={pickDistrict} pinLabel={pinLabel} controls wheelZoom className="h-full" />
+          values={values} labels pins={pins} onPin={pickDistrict} pinLabel={pinLabel} controls wheelZoom world={world.data} className="h-full" />
         {values && <MapKey values={values} colour={colour} range={colour === 'recent' && recent ? dateRange(recent.from, recent.to, lang) : nrt.data!.season} />}
         {(open || districtParam) && (
           <div className="pointer-events-none absolute top-[32%] right-2 bottom-2 left-2 z-[25] flex items-end lg:top-3 lg:right-auto lg:bottom-3 lg:left-15 lg:w-[24rem] lg:items-start">

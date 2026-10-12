@@ -1,14 +1,11 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { palette, rampColor, useTheme } from '../lib/theme'
 import type { FC } from '../lib/types'
-import { BBOX, boxAreaKm2, type Box } from '../lib/box'
-import { LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
+import { boxAreaKm2, WORLD_BOX, type Box } from '../lib/box'
+// NASA GIBS images in EPSG:4326 (plate carrée): they line up with this map's equirectangular projection by their corners.
+// Bundled, so the layers work with the network off. Without `world` only the Bangladesh image (the last) is drawn.
+import { IMAGERY, LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
 import { Icon } from './ui'
-// NASA GIBS WMS GetMap images, EPSG:4326, BBOX = the analysis extent (lib/box.ts), 960×1240 px: plate carrée, so they
-// line up with this map's equirectangular projection by their corners. Bundled, so the layers work with the network off.
-import dayImg from '../assets/basemap/bluemarble-ng_bd.jpg'
-import nightImg from '../assets/basemap/black-marble-2016_bd.jpg'
-
 
 const MIN_KM2 = 100 // same floor as parseBox: reject at draw time, not after navigation
 const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -43,23 +40,29 @@ function buildMap(fc: FC): Proj {
   const fit: View = { x: -pad, y: -pad, w: (lonMax - lonMin) * kx * s + 2 * pad, h: (latMax - latMin) * s + 2 * pad }
 
   const feats: Feat[] = fc.features.map((f) => {
-    let d = ''
-    let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-    eachRing(f.geometry, (r) => {
-      let px = NaN, py = NaN, seg = ''
-      for (let i = 0; i < r.length; i++) {
-        const [x, y] = toXY(r[i][0], r[i][1])
-        if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
-        // decimate: drop points closer than ~0.6 units to the last kept one (invisible at any zoom, small DOM)
-        if (i < r.length - 1 && Math.abs(x - px) + Math.abs(y - py) < 0.6) continue
-        seg += `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10} `
-        px = x; py = y
-      }
-      if (seg) d += `M${seg.trim()}Z`
-    })
+    const { d, x0, y0, x1, y1 } = projectPath(f.geometry, toXY, 0.6)
     return { id: f.properties.unit_id, nameEn: f.properties.name_en, nameBn: f.properties.name_bn, d, cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, x0, y0, x1, y1 }
   })
   return { feats, fit, toXY, fromXY }
+}
+
+/** SVG path of a (Multi)Polygon in this map's units and its bounds; points closer than `step` units to the last kept one drop. */
+function projectPath(g: GeoJSON.Geometry, toXY: Proj['toXY'], step: number) {
+  let d = ''
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+  eachRing(g, (r) => {
+    let px = NaN, py = NaN, seg = ''
+    for (let i = 0; i < r.length; i++) {
+      const [x, y] = toXY(r[i][0], r[i][1])
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y
+      // decimate: at 0.6 units (districts) invisible at any zoom, small DOM
+      if (i < r.length - 1 && Math.abs(x - px) + Math.abs(y - py) < step) continue
+      seg += `${Math.round(x * 10) / 10},${Math.round(y * 10) / 10} `
+      px = x; py = y
+    }
+    if (seg) d += `M${seg.trim()}Z`
+  })
+  return { d, x0, y0, x1, y1 }
 }
 
 /** Country fit remembered across SPA navigations, so drilling in/out animates instead of jumping. */
@@ -70,9 +73,12 @@ const easeOutQuart = (t: number) => 1 - (1 - t) ** 4
 const contains = (outer: View, inner: View) =>
   inner.x >= outer.x && inner.y >= outer.y && inner.x + inner.w <= outer.x + outer.w && inner.y + inner.h <= outer.y + outer.h
 
-const clampView = (v: View, fit: View): View => {
-  const w = Math.min(Math.max(v.w, fit.w * 0.04), fit.w * 1.8)
+/** Zoom and pan limits: the country poster with some slack, or anywhere in `outer` (the world) when the map shows it. */
+const clampView = (v: View, fit: View, outer?: View): View => {
+  const w = Math.min(Math.max(v.w, fit.w * 0.04), outer ? Math.max(outer.w, fit.w * 1.8) : fit.w * 1.8)
   const h = w * (fit.h / fit.w) // viewBox aspect is fixed; letterboxing does the rest
+  const into = (p: number, size: number, lo: number, span: number) => (size >= span ? lo + (span - size) / 2 : Math.min(Math.max(p, lo), lo + span - size))
+  if (outer) return { w, h, x: into(v.x, w, outer.x, outer.w), y: into(v.y, h, outer.y, outer.h) }
   const slack = 0.25
   return {
     w, h,
@@ -87,15 +93,23 @@ const clampView = (v: View, fit: View): View => {
  * Ctrl+wheel zoom and drag pan; click selects; optional box drawing. No third-party tiles, no library.
  * Optional `pins` (count per area) draw at each area's centre — area-level, never a kiln or fire location.
  */
-export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, controls, wheelZoom, className = 'h-[440px] rounded-[10px] border border-line' }: {
+export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, controls, wheelZoom, world, className = 'h-[440px] rounded-[10px] border border-line' }: {
   fc: FC; selected?: string; onSelect: (id: string) => void; drawing: boolean; box?: Box; onBox: (b: Box) => void
   values?: Record<string, number>; labels: boolean
-  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; controls?: boolean; wheelZoom?: boolean; className?: string
+  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; controls?: boolean; wheelZoom?: boolean; world?: FC; className?: string
 }) {
   const theme = useTheme()
   const p = palette()
   const max = Math.max(0, ...Object.values(values ?? {}))
   const { feats, fit, toXY, fromXY } = useMemo(() => buildMap(fc), [fc])
+  // World context (news map): every country in this projection; the areas' outer edge is drawn bold (see the mask below).
+  const countries = useMemo(() => (world?.features ?? []).map((f) => ({ id: f.properties.unit_id, d: projectPath(f.geometry, toXY, 2).d })), [world, toXY])
+  const maskId = `bd-out-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
+  const outer = useMemo(() => {
+    if (!world) return undefined
+    const [x0, y0] = toXY(WORLD_BOX[0], WORLD_BOX[3]), [x1, y1] = toXY(WORLD_BOX[2], WORLD_BOX[1])
+    return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+  }, [world, toXY])
   const wrapRef = useRef<HTMLDivElement>(null)
   const svgRef = useRef<SVGSVGElement>(null)
   const [view, setView] = useState<View>(() => lastFit ?? fit)
@@ -147,8 +161,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     const bw = f.x1 - f.x0
     const w = Math.max(bw * 2.4, fit.w * 0.12) // context around the pick, clamped from losing the country
     const h = w * (fit.h / fit.w)
-    animateTo(clampView({ w, h, x: f.cx - w / 2, y: f.cy - h / 2 }, fit), viewRef.current) // fly there, don't jump
-  }, [selected, feats, fit])
+    animateTo(clampView({ w, h, x: f.cx - w / 2, y: f.cy - h / 2 }, fit, outer), viewRef.current) // fly there, don't jump
+  }, [selected, feats, fit, outer])
 
   useEffect(() => { if (drawing) setHover(null) }, [drawing])
 
@@ -180,7 +194,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     const step = (now: number) => {
       const t = glideTarget.current
       if (!t) return
-      const k = 1 - Math.exp(-(now - last) / 70) // ~70 ms time constant, frame-rate independent
+      // ~70 ms time constant, frame-rate independent; a frame stamped before the glide began moves nothing (never backwards)
+      const k = 1 - Math.exp(-Math.max(0, now - last) / 70)
       last = now
       const v = viewRef.current
       const nv = { x: lerp(v.x, t.x, k), y: lerp(v.y, t.y, k), w: lerp(v.w, t.w, k), h: lerp(v.h, t.h, k) }
@@ -194,8 +209,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   /** Zoom by `f` about a fraction of the map, from where the view is heading (so repeated ticks accumulate). */
   const zoomFrac = (fx: number, fy: number, f: number) => {
     const base = glideTarget.current ?? viewRef.current
-    const z = clampView({ ...base, w: base.w / f, h: base.h / f }, fit) // clamps the zoom level
-    glide(clampView({ ...z, x: base.x + fx * (base.w - z.w), y: base.y + fy * (base.h - z.h) }, fit))
+    const z = clampView({ ...base, w: base.w / f, h: base.h / f }, fit, outer) // clamps the zoom level
+    glide(clampView({ ...z, x: base.x + fx * (base.w - z.w), y: base.y + fy * (base.h - z.h) }, fit, outer))
   }
   const zoomBy = (f: number) => zoomFrac(0.5, 0.5, f) // +/- buttons
   const zoomAt = (cx: number, cy: number, f: number) => { const [fx, fy] = frac(cx, cy); zoomFrac(fx, fy, f) }
@@ -222,10 +237,10 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       const upp = fit.w / (fit.w * Math.min(r.width / fit.w, r.height / fit.h)) // viewBox units per px at fit
       let last = performance.now()
       const step = (now: number) => {
-        const dt = Math.min(32, now - last); last = now
+        const dt = Math.min(32, Math.max(0, now - last)); last = now
         const v = viewRef.current, s = (upp * v.w) / fit.w
         const want = { ...v, x: v.x - vx * dt * s, y: v.y - vy * dt * s }
-        const nv = clampView(want, fit)
+        const nv = clampView(want, fit, outer)
         if (nv.x !== want.x) vx = 0
         if (nv.y !== want.y) vy = 0
         show(nv)
@@ -269,8 +284,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
         const [a, b] = [...pts.values()]
         const [fx, fy] = frac((a.x + b.x) / 2, (a.y + b.y) / 2)
         const v0 = pinch.view, f = Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0
-        const z = clampView({ ...v0, w: v0.w / f, h: v0.h / f }, fit)
-        show(clampView({ ...z, x: pinch.p0[0] - fx * z.w, y: pinch.p0[1] - fy * z.h }, fit)) // the pinched point stays under the fingers
+        const z = clampView({ ...v0, w: v0.w / f, h: v0.h / f }, fit, outer)
+        show(clampView({ ...z, x: pinch.p0[0] - fx * z.w, y: pinch.p0[1] - fy * z.h }, fit, outer)) // the pinched point stays under the fingers
         return
       }
       if (!pan || pan.id !== e.pointerId) return
@@ -281,7 +296,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
         document.documentElement.classList.add('is-panning')
       }
       const [fx, fy] = frac(e.clientX, e.clientY), v = pan.view
-      show(clampView({ ...v, x: v.x + (pan.f[0] - fx) * v.w, y: v.y + (pan.f[1] - fy) * v.h }, fit)) // the grabbed point stays under the pointer
+      show(clampView({ ...v, x: v.x + (pan.f[0] - fx) * v.w, y: v.y + (pan.f[1] - fy) * v.h }, fit, outer)) // the grabbed point stays under the pointer
       const now = performance.now()
       samples.push({ t: now, x: e.clientX, y: e.clientY })
       while (samples.length > 2 && now - samples[0].t > 100) samples.shift()
@@ -314,7 +329,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       cancelAnimationFrame(raf.current)
       document.documentElement.classList.remove('is-panning')
     }
-  }, [drawing, fit, wheelZoom]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drawing, fit, outer, wheelZoom]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Box drawing: pointer in viewBox units, released as a lon/lat Box.
   useEffect(() => {
@@ -359,19 +374,23 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   const ppu = svgPx.w && svgPx.h ? Math.min(svgPx.w / view.w, svgPx.h / view.h) : 0
   const pinR = (n: number) => (ppu ? (6 + 2.5 * Math.sqrt(n)) / ppu : 0)
   const labelSize = ppu ? 13 / ppu : Math.max(10, view.w * 0.013) // with pins (px known): 13 px on screen at any zoom
-  const img = useMemo(() => { const [x0, y0] = toXY(BBOX[0], BBOX[3]), [x1, y1] = toXY(BBOX[2], BBOX[1]); return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } }, [toXY])
+  const imgs = useMemo(() => (world ? IMAGERY : IMAGERY.slice(-1)).map(([b, day, night]) => {
+    const [x0, y0] = toXY(b[0], b[3]), [x1, y1] = toXY(b[2], b[1])
+    return { key: b.join(), day, night, x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
+  }), [world, toXY])
 
   return (
     <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative ${className} w-full overflow-hidden bg-bg select-none`}>
       <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="h-full w-full touch-none"
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
-        {layer !== 'none' && <image href={layer === 'day' ? dayImg : nightImg} x={img.x} y={img.y} width={img.w} height={img.h} preserveAspectRatio="none" aria-hidden />}
+        {layer !== 'none' && imgs.map((m) => <image key={m.key} href={layer === 'day' ? m.day : m.night} x={m.x} y={m.y} width={m.w} height={m.h} preserveAspectRatio="none" aria-hidden />)}
+        {countries.map((c) => <path key={c.id} d={c.d} className={`bd-world${layer !== 'none' ? ' on-imagery' : ''}`} vectorEffect="non-scaling-stroke" aria-hidden />)}
         {feats.map((f) => {
           const v = values?.[f.id]
           const sel = f.id === selected
           return (
             <path key={f.id} d={f.d} className={`bd-feat${sel ? ' bd-sel map-sel' : ''}${drawing ? ' pointer-events-none' : ''}`}
-              fill={v != null ? rampColor(v, max, p) : p.surface} fillOpacity={layer === 'none' ? (v != null ? 0.92 : 0.5) : 0}
+              fill={v != null ? rampColor(v, max, p) : p.surface} fillOpacity={layer === 'none' ? (v != null ? 0.92 : 0.5) : world && v ? 0.85 : 0}
               vectorEffect="non-scaling-stroke"
               tabIndex={drawing ? -1 : 0} role="button"
               aria-label={`${f.nameEn} · ${f.nameBn}${v != null ? ` · ${v}` : ''}`}
@@ -386,6 +405,19 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
               onPointerLeave={() => setHover(null)} />
           )
         })}
+        {outer && <>
+          {/* the country's outline: a thick stroke round every area, masked to outside all of them, so only the outer edge
+              shows (shared borders, and any hairline mismatch between neighbours, stay hidden) */}
+          <mask id={maskId} maskUnits="userSpaceOnUse" x={outer.x} y={outer.y} width={outer.w} height={outer.h}>
+            <rect x={outer.x} y={outer.y} width={outer.w} height={outer.h} fill="white" />
+            {feats.map((f) => <path key={f.id} d={f.d} fill="black" />)}
+          </mask>
+          <g mask={`url(#${maskId})`} aria-hidden>
+            {feats.map((f) => <path key={f.id} d={f.d} className="bd-home-halo" vectorEffect="non-scaling-stroke" />)}
+            {feats.map((f) => <path key={f.id} d={f.d} className="bd-home" vectorEffect="non-scaling-stroke" />)}
+          </g>
+          {view.w > fit.w * 1.3 && <text x={fit.x + fit.w / 2} y={fit.y - labelSize * 0.9} className="bd-label bd-home-label" fontSize={labelSize * 1.25} textAnchor="middle">Bangladesh</text>}
+        </>}
         {feats.map((f) => ((labels && view.w < fit.w * 0.6) || f.id === hovered?.id || f.id === selected) && (
           // a pinned area's name sits just above its pin
           <text key={f.id} x={f.cx} y={pins?.[f.id] ? f.cy - pinR(pins[f.id]) - labelSize * 0.6 : f.cy} className="bd-label" fontSize={labelSize} textAnchor="middle" dominantBaseline="middle">
