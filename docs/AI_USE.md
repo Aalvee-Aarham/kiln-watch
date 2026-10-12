@@ -24,6 +24,7 @@ Space Apps allows AI-generated content when the tools are named, the prompts are
 | Data it sees | Only the public, area-level export the website already publishes: no kiln locations, no personal data |
 | Where answers appear | `#/ask`, from a cache written by `python -m kilnwatch ask --build-cache`, so the page works offline and shows the raw function results behind each answer |
 | Limits | At most 6 model calls per question; refusals and blocked answers are shown as such, never filled in |
+| Known limits of the guard | `guard()` checks numbers by value, not by meaning: an answer that attaches a correct number to the wrong claim (for example "96% of all fires removed" when the tool said "96% of the 2012 jump removed") passes. Pinned by `tests/test_ask_eval.py`; closing it needs claim-level checking, which we do not ship. |
 
 ### Live chat on the website (Gemini, bring your own key)
 
