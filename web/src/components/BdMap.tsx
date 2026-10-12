@@ -207,16 +207,20 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     raf.current = requestAnimationFrame(step)
   }
   /** Zoom by `f` about a fraction of the map, from where the view is heading (so repeated ticks accumulate). */
-  const zoomFrac = (fx: number, fy: number, f: number) => {
+  const zoomFrac = (fx: number, fy: number, f: number, now = false) => {
+    if (now) { cancelAnimationFrame(raf.current); glideTarget.current = null } // pinch: follow the fingers, no easing
     const base = glideTarget.current ?? viewRef.current
     const z = clampView({ ...base, w: base.w / f, h: base.h / f }, fit, outer) // clamps the zoom level
-    glide(clampView({ ...z, x: base.x + fx * (base.w - z.w), y: base.y + fy * (base.h - z.h) }, fit, outer))
+    const target = clampView({ ...z, x: base.x + fx * (base.w - z.w), y: base.y + fy * (base.h - z.h) }, fit, outer)
+    if (now) show(target)
+    else glide(target)
   }
   const zoomBy = (f: number) => zoomFrac(0.5, 0.5, f) // +/- buttons
-  const zoomAt = (cx: number, cy: number, f: number) => { const [fx, fy] = frac(cx, cy); zoomFrac(fx, fy, f) }
+  const zoomAt = (cx: number, cy: number, f: number, now = false) => { const [fx, fy] = frac(cx, cy); zoomFrac(fx, fy, f, now) }
 
-  // Drag anywhere to pan (a press that moves < 4 px stays a click), fling to coast, pinch to zoom, wheel to zoom
-  // (plain wheel when `wheelZoom`, else Ctrl/⌘+wheel with a hint so the page still scrolls), double-click to zoom in.
+  // Drag anywhere to pan (a press that moves < 4 px stays a click), fling to coast, pinch (touch or touchpad) to zoom,
+  // with `wheelZoom` a two-finger touchpad swipe pans and a mouse wheel zooms (else Ctrl/⌘+wheel zooms and plain wheel
+  // scrolls the page, with a hint), double-click to zoom in.
   useEffect(() => {
     const el = svgRef.current
     if (!el) return
@@ -250,14 +254,34 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       }
       raf.current = requestAnimationFrame(step)
     }
+    // Touchpads send wheel events too: a two-finger swipe as plain deltaX/deltaY, a pinch as Ctrl+wheel. A mouse wheel
+    // sends big vertical-only steps. Anything touchpad-like marks the next 500 ms as touchpad, so one gesture stays one kind.
+    let padUntil = 0
+    const touchpad = (e: WheelEvent) => {
+      const now = performance.now()
+      if (e.deltaMode === 0 && (e.deltaX !== 0 || Math.abs(e.deltaY) < 50)) padUntil = now + 500
+      return now < padUntil
+    }
     const wheel = (e: WheelEvent) => {
-      if (wheelZoom || e.ctrlKey || e.metaKey) {
+      const line = e.deltaMode === 1 ? 16 : e.deltaMode === 2 ? 400 : 1
+      const pad = touchpad(e)
+      if (e.ctrlKey || e.metaKey) { // pinch (touchpad) or Ctrl+wheel (mouse)
         e.preventDefault()
-        const dy = Math.max(-300, Math.min(300, e.deltaY * (e.deltaMode === 1 ? 16 : 1)))
-        zoomAt(e.clientX, e.clientY, Math.exp(-dy * 0.002))
+        const dy = e.deltaY * line
+        if (pad) zoomAt(e.clientX, e.clientY, Math.exp(-Math.max(-50, Math.min(50, dy)) * 0.01), true) // ≈ the pinch's own scale
+        else zoomAt(e.clientX, e.clientY, Math.exp(-Math.max(-300, Math.min(300, dy)) * 0.002))
         return
       }
-      setHint(true); clearTimeout(hintT); hintT = window.setTimeout(() => setHint(false), 1200)
+      if (!wheelZoom) { setHint(true); clearTimeout(hintT); hintT = window.setTimeout(() => setHint(false), 1200); return }
+      e.preventDefault()
+      if (pad) { // two-finger swipe: move the map with the fingers, like scrolling a page
+        stop()
+        const r = el.getBoundingClientRect(), v = viewRef.current
+        const u = v.w / (fit.w * Math.min(r.width / fit.w, r.height / fit.h)) // viewBox units per px at this zoom
+        show(clampView({ ...v, x: v.x + e.deltaX * line * u, y: v.y + e.deltaY * line * u }, fit, outer))
+        return
+      }
+      zoomAt(e.clientX, e.clientY, Math.exp(-Math.max(-300, Math.min(300, e.deltaY * line)) * 0.002)) // mouse wheel
     }
     const down = (e: PointerEvent) => {
       if (drawing || (e.pointerType === 'mouse' && e.button !== 0)) return
@@ -385,6 +409,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
         {layer !== 'none' && imgs.map((m) => <image key={m.key} href={layer === 'day' ? m.day : m.night} x={m.x} y={m.y} width={m.w} height={m.h} preserveAspectRatio="none" aria-hidden />)}
         {countries.map((c) => <path key={c.id} d={c.d} className={`bd-world${layer !== 'none' ? ' on-imagery' : ''}`} vectorEffect="non-scaling-stroke" aria-hidden />)}
+        {outer && layer !== 'none' && <rect x={outer.x - outer.w} y={outer.y - outer.h} width={outer.w * 3} height={outer.h * 3} className="bd-veil" aria-hidden />}
         {feats.map((f) => {
           const v = values?.[f.id]
           const sel = f.id === selected
@@ -406,15 +431,15 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
           )
         })}
         {outer && <>
-          {/* the country's outline: a thick stroke round every area, masked to outside all of them, so only the outer edge
-              shows (shared borders, and any hairline mismatch between neighbours, stay hidden) */}
-          <mask id={maskId} maskUnits="userSpaceOnUse" x={outer.x} y={outer.y} width={outer.w} height={outer.h}>
-            <rect x={outer.x} y={outer.y} width={outer.w} height={outer.h} fill="white" />
+          {/* spotlight: everything outside the areas is dimmed, and a thin line traces their outer edge (a stroke round every
+              area masked to outside all of them, so shared borders and any hairline mismatch between neighbours stay hidden) */}
+          <mask id={maskId} maskUnits="userSpaceOnUse" x={outer.x - outer.w} y={outer.y - outer.h} width={outer.w * 3} height={outer.h * 3}>
+            <rect x={outer.x - outer.w} y={outer.y - outer.h} width={outer.w * 3} height={outer.h * 3} fill="white" />
             {feats.map((f) => <path key={f.id} d={f.d} fill="black" />)}
           </mask>
           <g mask={`url(#${maskId})`} aria-hidden>
-            {feats.map((f) => <path key={f.id} d={f.d} className="bd-home-halo" vectorEffect="non-scaling-stroke" />)}
-            {feats.map((f) => <path key={f.id} d={f.d} className="bd-home" vectorEffect="non-scaling-stroke" />)}
+            <rect x={outer.x - outer.w} y={outer.y - outer.h} width={outer.w * 3} height={outer.h * 3} className={`bd-dim${layer !== 'none' ? ' on-imagery' : ''}`} />
+            {feats.map((f) => <path key={f.id} d={f.d} className={`bd-home${layer !== 'none' ? ' on-imagery' : ''}`} vectorEffect="non-scaling-stroke" />)}
           </g>
           {view.w > fit.w * 1.3 && <text x={fit.x + fit.w / 2} y={fit.y - labelSize * 0.9} className="bd-label bd-home-label" fontSize={labelSize * 1.25} textAnchor="middle">Bangladesh</text>}
         </>}

@@ -721,29 +721,45 @@
   stroke: rgb(255 255 255 / 0.4);
 }
 
-.bd-home-halo,
+/* Spotlight on the analysis area: the rest of the world dimmed, a thin crisp edge (masked to outside the country, so
+   half of the stroke width shows). */
+.bd-dim {
+  fill: var(--color-bg);
+  fill-opacity: 0.3;
+  pointer-events: none;
+}
+
+/* over imagery: a light veil on the whole picture (under the fire colours) so Bangladesh isn't glaring, and a gentler
+   extra dim outside it; ≈ 15 % darker inside, ≈ 36 % outside */
+.bd-veil {
+  fill: rgb(0 0 0);
+  fill-opacity: 0.15;
+  pointer-events: none;
+}
+
+.bd-dim.on-imagery {
+  fill: rgb(0 0 0);
+  fill-opacity: 0.25;
+}
+
 .bd-home {
   fill: none;
-  pointer-events: none;
+  stroke: var(--color-ink);
+  stroke-opacity: 0.75;
+  stroke-width: 2.4;
   stroke-linejoin: round;
+  pointer-events: none;
 }
 
-/* masked to outside the country: half of each width shows, so 3 px of heat on 4 px of page ground beyond it */
-.bd-home-halo {
-  stroke: var(--color-bg);
-  stroke-width: 14;
-  stroke-opacity: 0.7;
-}
-
-.bd-home {
-  stroke: var(--color-heat);
-  stroke-width: 6;
+.bd-home.on-imagery {
+  stroke: rgb(255 255 255);
+  stroke-opacity: 0.85;
 }
 
 .bd-home-label {
-  fill: var(--color-heat);
+  fill: var(--color-ink);
   font-weight: 700;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.04em;
 }
 
 /* News pins (#/news/map): one per district with stories, at the district centre. */
