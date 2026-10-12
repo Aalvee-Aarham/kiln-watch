@@ -4,76 +4,114 @@
 > before moving on. STOP conditions halt the plan. Update
 > `plans/README.md` when done.
 >
-> **Drift check (run first)**: `git diff --stat c053cfa..HEAD -- kilnwatch/export.py kilnwatch/__main__.py .github/workflows/deploy.yml docs/operations.md`
-> Mismatch with the excerpts below = STOP condition.
+> **Drift check (run first)**: `git diff --stat 98fa82a..HEAD -- kilnwatch/export.py .github/workflows/deploy.yml docs/operations.md tests/test_export.py`
+> If any file changed, compare the excerpts below against the live code; a
+> mismatch is a STOP condition.
 
 ## Status
 
 - **Priority**: P2
 - **Effort**: S-M
-- **Risk**: LOW (degrades gracefully; a missing key never blocks a deploy)
-- **Depends on**: none (Plan 003's new demo questions make it more valuable,
-  but it works independently)
+- **Risk**: LOW (degrades gracefully; a missing key or an Anthropic outage never blocks a deploy)
+- **Depends on**: none (Plan 003's extra demo questions make it more valuable, but it works independently)
 - **Category**: bug / ops
-- **Planned at**: commit `c053cfa`, 2026-10-11
+- **Planned at**: commit `98fa82a`, 2026-10-12 (first written 2026-10-11; reviewed and corrected against live code)
 
 ## Why this matters
 
 `ask.json` — the cached demo answers on `#/ask`, including "is this year
-unusual *so far*?" — is rebuilt only when a human runs
+unusual *so far*?" — is rebuilt only when a person runs
 `python -m kilnwatch ask --build-cache`. The daily 03:00 UTC deploy
 refreshes only the `nrt/` slice, so the deployed answers freeze at whatever
-the last `export --publish` captured. The page does label them "Saved
-answers, not live", but a weeks-stale "so far" answer on demo day undercuts
-the product's field-ready honesty. Fix: rebuild the cache inside the two
-places data already flows — `export --publish` (releases) and the daily
-deploy (freshness) — with the LLM key treated as optional everywhere.
+the last `export --publish` captured. The page labels them with their build
+date, but a weeks-stale "so far" answer on demo day undercuts the product's
+honesty. Fix: rebuild the cache where data already flows — `export
+--publish` (releases) and the daily deploy (freshness) — with the
+Anthropic key optional everywhere.
 
 ## Current state
 
-- `kilnwatch/export.py` — `publish()` at line 203: runs the safety checks,
-  packages `web/public/data/` (excluding `nrt/`) into `public-data.tar.gz`,
-  builds the research zip, uploads both to the `data-current` GitHub
-  Release, then tags an immutable `data-<sha>` release (documented in
-  `docs/operations.md:39`). It currently never touches `ask.json`.
-- `kilnwatch/ask.py` — `build_cache(src, client=None, out=None)` (line 233)
-  answers the `DEMO_QUESTIONS` and writes `<src>/ask.json` atomically via
-  `dump_json`. Needs `ANTHROPIC_API_KEY` (via `anthropic.Anthropic()`
-  default client). `ask.py` imports `export.dump_json` lazily inside the
-  function (line 235) — so `export` must import `ask` lazily too (inside
-  `publish()`), never at module top, or you create an import cycle.
-- `.github/workflows/deploy.yml` — the `nrt` job (lines 8–29):
-  downloads the `data-current` tarball into `web/public/data`, restores the
-  `data/nrt` cache, `python -m kilnwatch nrt`, `pytest -q`, uploads the
-  `web/public/data/nrt/` artifact. Its env block (lines 11–13) sets
-  `GH_TOKEN` and `FIRMS_MAP_KEY` only.
-- `.env.example:7-8` — `ANTHROPIC_API_KEY` is documented **Optional**,
-  "only for `python -m kilnwatch ask` / `ask --build-cache`".
-- Convention (CLAUDE.md): writes atomic (build_cache already is); ops docs
-  stay in sync with workflows (`docs/operations.md` is the mirror of
-  deploy.yml — CI reviewer checks this).
+- `kilnwatch/export.py` — module logger `log = logging.getLogger("kilnwatch.export")`
+  (line 17); imports at lines 2–15 include `json`, `logging`, `shutil`,
+  `subprocess`, `tarfile`, `Path` (no `os`). `publish()` (lines 203–222):
+
+  ```python
+  def publish() -> None:
+      check_public_dir(C.WEB_DATA)
+      for f in C.WEB_DATA.rglob("*.json"):
+          assert_public_safe(json.loads(f.read_text(encoding="utf-8")))
+      tar = C.ROOT / "public-data.tar.gz"
+      with tarfile.open(tar, "w:gz") as t:
+          for p in C.WEB_DATA.rglob("*"):
+              if p.is_file() and "nrt" not in p.relative_to(C.WEB_DATA).parts:
+                  t.add(p, arcname=str(p.relative_to(C.WEB_DATA)))
+      ...  # research zip, then `gh release` upload to data-current and an immutable data-<sha>
+  ```
+- `kilnwatch/ask.py` — `build_cache(src=C.WEB_DATA, client=None, out=None)`
+  answers `DEMO_QUESTIONS` and writes `<src>/ask.json` atomically. With
+  `client=None` it constructs `anthropic.Anthropic()`, which reads
+  `ANTHROPIC_API_KEY`. `ask.py` imports `export.dump_json` lazily inside
+  `build_cache`, so `export` must import `ask` lazily too (inside a
+  function), never at module top — otherwise an import cycle.
+- CLI: `python -m kilnwatch ask --build-cache --src DIR` exists
+  (`kilnwatch/__main__.py:50-51`).
+- `.github/workflows/deploy.yml` — `nrt` job (lines 8–29). Note line 20:
+  **it extracts the entire `data-current` tarball into `web/public/data`**,
+  so anything uploaded from `web/public/data/` as a whole would ship the full
+  dataset as an artifact. Today it uploads only `web/public/data/nrt/`:
+
+  ```yaml
+    nrt:
+      runs-on: ubuntu-latest
+      permissions: { contents: read }  # this job fetches FIRMS with the map key; it never needs Pages rights
+      env:
+        GH_TOKEN: ${{ github.token }}
+        FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+      steps:
+        ...
+        - name: Download data-current (district normals)
+          run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
+        ...
+        - run: python -m kilnwatch nrt                                  # line 26
+        - run: pytest -q  # the full suite gates every deploy, ...      # line 27
+        - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+          with: { name: nrt, path: web/public/data/nrt/ }               # lines 28-29
+  ```
+  `deploy` job (lines 30–56) re-extracts the tarball (line 42) and
+  downloads the `nrt` artifact (lines 43–44):
+  ```yaml
+        - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+          with: { name: nrt, path: web/public/data/nrt }
+  ```
+- Workflow conventions: every `uses:` pinned to a 40-char SHA with a
+  `# vX.Y.Z` comment; permissions job-scoped; comments say why.
+- `docs/operations.md` "Daily deploy" section (lines 28–35) — its last
+  paragraph says "The only secret is `FIRMS_MAP_KEY`" (must be corrected).
+  "Publishing the real data" section starts at line 37.
+- `.env.example` documents `ANTHROPIC_API_KEY` as optional, "only for
+  `python -m kilnwatch ask` / `ask --build-cache`".
 
 ## Commands you will need
 
 | Purpose | Command (repo root) | Expected |
 |---|---|---|
-| Install | `pip install -r requirements.txt -c constraints.txt` | exit 0 |
-| Lint | `python -m ruff check .` | clean |
+| Install | `pip install -r requirements.txt -c constraints.txt` (Python 3.11) | exit 0 |
+| Lint | `python -m ruff check .` | "All checks passed!" |
 | Tests | `python -m pytest -q` | all pass |
-| YAML sanity | `python -c "import yaml,sys; yaml.safe_load(open('.github/workflows/deploy.yml')); print('ok')"` | ok |
+| YAML sanity | `uv run --no-project -q --with pyyaml python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml')); print('ok')"` | `ok` |
 
 ## Scope
 
 **In scope**:
-- `kilnwatch/export.py` (inside `publish()` only)
-- `.github/workflows/deploy.yml` (nrt job)
-- `tests/test_export.py` (one new test)
-- `docs/operations.md` (two paragraphs)
+- `kilnwatch/export.py` — one helper + one call inside `publish()`
+- `tests/test_export.py` — one new test
+- `.github/workflows/deploy.yml` — `nrt` job (one step + one upload) and `deploy` job (one download)
+- `docs/operations.md` — the two sections named above
 
 **Out of scope**:
-- `kilnwatch/ask.py` logic (only its call sites change)
-- The `deploy` job, `ci.yml`, the Pages deployment steps
-- Any web code (`ask.json` is consumed as-is).
+- `kilnwatch/ask.py` (only its call sites change)
+- `ci.yml`, the Pages steps of the `deploy` job, any web code
+- Adding the `ANTHROPIC_API_KEY` repository secret (a human step)
 
 ## Git workflow
 
@@ -82,121 +120,140 @@ deploy (freshness) — with the LLM key treated as optional everywhere.
 
 ## Steps
 
-### Step 1: Rebuild the cache inside `publish()` when a key exists
+### Step 1: A testable hook, called from `publish()`
 
-In `kilnwatch/export.py` `publish()`, immediately after the safety checks
-pass and BEFORE the tarball is packaged (so releases carry fresh answers):
+Add to `kilnwatch/export.py` (above `publish`):
 
 ```python
-import os
-if os.environ.get("ANTHROPIC_API_KEY"):
-    from . import ask
-    ask.build_cache()          # writes web/public/data/ask.json atomically
-else:
-    print("WARNING no ANTHROPIC_API_KEY: ask.json not refreshed (page labels its build date)", file=sys.stderr)
+def refresh_ask_cache(env=None, build=None) -> bool:
+    """Rebuild ask.json when an Anthropic key is set; otherwise warn and keep the old answers (the key is optional)."""
+    import os
+
+    env = os.environ if env is None else env
+    if not env.get("ANTHROPIC_API_KEY"):
+        log.warning("no ANTHROPIC_API_KEY: ask.json not refreshed (the page shows its build date)")
+        return False
+    if build is None:
+        from .ask import build_cache as build  # lazy: ask imports export lazily too
+
+    build(C.WEB_DATA)
+    return True
 ```
 
-Match the file's existing import/error style (check its header imports;
-add `sys`/`os` only if missing). The lazy `from . import ask` inside the
-function is mandatory (cycle prevention — see Current state).
+In `publish()`, call `refresh_ask_cache()` immediately after the two safety
+checks and BEFORE `tar = ...`, so releases carry the fresh answers. Then add
+one more safety check right after it, because `ask.json` is new content:
+`assert_public_safe(json.loads((C.WEB_DATA / "ask.json").read_text(encoding="utf-8")))`
+guarded by `if (C.WEB_DATA / "ask.json").exists():`.
 
-**Verify**: `python -m ruff check .` → clean;
-`python -m pytest tests/test_export.py -q` → green (new test in Step 3).
+**Verify**: `python -m ruff check .` → clean.
 
-### Step 2: Daily refresh hook in `deploy.yml`
+### Step 2: Test the hook
 
-In the `nrt` job: add `ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}`
-to the env block, and insert one step between `python -m kilnwatch nrt`
-(line 26) and `pytest -q` (line 27):
+In `tests/test_export.py` add `test_ask_cache_refreshes_only_with_a_key`:
+
+```python
+def test_ask_cache_refreshes_only_with_a_key():
+    from kilnwatch.export import refresh_ask_cache
+
+    calls = []
+    assert refresh_ask_cache(env={}, build=calls.append) is False and calls == []
+    assert refresh_ask_cache(env={"ANTHROPIC_API_KEY": ""}, build=calls.append) is False and calls == []
+    assert refresh_ask_cache(env={"ANTHROPIC_API_KEY": "x"}, build=calls.append) is True and len(calls) == 1
+```
+
+No network, no key, no `gh`; `publish()` itself is not executed in tests.
+
+**Verify**: `python -m pytest tests/test_export.py -q` → all pass (one more than before).
+
+### Step 3: Daily refresh in `deploy.yml`
+
+In the `nrt` job, insert this step between `python -m kilnwatch nrt` and
+`pytest -q`. The key goes in the **step's** `env`, not the job's, so
+`pip install` and the test suite never see it:
 
 ```yaml
       - name: Refresh ask.json (optional; never blocks the data deploy)
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }
         run: |
           if [ -n "$ANTHROPIC_API_KEY" ]; then
-            python -m kilnwatch ask --build-cache --src web/public/data || echo "::warning::ask cache refresh failed; yesterday's answers stay"
+            python -m kilnwatch ask --build-cache --src web/public/data || echo "::warning::ask cache refresh failed; the release copy stays"
           else
             echo "::warning::ANTHROPIC_API_KEY not set; ask.json not refreshed"
           fi
 ```
 
-The `|| echo "::warning::"` makes an Anthropic outage a warning, not a
-failed data deploy — deliberate, matches the "Optional" key contract.
-Note `ask.json` is NOT under `web/public/data/nrt/`, so it is not caught by
-the existing artifact upload; the `deploy` job rebuilds from the tarball +
-artifact — so the fresh `ask.json` must ALSO be uploaded: extend the
-existing `upload-artifact` step's `path:` to `web/public/data/nrt/` →
-`web/public/data/` (nrt + ask.json), and the deploy job's matching
-`download-artifact` step (line 43-44) `path:` likewise — the download
-already lands in `web/public/data/nrt`; change it to `web/public/data` so
-`ask.json` overlays the tarball copy. Check the artifact does not now
-include other stale files: it will contain exactly `nrt/` + `ask.json`
-because that is all the nrt job writes under `web/public/data`.
+After the existing `nrt` upload, add a **second, single-file** artifact
+(never widen the existing path — the tarball is extracted in that folder):
 
-**Verify**: `python -c "import yaml; yaml.safe_load(open('.github/workflows/deploy.yml')); print('ok')"` → ok;
-`grep -n "ANTHROPIC_API_KEY" .github/workflows/deploy.yml` → 2 hits (env + guard).
+```yaml
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: ask, path: web/public/data/ask.json, if-no-files-found: ignore }
+```
 
-### Step 3: Test the graceful path
+In the `deploy` job, after the `nrt` download (line 44), add:
 
-In `tests/test_export.py` add `test_publish_refreshes_ask_cache_only_with_key`:
-monkeypatch `kilnwatch.export.publish`'s heavy collaborators is overkill —
-instead monkeypatch `ask.build_cache` (patch
-`kilnwatch.ask.build_cache`), call `export.publish()` with
-`monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)` → build_cache NOT
-called, no exception; with `monkeypatch.setenv("ANTHROPIC_API_KEY", "x")` →
-called exactly once. To keep the test hermetic, also monkeypatch whatever
-`publish()` calls after the cache step (read the function; it uploads via
-`gh`/requests — patch at the boundary the existing export tests use;
-pattern: see `tests/test_export.py`'s existing publish/check_budgets
-tests for the established mock style). If existing tests don't mock
-`publish()` at all, wrap the assertion as: `pytest.raises` NOT needed —
-instead factor nothing; simply assert the call/no-call via the patched
-function and let an env without `gh` fail AFTER the cache step only if the
-key branch is wrong — if that proves impossible to test hermetically, test
-the branch decision by extracting it into a tiny
-`_ask_cache_hook(env: dict) -> bool` inside export.py and unit-test THAT
-(closed-form), leaving `publish()` a one-line caller.
+```yaml
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        continue-on-error: true  # no ask artifact (no key, or none built) keeps the release copy
+        with: { name: ask, path: web/public/data }
+```
 
-**Verify**: `python -m pytest tests/test_export.py -q` → green.
+The `deploy` job's existing safety checks then cover the overlaid
+`ask.json` before anything is published.
+
+**Verify**: the YAML-sanity command → `ok`;
+`grep -c "ANTHROPIC_API_KEY" .github/workflows/deploy.yml` → `3`
+(step env + two in the guard script);
+`grep -n "name: ask" .github/workflows/deploy.yml` → 2 lines;
+`grep -n "path: web/public/data/nrt/" .github/workflows/deploy.yml` → still 1 line (unchanged).
 
 ### Step 4: Docs
 
-`docs/operations.md`: in "Daily deploy" (§ around line 32), add one
-sentence after step 1's pytest mention: "When the `ANTHROPIC_API_KEY`
-secret is set, the nrt job also refreshes `ask.json` (warning-only on
-failure or absence)." In "Publishing the real data" (§ around line 39),
-add: "`export --publish` rebuilds `ask.json` first when
-`ANTHROPIC_API_KEY` is set, so releases ship fresh cached answers."
+`docs/operations.md`:
+- "Daily deploy", step 1: add "When the `ANTHROPIC_API_KEY` secret is set,
+  it also rebuilds `ask.json` (a warning, never a failure, when the key is
+  absent or the call fails) and uploads it as a separate `ask` artifact."
+- Same section, last paragraph: replace "The only secret is
+  `FIRMS_MAP_KEY`" with "The secrets are `FIRMS_MAP_KEY` and the optional
+  `ANTHROPIC_API_KEY` (scoped to the one step that rebuilds `ask.json`)".
+- "Publishing the real data": add "`export --publish` rebuilds `ask.json`
+  first when `ANTHROPIC_API_KEY` is set, and safety-checks it with the rest."
 
-**Verify**: `grep -c "ask.json" docs/operations.md` ≥ 2.
+**Verify**: `grep -c "ask.json" docs/operations.md` → at least `3`;
+`grep -c "The only secret is" docs/operations.md` → `0`.
 
 ## Test plan
 
-Step 3; closed-form call/no-call assertions, no network, no key. Pattern:
-existing `tests/test_export.py` mock style.
+Step 2 (closed-form call/no-call via an injected `build`; no network, no key).
+Pattern: the existing small, hermetic tests in `tests/test_export.py`.
 
 ## Done criteria
 
-- [ ] `python -m ruff check .` exits 0; `python -m pytest -q` all pass
-- [ ] `grep -n "build_cache" kilnwatch/export.py` → 1 call site inside `publish()`
-- [ ] deploy.yml parses; nrt job has the guarded step; artifact paths cover `ask.json`
-- [ ] With no key set: `python -m kilnwatch export --publish` path prints the warning and does not raise (test asserts)
-- [ ] `docs/operations.md` updated; `plans/README.md` row updated
+- [ ] `python -m ruff check .` exits 0; `python -m pytest -q` exits 0
+- [ ] `grep -c "refresh_ask_cache()" kilnwatch/export.py` → `1` (the call in `publish()`)
+- [ ] deploy.yml parses; the `nrt` artifact path is unchanged; an `ask` artifact is uploaded and downloaded; the key appears only in a step-level `env`
+- [ ] `docs/operations.md` updated as in Step 4
+- [ ] Scope check (works whether or not you have committed): `git diff --name-only 98fa82a -- . ':!plans'` lists only: `kilnwatch/export.py`, `tests/test_export.py`, `.github/workflows/deploy.yml`, `docs/operations.md`
+- [ ] `plans/README.md` row updated
 
 ## STOP conditions
 
-- `publish()` structure differs materially from "Current state" (e.g. it
-  already rebuilds the cache — then report and skip Step 1).
-- The artifact path change in Step 2 would sweep in files beyond
-  `nrt/` + `ask.json` (inspect what the nrt job writes under
-  `web/public/data`; if more, keep the artifact as `nrt/` and add a second
-  artifact for `ask.json` instead).
-- `export` → `ask` import raises a cycle even with the lazy import.
+- `publish()` structure differs from the excerpt (e.g. it already rebuilds
+  the cache) — report and skip Step 1.
+- Importing `kilnwatch.export` then calling `refresh_ask_cache` raises an
+  import cycle even with the lazy import.
+- The pinned `upload-artifact` version rejects `if-no-files-found: ignore`,
+  or the pinned `download-artifact` cannot tolerate a missing artifact with
+  `continue-on-error` — report; do not swap action versions.
 
 ## Maintenance notes
 
-- The team must add `ANTHROPIC_API_KEY` as a GitHub repo secret for the
-  daily refresh to actually run — that is a human step, not in this plan
-  (roadmap.md line 20 lists key decisions as human decisions).
-- Plan 005 (hosted worker) may eventually supersede the cache for "live"
-  answers; the publish-time rebuild stays valuable for the offline site
-  either way.
+- A person must add `ANTHROPIC_API_KEY` as a GitHub repository secret for
+  the daily refresh to run; until then the step only warns.
+- Cost: each daily run makes up to `len(DEMO_QUESTIONS) × MAX_STEPS` model
+  calls (4 × 6 today, 6 × 6 after Plan 003) on `claude-opus-5-5` at low
+  effort. If that is too much, switch the cron refresh to weekly — a team
+  decision, not a code one.
+- Plan 005 (hosted worker) may supersede the cache for live answers; the
+  publish-time rebuild stays useful for the offline site either way.
