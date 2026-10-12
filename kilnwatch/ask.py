@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from pathlib import Path
 
@@ -26,6 +27,8 @@ DEMO_QUESTIONS = [
     ("Is burning in Dhaka district above normal right now, and what about the next two weeks?", "en"),
     ("Did the correction really remove the 2012 jump in fire counts?", "en"),
     ("নওগাঁ জেলায় কখন আগুন বেশি জ্বলে?", "bn"),
+    ("When do brick kilns operate around Dhaka, and how long is their season?", "en"),
+    ("How many kiln clusters does Bangladesh have, and when does their season run?", "en"),
 ]
 SYSTEM = """You answer questions about fire activity in Bangladesh for Kiln Watch, a NASA Space Apps project that harmonizes \
 MODIS and VIIRS fire detections into one burning calendar per district and upazila.
@@ -94,6 +97,24 @@ def _busy_months(per_day: np.ndarray, share=0.25) -> dict | None:
     return {"usual_first_month": MONTHS[first], "busiest_month": MONTHS[peak], "usual_last_month": MONTHS[last]}
 
 
+def _when_text(day_of_season: float) -> str:
+    """Same rule as web/src/lib/plain.ts whenText: day 0 = 1 July, non-leap season year."""
+    d = pd.Timestamp("2001-07-01") + pd.Timedelta(days=math.floor(day_of_season + 0.5))  # JS Math.round, not banker's rounding
+    return f"early {d.month_name()}" if d.day <= 10 else f"mid-{d.month_name()}" if d.day <= 20 else f"late {d.month_name()}"
+
+
+def _typical_season(rows: list[dict], n: int = 3) -> dict | None:
+    """Same rule as web/src/lib/plain.ts typicalSeason: medians over the last n seasons with a measured start and end."""
+    ok = [r for r in rows if r.get("onset") and r.get("end")][-n:]
+    if not ok:
+        return None
+    peaks = [r["peak"]["p50"] for r in ok if r.get("peak")]
+    return {"onset": float(np.median([r["onset"]["p50"] for r in ok])), "end": float(np.median([r["end"]["p50"] for r in ok])),
+            "peak": float(np.median(peaks)) if peaks else None,
+            "duration": float(np.median([r["duration"]["p50"] if r.get("duration") else r["end"]["p50"] - r["onset"]["p50"] for r in ok])),
+            "seasons": [r["season"] for r in ok]}
+
+
 def area_fire_calendar(d: Data, unit_id: str) -> dict:
     rel = f"calendar/{unit_id}.json"
     cal = d.json(rel)
@@ -158,6 +179,38 @@ def harmonization_evidence(d: Data) -> dict:
     return out
 
 
+
+def kiln_seasons(d: Data, unit_id: str | None = None) -> dict:
+    """Kiln working season from night lights for one area (unit_id) or the whole country (no unit_id)."""
+    ka = d.json("kiln_activity.json")
+    if ka is None:
+        return {"error": "no kiln analysis in this data build"}
+    block = ka.get("national") if unit_id is None else ka.get("areas", {}).get(unit_id)
+    if block is None:
+        return {"error": f"no kiln season for {unit_id}"}
+    t = _typical_season(block.get("seasons", []))
+    if t is None:
+        return {"error": "no measured kiln season"}
+    return {"area": unit_id or "Bangladesh (national)", "kiln_clusters": block["n_clusters"],
+            "typical_season": {"starts": _when_text(t["onset"]), "busiest": _when_text(t["peak"]) if t["peak"] is not None else None,
+                               "ends": _when_text(t["end"]), "length_days": math.floor(t["duration"] + 0.5), "seasons_used": t["seasons"]},
+            "provenance": d.prov("kiln_activity.json", "Kiln Watch kiln activity from NASA Black Marble night lights, area-level")}
+
+
+def national_trend(d: Data) -> dict:
+    """The harmonized national fire series (Aqua-MODIS-equivalent units), from harmonization.json yearly."""
+    h = d.json("harmonization.json")
+    y = (h or {}).get("yearly") or []
+    if not y:
+        return {"error": "no national series in this data build"}
+    p = max(y, key=lambda r: r["h"]["p50"])  # first wins ties
+    return {"n_seasons": len(y), "first_season": {"season": y[0]["season"], "harmonized": y[0]["h"]["p50"]},
+            "latest_season": {"season": y[-1]["season"], "harmonized": y[-1]["h"]["p50"], "range_95": [y[-1]["h"]["lo"], y[-1]["h"]["hi"]]},
+            "peak_season": {"season": p["season"], "harmonized": p["h"]["p50"]},
+            "units": "Aqua-MODIS-equivalent fire detections per season (harmonized)",
+            "provenance": d.prov("harmonization.json", FIRE)}
+
+
 TOOLS = [
     {"name": "find_area", "description": "Find Bangladesh districts and upazilas by English or Bangla name. Returns up to 5 matches with unit_id, names, level and division. Call this first to get a unit_id.",
      "input_schema": {"type": "object", "properties": {"name": {"type": "string", "description": "Area name, e.g. 'Rajshahi' or 'রাজশাহী'"}}, "required": ["name"], "additionalProperties": False}},
@@ -169,9 +222,14 @@ TOOLS = [
      "input_schema": {"type": "object", "properties": {"unit_id": {"type": "string"}}, "required": ["unit_id"], "additionalProperties": False}},
     {"name": "harmonization_evidence", "description": "Evidence that the MODIS-to-VIIRS correction works: share of the false 2012 jump removed, structural-break p-values, VIIRS/Aqua ratios before and after correction, and the interval coverage test.",
      "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "kiln_seasons", "description": "When brick kilns usually operate, from NASA Black Marble night lights: the typical start, busiest time and end of the kiln season (early/mid/late month) and its length in days, as medians over the last 3 measured seasons, plus the number of kiln clusters. Give unit_id (from find_area) for a district; omit it for the whole country.",
+     "input_schema": {"type": "object", "properties": {"unit_id": {"type": "string"}}, "additionalProperties": False}},
+    {"name": "national_trend", "description": "The national harmonized fire series (Aqua-MODIS-equivalent detections per season): number of seasons, the first, latest (with its 95% range) and busiest season. Takes no arguments.",
+     "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
 ]
 FUNCS = {"find_area": find_area, "area_fire_calendar": area_fire_calendar, "this_season": this_season,
-         "two_week_outlook": two_week_outlook, "harmonization_evidence": harmonization_evidence}
+         "two_week_outlook": two_week_outlook, "harmonization_evidence": harmonization_evidence,
+         "kiln_seasons": kiln_seasons, "national_trend": national_trend}
 
 _UNIT = re.compile(r"BD\d{2,10}")  # HDX COD-AB p-codes: anything else never reaches a file path
 

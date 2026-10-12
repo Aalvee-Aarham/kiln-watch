@@ -14,7 +14,7 @@ and update your row when done.
 |------|-------|----------|--------|------------|--------|
 | 001 | Gemini live-chat hardening (prompt separation, transparency, model fallback, tests) | P1 | S | — | DONE |
 | 002 | Ask-agent test coverage + adversarial eval suite | P1 | S-M | — | DONE |
-| 003 | Expand agent tools (kiln seasons, national trend) | P1 | M | 002 | TODO |
+| 003 | Expand agent tools (kiln seasons, national trend) | P1 | M | 002 | DONE |
 | 004 | ask.json cache automation (publish + daily deploy) | P2 | S-M | — | DONE |
 | 005 | Hosted live Ask worker (Cloudflare, server-side agent) | P2 | L | 001, 002, 003 | TODO — gated on human decisions (Step 0) |
 | 006 | Agentic data-ops (twice-weekly verify cron, deploy-failure issues, `release` command) | P3 | M | — | TODO — drift rule needs team approval (Step 0) |

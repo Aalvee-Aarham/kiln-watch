@@ -19,7 +19,7 @@ Space Apps allows AI-generated content when the tools are named, the prompts are
 |---|---|
 | Model | Claude Opus 5.5 (`claude-opus-5-5`) through the Anthropic API, low effort, server-side refusal fallback enabled |
 | Code | `kilnwatch/ask.py`; prompt: `SYSTEM` in that file; tools: `TOOLS` |
-| What the AI does | Chooses which of five project functions to call (find an area, its fire calendar, this season, the two-week outlook, the harmonization evidence) and writes a two-to-four-sentence answer in English or Bangla |
+| What the AI does | Chooses which of seven project functions to call (find an area, its fire calendar, this season, the two-week outlook, the harmonization evidence, kiln seasons, the national trend) and writes a two-to-four-sentence answer in English or Bangla |
 | What the AI never does | Compute a number. Every figure comes from a deterministic, unit-tested function; `guard()` blocks any answer that states a number no function returned |
 | Data it sees | Only the public, area-level export the website already publishes: no kiln locations, no personal data |
 | Where answers appear | `#/ask`, from a cache written by `python -m kilnwatch ask --build-cache`, so the page works offline and shows the raw function results behind each answer |

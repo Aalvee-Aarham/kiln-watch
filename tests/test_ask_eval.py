@@ -34,3 +34,20 @@ def test_unknown_tool_is_reported():
     client, _ = _client([("tool", "delete_everything", {})], ["Done."])
     out = ask("Clean up", client, Data(FIXT))
     assert out["tools"][0]["result"] == {"error": "unknown tool delete_everything"} and out["blocked"] is False
+
+
+def test_kiln_chain_passes_the_guard():
+    from kilnwatch.ask import kiln_seasons
+
+    t = kiln_seasons(Data(FIXT), "BD3026")["typical_season"]
+    client, _ = _client([("tool", "find_area", {"name": "Dhaka"})], [("tool", "kiln_seasons", {"unit_id": "BD3026"})],
+                        [f"Kilns in Dhaka usually run from {t['starts']} to {t['ends']}, about {t['length_days']} days."])
+    out = ask("When do kilns run in Dhaka?", client, Data(FIXT))
+    assert out["blocked"] is False and [c["name"] for c in out["tools"]] == ["find_area", "kiln_seasons"]
+
+
+def test_national_kiln_call_with_invented_number_is_blocked():
+    client, _ = _client([("tool", "kiln_seasons", {})], ["Kilns run 999 days a year."])
+    out = ask("How long do kilns run?", client, Data(FIXT))
+    assert out["blocked"] is True and 999.0 in out["unsupported"]
+

@@ -144,3 +144,61 @@ def test_busy_months_all_zero_year_returns_none():
     x[153:184] = 1.0  # 1-31 December in the July-start season year
     assert _busy_months(x) == {"usual_first_month": "December", "busiest_month": "December", "usual_last_month": "December"}
 
+
+def test_when_text_matches_the_web_rule():
+    from kilnwatch.ask import _when_text
+
+    # the same fixed cases as web/src/lib/plain.test.ts whenText
+    assert [_when_text(d) for d in (0, 153, 168, 183)] == ["early July", "early December", "mid-December", "late December"]
+
+
+def test_kiln_seasons_national_and_area():
+    import math
+    import statistics
+
+    from kilnwatch.ask import _when_text, kiln_seasons
+
+    ka = json.loads((FIXT / "kiln_activity.json").read_text(encoding="utf-8"))
+    for uid, block in ((None, ka["national"]), ("BD3026", ka["areas"]["BD3026"])):
+        rows = [r for r in block["seasons"] if r["onset"] and r["end"]][-3:]
+        out = kiln_seasons(Data(FIXT), uid) if uid else kiln_seasons(Data(FIXT))
+        t = out["typical_season"]
+        assert out["kiln_clusters"] == block["n_clusters"]
+        assert t["starts"] == _when_text(statistics.median(r["onset"]["p50"] for r in rows))
+        assert t["ends"] == _when_text(statistics.median(r["end"]["p50"] for r in rows))
+        dur = statistics.median(r["duration"]["p50"] if r["duration"] else r["end"]["p50"] - r["onset"]["p50"] for r in rows)
+        assert t["length_days"] == math.floor(dur + 0.5)
+        assert t["seasons_used"] == [r["season"] for r in rows]
+
+
+def test_kiln_seasons_honest_errors(tmp_path):
+    from kilnwatch.ask import _run, kiln_seasons
+
+    shutil.copytree(FIXT, tmp_path / "d")
+    (tmp_path / "d" / "kiln_activity.json").unlink()
+    assert "no kiln analysis" in kiln_seasons(Data(tmp_path / "d"))["error"]
+    assert kiln_seasons(Data(FIXT), "BD99") == {"error": "no kiln season for BD99"}
+    # "national" is asked for by omitting unit_id; a string that is not an area code never reaches the tool
+    assert "unit_id must be an area code" in _run(kiln_seasons, Data(FIXT), {"unit_id": "national"})["error"]
+
+
+def test_national_trend_matches_harmonization_yearly():
+    from kilnwatch.ask import national_trend
+
+    y = json.loads((FIXT / "harmonization.json").read_text(encoding="utf-8"))["yearly"]
+    out = national_trend(Data(FIXT))
+    peak = max(y, key=lambda r: r["h"]["p50"])
+    assert out["n_seasons"] == len(y)
+    assert out["first_season"] == {"season": y[0]["season"], "harmonized": y[0]["h"]["p50"]}
+    assert out["latest_season"] == {"season": y[-1]["season"], "harmonized": y[-1]["h"]["p50"], "range_95": [y[-1]["h"]["lo"], y[-1]["h"]["hi"]]}
+    assert out["peak_season"] == {"season": peak["season"], "harmonized": peak["h"]["p50"]}
+
+
+def test_new_tool_outputs_are_public_safe():
+    from kilnwatch.ask import kiln_seasons, national_trend
+    from kilnwatch.export import assert_public_safe
+
+    for out in (kiln_seasons(Data(FIXT)), kiln_seasons(Data(FIXT), "BD3026"), national_trend(Data(FIXT))):
+        assert "error" not in out
+        assert_public_safe(out)  # raises on a forbidden key such as kiln_id or a kiln coordinate
+
