@@ -3,7 +3,7 @@ import { useTitle } from '../components/ui'
 import { PageHead } from '../components/plain'
 import { AgentCinematicStage } from '../components/agent/AgentCinematicStage'
 import { AgentNewsCanvas } from '../components/AgentNewsCanvas'
-import { parseUserQuery, type AgentResolution } from '../lib/agentEngine'
+import { type AgentResolution } from '../lib/agentEngine'
 import { useJson } from '../lib/data'
 import { askGemini, buildSystemPrompt, type Facts } from '../lib/geminiPrompt'
 import type { AskCache } from '../lib/types'
@@ -11,8 +11,8 @@ import type { AskCache } from '../lib/types'
 export default function AskPage() {
   useTitle('AI Agent · Just Ask')
 
-  const [activeQuery, setActiveQuery] = useState('Is this fire season in Punjab, India unusual?')
-  const [res, setRes] = useState<AgentResolution>(() => parseUserQuery('Is this fire season in Punjab, India unusual?'))
+  const [activeQuery, setActiveQuery] = useState('')
+  const [res, setRes] = useState<AgentResolution | null>(null)
 
   // API & fallback state
   const [apiKey, setApiKey] = useState(() => {
@@ -25,7 +25,7 @@ export default function AskPage() {
   const askCache = useJson<AskCache>('ask.json')
 
   const queryGemini = (targetRes: AgentResolution, queryStr: string) => {
-    if (!apiKey) return
+    if (!apiKey || !queryStr.trim()) return
     setIsCallingGemini(true)
     setLiveAnswer(null)
 
@@ -49,9 +49,9 @@ export default function AskPage() {
       })
   }
 
-  // Trigger Gemini whenever query changes if key exists
+  // Trigger Gemini whenever query changes if key exists and query is active
   useEffect(() => {
-    if (apiKey) {
+    if (apiKey && res && activeQuery) {
       queryGemini(res, activeQuery)
     }
   }, [apiKey, activeQuery, res])
@@ -71,43 +71,56 @@ export default function AskPage() {
         }}
       />
 
-      {/* Historical Fire Incidents & News Context */}
-      <div className="space-y-3">
-        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-muted">
-          Historical Precedents & News Context for {res.locationName}
-        </h3>
-        <AgentNewsCanvas res={res} />
-      </div>
+      {/* Historical Fire Incidents & News Context (Active Query only) */}
+      {res ? (
+        <>
+          <div className="space-y-3">
+            <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-muted">
+              Historical Precedents & News Context for {res.locationName}
+            </h3>
+            <AgentNewsCanvas res={res} />
+          </div>
 
-      {/* Satellite Evidence Synthesis */}
-      <div className="rounded-[10px] border border-line bg-surface p-5 space-y-3 text-sm">
-        <div className="flex items-center justify-between">
-          <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-orbit">
-            Satellite Evidence & Agronomic Synthesis
-          </h4>
-          <span className="font-mono text-[11px] text-muted">
-            NASA FIRMS · 23-Year Baseline
-          </span>
+          {/* Satellite Evidence Synthesis */}
+          <div className="rounded-[10px] border border-line bg-surface p-5 space-y-3 text-sm">
+            <div className="flex items-center justify-between">
+              <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-orbit">
+                Satellite Evidence & Agronomic Synthesis
+              </h4>
+              <span className="font-mono text-[11px] text-muted">
+                NASA FIRMS · 23-Year Baseline
+              </span>
+            </div>
+            
+            <p className="leading-relaxed text-muted">
+              {res.detailsText}
+            </p>
+
+            {isCallingGemini && (
+              <div className="border-t border-line pt-2 text-xs text-muted flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-orbit animate-ping" />
+                <span>Consulting Gemini Earth Observation model...</span>
+              </div>
+            )}
+
+            {liveAnswer && (
+              <div className="mt-3 border-t border-line pt-3 text-ink">
+                <span className="font-mono text-xs font-semibold text-orbit block">Live Gemini Analysis:</span>
+                <p className="mt-1 leading-relaxed">{liveAnswer}</p>
+              </div>
+            )}
+          </div>
+        </>
+      ) : (
+        <div className="rounded-[10px] border border-line/60 bg-surface/50 p-6 text-center space-y-2">
+          <p className="text-sm font-semibold text-ink">
+            No query active · Ready to analyze any district, state, or country
+          </p>
+          <p className="text-xs text-muted max-w-xl mx-auto">
+            Type a prompt above or pick a suggested question to run the 4-step autonomous reasoning pipeline, inspect NASA FIRMS land detections, and chart 23-year thermal anomalies.
+          </p>
         </div>
-        
-        <p className="leading-relaxed text-muted">
-          {res.detailsText}
-        </p>
-
-        {isCallingGemini && (
-          <div className="border-t border-line pt-2 text-xs text-muted flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-orbit animate-ping" />
-            <span>Consulting Gemini Earth Observation model...</span>
-          </div>
-        )}
-
-        {liveAnswer && (
-          <div className="mt-3 border-t border-line pt-3 text-ink">
-            <span className="font-mono text-xs font-semibold text-orbit block">Live Gemini Analysis:</span>
-            <p className="mt-1 leading-relaxed">{liveAnswer}</p>
-          </div>
-        )}
-      </div>
+      )}
 
       {/* Optional Gemini API Key Drawer */}
       <details className="text-sm border border-line rounded-[8px] p-3 bg-surface">

@@ -41,95 +41,105 @@ const NASA_FIRMS_HOTSPOTS_LAND: [number, number][] = [
  */
 export function AgentAnimatedMap({
   timeMs,
-  locationName = 'Punjab, India',
+  locationName = '',
   mapFocus
 }: {
   timeMs: number
   locationName?: string
-  mapFocus?: MapFocus
+  mapFocus?: MapFocus | null
 }) {
-  // Default to Punjab coordinates if not provided
-  const focus = useMemo<MapFocus>(() => {
-    if (mapFocus) return mapFocus
-    return {
-      centerLon: 75.34,
-      centerLat: 31.14,
-      targetX: 404,
-      targetY: 131,
-      boxX: 364,
-      boxY: 108,
-      boxW: 81,
-      boxH: 50
-    }
-  }, [mapFocus])
-
-  // Camera Zoom Interpolation (between 1600ms and 2800ms)
+  // Camera Zoom Interpolation (between 1600ms and 2800ms) - only when mapFocus is provided
   const zoomFactor = useMemo(() => {
+    if (!mapFocus) return 0
     if (timeMs < 1600) return 0
     if (timeMs >= 2800) return 1
     const p = (timeMs - 1600) / 1200
     // Smooth cubic easeInOut
     return p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2
-  }, [timeMs])
+  }, [timeMs, mapFocus])
 
   // Dynamic Camera ViewBox calculation:
   // Starts at full South Asia extent (0, 0, 1000, 600)
-  // Zooms smoothly to center on the target entity
-  const finalW = Math.min(Math.max(focus.boxW * 3.6, 260), 450)
-  const finalH = finalW * 0.6
-  const finalX = Math.min(Math.max(focus.targetX - finalW / 2, 0), 1000 - finalW)
-  const finalY = Math.min(Math.max(focus.targetY - finalH / 2, 0), 600 - finalH)
+  // Zooms smoothly to center on the target entity when mapFocus exists
+  const curX = useMemo(() => {
+    if (!mapFocus) return 0
+    const finalW = Math.min(Math.max(mapFocus.boxW * 3.6, 260), 450)
+    const finalX = Math.min(Math.max(mapFocus.targetX - finalW / 2, 0), 1000 - finalW)
+    return zoomFactor * finalX
+  }, [mapFocus, zoomFactor])
 
-  const curX = zoomFactor * finalX
-  const curY = zoomFactor * finalY
-  const curW = 1000 - zoomFactor * (1000 - finalW)
-  const curH = 600 - zoomFactor * (600 - finalH)
+  const curY = useMemo(() => {
+    if (!mapFocus) return 0
+    const finalW = Math.min(Math.max(mapFocus.boxW * 3.6, 260), 450)
+    const finalH = finalW * 0.6
+    const finalY = Math.min(Math.max(mapFocus.targetY - finalH / 2, 0), 600 - finalH)
+    return zoomFactor * finalY
+  }, [mapFocus, zoomFactor])
+
+  const curW = useMemo(() => {
+    if (!mapFocus) return 1000
+    const finalW = Math.min(Math.max(mapFocus.boxW * 3.6, 260), 450)
+    return 1000 - zoomFactor * (1000 - finalW)
+  }, [mapFocus, zoomFactor])
+
+  const curH = useMemo(() => {
+    if (!mapFocus) return 600
+    const finalW = Math.min(Math.max(mapFocus.boxW * 3.6, 260), 450)
+    const finalH = finalW * 0.6
+    return 600 - zoomFactor * (600 - finalH)
+  }, [mapFocus, zoomFactor])
 
   // Generate real land-based fire points (ZERO dots in water)
   const firePoints = useMemo(() => {
-    let seed = Math.floor(focus.targetX * 100 + focus.targetY)
-    const rand = () => {
-      seed = (seed * 16807) % 2147483647
-      return seed / 2147483647
-    }
-
     const points: { x: number; y: number; r: number; opacity: number }[] = []
 
-    // 1. Hotspot cluster concentrated on the queried region's landmass
-    for (let i = 0; i < 140; i++) {
-      const angle = rand() * Math.PI * 2
-      const radius = Math.sqrt(rand()) * 0.46
-      const rx = focus.targetX + Math.cos(angle) * (focus.boxW * radius)
-      const ry = focus.targetY + Math.sin(angle) * (focus.boxH * radius)
-      points.push({
-        x: rx,
-        y: ry,
-        r: 1.4 + rand() * 2.2,
-        opacity: 0.85 + rand() * 0.15
-      })
+    // 1. Hotspot cluster concentrated on the queried region's landmass (only when mapFocus exists)
+    if (mapFocus) {
+      let seed = Math.floor(mapFocus.targetX * 100 + mapFocus.targetY)
+      const rand = () => {
+        seed = (seed * 16807) % 2147483647
+        return seed / 2147483647
+      }
+      for (let i = 0; i < 140; i++) {
+        const angle = rand() * Math.PI * 2
+        const radius = Math.sqrt(rand()) * 0.46
+        const rx = mapFocus.targetX + Math.cos(angle) * (mapFocus.boxW * radius)
+        const ry = mapFocus.targetY + Math.sin(angle) * (mapFocus.boxH * radius)
+        points.push({
+          x: rx,
+          y: ry,
+          r: 1.4 + rand() * 2.2,
+          opacity: 0.85 + rand() * 0.15
+        })
+      }
     }
 
     // 2. Verified land-based ambient fires across South Asia & Southeast Asia
+    let ambientSeed = 42
+    const ambientRand = () => {
+      ambientSeed = (ambientSeed * 16807) % 2147483647
+      return ambientSeed / 2147483647
+    }
     for (const [lon, lat] of NASA_FIRMS_HOTSPOTS_LAND) {
       const [baseX, baseY] = toSvgCoords(lon, lat)
       // Jitter for sensor detections across neighboring farm fields / kilns
       for (let j = 0; j < 3; j++) {
-        const jx = baseX + (rand() - 0.5) * 8
-        const jy = baseY + (rand() - 0.5) * 8
+        const jx = baseX + (ambientRand() - 0.5) * 8
+        const jy = baseY + (ambientRand() - 0.5) * 8
         points.push({
           x: jx,
           y: jy,
-          r: 1.2 + rand() * 1.6,
-          opacity: 0.5 + rand() * 0.35
+          r: 1.2 + ambientRand() * 1.6,
+          opacity: 0.5 + ambientRand() * 0.35
         })
       }
     }
 
     return points
-  }, [focus])
+  }, [mapFocus])
 
-  const showBox = timeMs >= 500
-  const showLabel = timeMs >= 1000
+  const showBox = Boolean(mapFocus) && timeMs >= 500
+  const showLabel = Boolean(mapFocus && locationName) && timeMs >= 1000
   const showWatermark = timeMs >= 1200
 
   return (
@@ -177,13 +187,13 @@ export function AgentAnimatedMap({
         </g>
 
         {/* 4. Dynamic Targeted Region Bounding Box */}
-        {showBox && (
+        {showBox && mapFocus && (
           <g className="transition-opacity duration-300">
             <rect
-              x={focus.boxX}
-              y={focus.boxY}
-              width={focus.boxW}
-              height={focus.boxH}
+              x={mapFocus.boxX}
+              y={mapFocus.boxY}
+              width={mapFocus.boxW}
+              height={mapFocus.boxH}
               fill="rgba(255, 68, 0, 0.12)"
               stroke="#ff4400"
               strokeWidth="1.6"
@@ -193,8 +203,8 @@ export function AgentAnimatedMap({
             {/* Region Title Label */}
             {showLabel && (
               <text
-                x={focus.boxX + focus.boxW / 2}
-                y={Math.max(focus.boxY - 6, 14)}
+                x={mapFocus.boxX + mapFocus.boxW / 2}
+                y={Math.max(mapFocus.boxY - 6, 14)}
                 textAnchor="middle"
                 fill="#ffffff"
                 stroke="#ff4400"
