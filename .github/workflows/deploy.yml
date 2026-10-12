@@ -24,9 +24,20 @@ jobs:
           key: nrt-season-${{ github.run_id }}
           restore-keys: nrt-season-
       - run: python -m kilnwatch nrt
+      - name: Refresh ask.json (optional; never blocks the data deploy)
+        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }  # this step only: pip and pytest never see the key
+        run: |
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            python -m kilnwatch ask --build-cache --src web/public/data || echo "::warning::ask cache refresh failed; the release copy stays"
+          else
+            echo "::warning::ANTHROPIC_API_KEY not set; ask.json not refreshed"
+          fi
       - run: pytest -q  # the full suite gates every deploy, not just the export checks
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
         with: { name: nrt, path: web/public/data/nrt/ }
+      # a single file: the release tarball is extracted in this folder, so never upload web/public/data as a whole
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: ask, path: web/public/data/ask.json, if-no-files-found: ignore }
   deploy:
     needs: nrt
     if: always() && (needs.nrt.result == 'success' || needs.nrt.result == 'skipped')
@@ -42,6 +53,9 @@ jobs:
       - run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
       - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
         with: { name: nrt, path: web/public/data/nrt }
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093  # v4.3.0
+        continue-on-error: true  # no ask artifact (no key, or none built) keeps the release copy
+        with: { name: ask, path: web/public/data }
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: cd web && npm ci && DATA_SRC=real npm run build

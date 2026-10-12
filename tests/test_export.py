@@ -71,3 +71,12 @@ def test_check_budgets_total_cap(tmp_path):
     with open(tmp_path / "big.bin", "wb") as f:
         f.truncate(100_000_001)  # sparse file: the size is what the budget sums
     assert any(e.startswith("total") for e in check_budgets(tmp_path))
+
+
+def test_ask_cache_refreshes_only_with_a_key():
+    from kilnwatch.export import refresh_ask_cache
+
+    calls = []
+    assert refresh_ask_cache(env={}, build=calls.append) is False and calls == []
+    assert refresh_ask_cache(env={"ANTHROPIC_API_KEY": ""}, build=calls.append) is False and calls == []
+    assert refresh_ask_cache(env={"ANTHROPIC_API_KEY": "x"}, build=calls.append) is True and len(calls) == 1

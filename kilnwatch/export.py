@@ -200,10 +200,28 @@ def write_regulator(out: Path = C.REGULATOR_DIR) -> None:
                                    + "\n\nProximity components are listed side by side, never as a composite score.\n", encoding="utf-8")
 
 
+def refresh_ask_cache(env=None, build=None) -> bool:
+    """Rebuild ask.json when an Anthropic key is set; otherwise warn and keep the old answers (the key is optional)."""
+    import os
+
+    env = os.environ if env is None else env
+    if not env.get("ANTHROPIC_API_KEY"):
+        log.warning("no ANTHROPIC_API_KEY: ask.json not refreshed (the page shows its build date)")
+        return False
+    if build is None:
+        from .ask import build_cache as build  # lazy: ask imports export lazily too
+
+    build(C.WEB_DATA)
+    return True
+
+
 def publish() -> None:
     check_public_dir(C.WEB_DATA)
     for f in C.WEB_DATA.rglob("*.json"):
         assert_public_safe(json.loads(f.read_text(encoding="utf-8")))
+    refresh_ask_cache()  # before packaging, so releases carry fresh answers
+    if (C.WEB_DATA / "ask.json").exists():  # new content since the checks above
+        assert_public_safe(json.loads((C.WEB_DATA / "ask.json").read_text(encoding="utf-8")))
     tar = C.ROOT / "public-data.tar.gz"
     with tarfile.open(tar, "w:gz") as t:
         for p in C.WEB_DATA.rglob("*"):
