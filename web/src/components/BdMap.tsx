@@ -46,6 +46,32 @@ function buildMap(fc: FC): Proj {
   return { feats, fit, toXY, fromXY }
 }
 
+/** Map labels use the everyday name where the data carries the formal one. */
+const SHORT_NAME: Record<string, string> = { CHN: 'China' }
+
+type Anchor = { x: number; y: number; w: number; ring: [number, number][] }
+/** Where a country's name goes: the middle of its largest piece (France on France, not between its islands), and that piece. */
+function labelAnchor(g: GeoJSON.Geometry, toXY: Proj['toXY']): Anchor {
+  let best: Anchor = { x: 0, y: 0, w: 0, ring: [] }, bestA = -1
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []
+  for (const poly of polys) {
+    const ring = poly[0].map(([lon, lat]) => toXY(lon, lat))
+    const xs = ring.map((q) => q[0]), ys = ring.map((q) => q[1])
+    const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys)
+    if ((x1 - x0) * (y1 - y0) > bestA) { bestA = (x1 - x0) * (y1 - y0); best = { x: (x0 + x1) / 2, y: (y0 + y1) / 2, w: x1 - x0, ring } }
+  }
+  return best
+}
+/** Point in polygon (even-odd ray cast). */
+function inside(x: number, y: number, ring: [number, number][]) {
+  let c = false
+  for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+    const [xi, yi] = ring[i], [xj, yj] = ring[j]
+    if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c
+  }
+  return c
+}
+
 /** SVG path of a (Multi)Polygon in this map's units and its bounds; points closer than `step` units to the last kept one drop. */
 function projectPath(g: GeoJSON.Geometry, toXY: Proj['toXY'], step: number) {
   let d = ''
@@ -93,17 +119,19 @@ const clampView = (v: View, fit: View, outer?: View): View => {
  * Ctrl+wheel zoom and drag pan; click selects; optional box drawing. No third-party tiles, no library.
  * Optional `pins` (count per area) draw at each area's centre — area-level, never a kiln or fire location.
  */
-export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, controls, wheelZoom, world, className = 'h-[440px] rounded-[10px] border border-line' }: {
+export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, controls, wheelZoom, world, keepClear, className = 'h-[440px] rounded-[10px] border border-line' }: {
   fc: FC; selected?: string; onSelect: (id: string) => void; drawing: boolean; box?: Box; onBox: (b: Box) => void
   values?: Record<string, number>; labels: boolean
-  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; controls?: boolean; wheelZoom?: boolean; world?: FC; className?: string
+  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; controls?: boolean; wheelZoom?: boolean; world?: FC; keepClear?: [number, number]; className?: string
 }) {
   const theme = useTheme()
   const p = palette()
   const max = Math.max(0, ...Object.values(values ?? {}))
   const { feats, fit, toXY, fromXY } = useMemo(() => buildMap(fc), [fc])
   // World context (news map): every country in this projection; the areas' outer edge is drawn bold (see the mask below).
-  const countries = useMemo(() => (world?.features ?? []).map((f) => ({ id: f.properties.unit_id, d: projectPath(f.geometry, toXY, 2).d })), [world, toXY])
+  const countries = useMemo(() => (world?.features ?? []).map((f) => ({
+    id: f.properties.unit_id, name: SHORT_NAME[f.properties.unit_id] ?? f.properties.name_en, d: projectPath(f.geometry, toXY, 2).d, label: labelAnchor(f.geometry, toXY),
+  })).sort((a, b) => b.label.w - a.label.w), [world, toXY]) // biggest first: they win label collisions
   const maskId = `bd-out-${useId().replace(/[^a-zA-Z0-9]/g, '')}`
   const outer = useMemo(() => {
     if (!world) return undefined
@@ -398,6 +426,33 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   const ppu = svgPx.w && svgPx.h ? Math.min(svgPx.w / view.w, svgPx.h / view.h) : 0
   const pinR = (n: number) => (ppu ? (6 + 2.5 * Math.sqrt(n)) / ppu : 0)
   const labelSize = ppu ? 13 / ppu : Math.max(10, view.w * 0.013) // with pins (px known): 13 px on screen at any zoom
+  // Country names, like any map: each at its largest piece's middle, or (when that is off screen) slid toward the screen
+  // while still on the country; big countries first, none overlapping another name or Bangladesh.
+  const countryNames = (() => {
+    if (!ppu || !countries.length) return []
+    const vw = svgPx.w / ppu, vh = svgPx.h / ppu, cx = view.x + view.w / 2, cy = view.y + view.h / 2, m = 70 / ppu // keep clear of the map controls at the edges
+    const L = cx - vw / 2, T = cy - vh / 2, R = cx + vw / 2, B = cy + vh / 2, px = (n: number) => n / ppu
+    const placed: [number, number, number, number][] = [[fit.x, fit.y, fit.x + fit.w, fit.y + fit.h], // Bangladesh
+      [L, T, L + px(70), T + px(150)], [R - px(200), T, R, T + px(56)], // zoom buttons, background switch
+      ...(keepClear ? [[R - px(keepClear[0]), B - px(keepClear[1]), R, B] as [number, number, number, number]] : [])] // the page's overlay
+    const out: { id: string; name: string; x: number; y: number }[] = []
+    for (const c of countries) {
+      if (c.id === 'BGD' || !c.name) continue
+      if (c.label.w * ppu < 45) break // sorted by size: the rest are too small to name at this zoom
+      const hw = (c.name.length * 3.6 + 6) / ppu, hh = 9 / ppu
+      // candidates: the true middle, then a 9×7 grid over the screen, nearest the middle first; take the first on land and clear
+      const grid = Array.from({ length: 63 }, (_, i) => [L + m + ((i % 9) / 8) * (vw - 2 * m), T + m + (Math.floor(i / 9) / 6) * (vh - 2 * m)])
+      const cands = [[c.label.x, c.label.y], ...grid.sort((a, b) => Math.hypot(a[0] - c.label.x, a[1] - c.label.y) - Math.hypot(b[0] - c.label.x, b[1] - c.label.y))]
+      for (const q of cands) {
+        if (q[0] < L + m || q[0] > R - m || q[1] < T + m || q[1] > B - m || !inside(q[0], q[1], c.label.ring)) continue
+        const box: [number, number, number, number] = [q[0] - hw, q[1] - hh, q[0] + hw, q[1] + hh]
+        if (placed.some((b) => box[0] < b[2] && box[2] > b[0] && box[1] < b[3] && box[3] > b[1])) continue
+        placed.push(box); out.push({ id: c.id, name: c.name, x: q[0], y: q[1] })
+        break
+      }
+    }
+    return out
+  })()
   const imgs = useMemo(() => (world ? IMAGERY : IMAGERY.slice(-1)).map(([b, day, night]) => {
     const [x0, y0] = toXY(b[0], b[3]), [x1, y1] = toXY(b[2], b[1])
     return { key: b.join(), day, night, x: x0, y: y0, w: x1 - x0, h: y1 - y0 }
@@ -441,6 +496,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
             <rect x={outer.x - outer.w} y={outer.y - outer.h} width={outer.w * 3} height={outer.h * 3} className={`bd-dim${layer !== 'none' ? ' on-imagery' : ''}`} />
             {feats.map((f) => <path key={f.id} d={f.d} className={`bd-home${layer !== 'none' ? ' on-imagery' : ''}`} vectorEffect="non-scaling-stroke" />)}
           </g>
+          {countryNames.map((c) => <text key={`n-${c.id}`} x={c.x} y={c.y} fontSize={11.5 / ppu} textAnchor="middle" dominantBaseline="middle"
+            className={`bd-country-name${layer !== 'none' ? ' on-imagery' : ''}`} aria-hidden>{c.name}</text>)}
           {view.w > fit.w * 1.3 && <text x={fit.x + fit.w / 2} y={fit.y - labelSize * 0.9} className="bd-label bd-home-label" fontSize={labelSize * 1.25} textAnchor="middle">Bangladesh</text>}
         </>}
         {feats.map((f) => ((labels && view.w < fit.w * 0.6) || f.id === hovered?.id || f.id === selected) && (

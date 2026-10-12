@@ -710,8 +710,8 @@
 /* World context (BdMap `world`, #/news/map): land and borders under the districts, Bangladesh outlined bold on top. */
 .bd-world {
   /* land a step from the sea (the page ground) in either theme; borders a step further */
-  fill: color-mix(in oklch, var(--color-ink) 13%, var(--color-bg));
-  stroke: color-mix(in oklch, var(--color-ink) 30%, var(--color-bg));
+  fill: color-mix(in oklch, var(--color-ink) 17%, var(--color-bg));
+  stroke: color-mix(in oklch, var(--color-ink) 40%, var(--color-bg));
   stroke-width: 0.8;
   pointer-events: none;
 }
@@ -725,7 +725,7 @@
    half of the stroke width shows). */
 .bd-dim {
   fill: var(--color-bg);
-  fill-opacity: 0.3;
+  fill-opacity: 0.18;
   pointer-events: none;
 }
 
@@ -745,8 +745,8 @@
 .bd-home {
   fill: none;
   stroke: var(--color-ink);
-  stroke-opacity: 0.75;
-  stroke-width: 2.4;
+  stroke-opacity: 0.8;
+  stroke-width: 1.6;
   stroke-linejoin: round;
   pointer-events: none;
 }
@@ -754,6 +754,22 @@
 .bd-home.on-imagery {
   stroke: rgb(255 255 255);
   stroke-opacity: 0.85;
+}
+
+.bd-country-name {
+  fill: var(--color-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  paint-order: stroke;
+  stroke: var(--color-bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.bd-country-name.on-imagery {
+  fill: rgb(255 255 255 / 0.8);
+  stroke: rgb(0 0 0 / 0.55);
 }
 
 .bd-home-label {
