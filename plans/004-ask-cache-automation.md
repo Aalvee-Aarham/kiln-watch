@@ -140,11 +140,11 @@ def refresh_ask_cache(env=None, build=None) -> bool:
     return True
 ```
 
-In `publish()`, call `refresh_ask_cache()` immediately after the two safety
-checks and BEFORE `tar = ...`, so releases carry the fresh answers. Then add
-one more safety check right after it, because `ask.json` is new content:
-`assert_public_safe(json.loads((C.WEB_DATA / "ask.json").read_text(encoding="utf-8")))`
-guarded by `if (C.WEB_DATA / "ask.json").exists():`.
+In `publish()`, call `refresh_ask_cache()` **first**, before the two safety
+checks and the tarball, so the fresh `ask.json` goes through every check
+(names, point geometry, cluster/kiln-length arrays) and into the release.
+(Amended 2026-10-12 after review: re-checking it with `assert_public_safe`
+alone skipped the value-level checks.)
 
 **Verify**: `python -m ruff check .` → clean.
 

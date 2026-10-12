@@ -18,6 +18,10 @@ describe('askLive', () => {
     await expect(askLive('q', 'https://ask.test/ask', fn)).resolves.toEqual({ ok: true, question: 'q', answer: null, blocked: true, unsupported: [42], tools: [] })
     expect(calls).toEqual(['https://ask.test/ask'])
   })
+  it('treats a 200 that is not an answer as an error, never as an answer', async () => {
+    const { fn } = reply(200, { hello: 'proxy page' })
+    await expect(askLive('q', 'https://ask.test/ask', fn)).resolves.toEqual({ ok: false, status: 200, message: 'The ask service sent an unexpected reply.' })
+  })
   it('turns the daily limit into a message for the page', async () => {
     const msg = 'daily limit reached; the saved answers below still work'
     const { fn } = reply(429, { error: msg })

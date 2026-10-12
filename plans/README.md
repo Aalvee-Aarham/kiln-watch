@@ -132,6 +132,19 @@ Grounded in the repo, chosen by the team:
   a static Atom feed notifies without a server. The planned builder was
   dry-run against its own test cases.
 
+### Post-implementation review (2026-10-12)
+
+A code review of `98fa82a..HEAD` raised 10 candidates; each was re-checked against the code.
+Fixed: the worker's daily cap failed open on a missing or malformed `DAILY_CAP` (now 503, fail closed);
+`FUNCS[name]` matched inherited names like `constructor` (now `Object.hasOwn`); a 200 reply without `tools`
+crashed the Ask page (now an error message); `publish()` checked the rebuilt `ask.json` by name only
+(now rebuilt first, then fully checked); the drift gate passed a `NaN` correlation (now drift); the Atom
+builder registered its namespace process-wide (now a plain `xmlns` attribute).
+Rejected: "the daily deploy ships ask.json unchecked" (the deploy job overlays it before the build and
+runs both safety checks on `web/dist/data`); per-IP/daily counters being approximate (documented
+design); IME Enter handling (Bangla is being removed); the feed's top-level `updated` using run time
+(correct Atom semantics).
+
 ## Findings considered and rejected
 
 - Kiln/crop season *prediction* (`docs/roadmap.md:19`): explicitly cut by

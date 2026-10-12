@@ -243,8 +243,8 @@ const UNIT = /^BD[0-9]{2,10}$/ // HDX COD-AB p-codes: anything else never reache
 
 /** ask._run: run one tool on model-supplied arguments; a bad argument or a failure becomes an error the model sees. */
 export async function runTool(name: string, d: Data, args: Obj): Promise<Result> {
+  if (!Object.hasOwn(FUNCS, name)) return { error: `unknown tool ${name}` } // not FUNCS[name]: 'constructor' would match
   const tool = FUNCS[name]
-  if (!tool) return { error: `unknown tool ${name}` }
   if ('unit_id' in args && !(typeof args.unit_id === 'string' && UNIT.test(args.unit_id))) {
     return { error: `unit_id must be an area code such as BD3026 (from find_area), got ${pyRepr(args.unit_id)}` }
   }

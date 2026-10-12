@@ -181,7 +181,7 @@ Append to the `firms` job (after the upload, so the report is kept either way):
           vals = {"reference": r["reference"]["spearman"],
                   "S-NPP vs committed": r["shape_vs_committed"]["N"]["spearman_vs_committed"],
                   "Aqua vs committed": r["shape_vs_committed"]["A"]["spearman_vs_committed"]}
-          bad = {k: v for k, v in vals.items() if v is None or v < 0.75}
+          bad = {k: v for k, v in vals.items() if v is None or not v >= 0.75}  # NaN fails too (nan < 0.75 is False)
           print(vals)
           sys.exit(f"drift: {bad}" if bad else 0)
           EOF

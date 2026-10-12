@@ -216,12 +216,10 @@ def refresh_ask_cache(env=None, build=None) -> bool:
 
 
 def publish() -> None:
+    refresh_ask_cache()  # first, so the fresh answers go through every check below and into the release
     check_public_dir(C.WEB_DATA)
     for f in C.WEB_DATA.rglob("*.json"):
         assert_public_safe(json.loads(f.read_text(encoding="utf-8")))
-    refresh_ask_cache()  # before packaging, so releases carry fresh answers
-    if (C.WEB_DATA / "ask.json").exists():  # new content since the checks above
-        assert_public_safe(json.loads((C.WEB_DATA / "ask.json").read_text(encoding="utf-8")))
     tar = C.ROOT / "public-data.tar.gz"
     with tarfile.open(tar, "w:gz") as t:
         for p in C.WEB_DATA.rglob("*"):

@@ -131,22 +131,21 @@ def alerts_atom(season: str, updated_at: str, rows: list[dict], site: str) -> st
     import xml.etree.ElementTree as ET
 
     A = "http://www.w3.org/2005/Atom"
-    ET.register_namespace("", A)
-    feed = ET.Element(f"{{{A}}}feed")
-    ET.SubElement(feed, f"{{{A}}}title").text = "Kiln Watch: districts with unusual fire activity (provisional)"
-    ET.SubElement(feed, f"{{{A}}}id").text = f"{site}/data/nrt/alerts.xml"
-    ET.SubElement(feed, f"{{{A}}}updated").text = updated_at
-    ET.SubElement(feed, f"{{{A}}}link", rel="self", href=f"{site}/data/nrt/alerts.xml")
-    ET.SubElement(feed, f"{{{A}}}link", rel="alternate", href=f"{site}/#/season")
-    ET.SubElement(ET.SubElement(feed, f"{{{A}}}author"), f"{{{A}}}name").text = "Kiln Watch"
+    feed = ET.Element("feed", xmlns=A)  # a plain xmlns attribute: no process-wide register_namespace
+    ET.SubElement(feed, "title").text = "Kiln Watch: districts with unusual fire activity (provisional)"
+    ET.SubElement(feed, "id").text = f"{site}/data/nrt/alerts.xml"
+    ET.SubElement(feed, "updated").text = updated_at
+    ET.SubElement(feed, "link", rel="self", href=f"{site}/data/nrt/alerts.xml")
+    ET.SubElement(feed, "link", rel="alternate", href=f"{site}/#/season")
+    ET.SubElement(ET.SubElement(feed, "author"), "name").text = "Kiln Watch"
     for r in sorted(rows, key=lambda r: (r["last_day"], r["unit_id"]), reverse=True):
-        e = ET.SubElement(feed, f"{{{A}}}entry")
+        e = ET.SubElement(feed, "entry")
         days = "day" if r["days"] == 1 else "days"
-        ET.SubElement(e, f"{{{A}}}title").text = f"{r['name']}: {r['days']} unusual fire {days} so far in {season}"
-        ET.SubElement(e, f"{{{A}}}id").text = f"{site}/#/area/{r['unit_id']}?season={season}&days={r['days']}"
-        ET.SubElement(e, f"{{{A}}}updated").text = f"{r['last_day']}T00:00:00Z"
-        ET.SubElement(e, f"{{{A}}}link", rel="alternate", href=f"{site}/#/area/{r['unit_id']}")
-        ET.SubElement(e, f"{{{A}}}summary").text = (
+        ET.SubElement(e, "title").text = f"{r['name']}: {r['days']} unusual fire {days} so far in {season}"
+        ET.SubElement(e, "id").text = f"{site}/#/area/{r['unit_id']}?season={season}&days={r['days']}"
+        ET.SubElement(e, "updated").text = f"{r['last_day']}T00:00:00Z"
+        ET.SubElement(e, "link", rel="alternate", href=f"{site}/#/area/{r['unit_id']}")
+        ET.SubElement(e, "summary").text = (
             f"Fire activity in {r['name']} district was above its 90th-percentile normal on {r['days']} {days} "
             f"this season, most recently {r['last_day']}. Provisional near-real-time data from NASA FIRMS.")
     return ET.tostring(feed, encoding="unicode", xml_declaration=True)

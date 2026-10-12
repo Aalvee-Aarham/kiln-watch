@@ -31,6 +31,12 @@ describe('agent loop', () => {
     expect(out).toMatchObject({ blocked: true, reason: 'step limit 6' })
     expect(seen).toHaveLength(6)
   })
+  it('treats inherited object names as unknown tools, not as functions', async () => {
+    const { runTool } = await import('../src/tools')
+    for (const name of ['constructor', 'toString', '__proto__', 'hasOwnProperty']) {
+      expect(await runTool(name, data(), {})).toEqual({ error: `unknown tool ${name}` })
+    }
+  })
   it('reports an unknown tool to the model as an error', async () => {
     const { client, seen } = scriptedClient([['tool', 'delete_everything', {}]], ['Done.'])
     const out = await ask('Clean up', client, data())

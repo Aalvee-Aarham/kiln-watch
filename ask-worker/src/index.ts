@@ -49,13 +49,15 @@ export async function handle(req: Request, env: Env, deps: Deps = DEFAULT_DEPS):
   if (typeof question !== 'string' || !question.trim() || question.length > MAX_QUESTION) {
     return reply(env, 400, { error: `question must be text of 1 to ${MAX_QUESTION} characters` }, cors)
   }
-  if (!env.ANTHROPIC_API_KEY) return reply(env, 503, { error: 'ask backend unavailable' }, cors)
+  const cap = Number(env.DAILY_CAP)
+  // fail closed: a missing or malformed cap must never mean "no cap" on the project's key
+  if (!env.ANTHROPIC_API_KEY || !Number.isInteger(cap) || cap < 1) return reply(env, 503, { error: 'ask backend unavailable' }, cors)
   const now = new Date(deps.now())
   const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown'
   if (!(await take(env.SPEND, `ip:${ip}:${now.toISOString().slice(0, 13)}`, PER_IP_HOURLY, 7200))) {
     return reply(env, 429, { error: 'too many questions from this address; try again within the hour' }, cors)
   }
-  if (!(await take(env.SPEND, `day:${now.toISOString().slice(0, 10)}`, Number(env.DAILY_CAP), 172800))) {
+  if (!(await take(env.SPEND, `day:${now.toISOString().slice(0, 10)}`, cap, 172800))) {
     return reply(env, 429, { error: DAILY_LIMIT_MESSAGE }, cors)
   }
   try {

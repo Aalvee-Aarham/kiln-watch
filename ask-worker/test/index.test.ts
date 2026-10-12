@@ -54,6 +54,13 @@ describe('POST /ask', () => {
     expect((await handle(post({ question: 'q' }), env, deps)).status).toBe(429)
     expect(seen).toHaveLength(0)
   })
+  it('fails closed when the daily cap is missing or not a number', async () => {
+    for (const bad of [undefined, '', 'abc', '0', '2.5']) {
+      const { env, deps, seen } = setup({ DAILY_CAP: bad as unknown as string })
+      expect((await handle(post({ question: 'q' }), env, deps)).status).toBe(503)
+      expect(seen).toHaveLength(0)
+    }
+  })
   it('says the backend is unavailable without a key, and hides model errors', async () => {
     const { env, deps } = setup({ ANTHROPIC_API_KEY: undefined })
     const r = await handle(post({ question: 'q' }), env, deps)

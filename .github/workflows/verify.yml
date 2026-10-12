@@ -40,7 +40,7 @@ jobs:
           vals = {"reference": r["reference"]["spearman"],
                   "S-NPP vs committed": r["shape_vs_committed"]["N"]["spearman_vs_committed"],
                   "Aqua vs committed": r["shape_vs_committed"]["A"]["spearman_vs_committed"]}
-          bad = {k: v for k, v in vals.items() if v is None or v < 0.75}  # PROPOSED threshold, not yet approved
+          bad = {k: v for k, v in vals.items() if v is None or not v >= 0.75}  # PROPOSED threshold, not yet approved; NaN fails too
           print(vals)
           sys.exit(f"drift: {bad}" if bad else 0)
           EOF

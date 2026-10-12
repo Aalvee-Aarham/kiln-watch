@@ -12,5 +12,6 @@ export async function askLive(question: string, endpoint = ASK_ENDPOINT, fetchFn
   const r = await fetchFn(endpoint, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question }) })
   const body = await r.json().catch(() => ({}))
   if (!r.ok) return { ok: false, status: r.status, message: typeof body.error === 'string' ? body.error : `The ask service answered ${r.status}.` }
+  if (typeof body.blocked !== 'boolean' || !Array.isArray(body.tools)) return { ok: false, status: r.status, message: 'The ask service sent an unexpected reply.' }
   return { ok: true, ...body }
 }
