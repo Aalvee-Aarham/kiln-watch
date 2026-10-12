@@ -6027,9 +6027,6 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
           "peoples republic of china",
           "prc",
           "mainland china",
-          "beijing",
-          "shanghai",
-          "guangzhou",
           "hebei",
           "henan",
           "shandong"
@@ -8227,6 +8224,218 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
           }
       ],
       "contextNote": "Fergana Valley and Amu Darya basin post-harvest cotton and cereal residue clearance."
+  },
+  "sundarbans": {
+      "key": "sundarbans",
+      "name": "Sundarbans Mangrove Reserve",
+      "country": "Bangladesh / India",
+      "stateOrDivision": "Khulna Division / West Bengal",
+      "coords": [
+          89.5,
+          21.9
+      ],
+      "bbox": [
+          88.8,
+          21.4,
+          90.1,
+          22.5
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: MAR – MAY (DRY SEASON MONITORING)",
+      "criticalSpan": [
+          4,
+          6
+      ],
+      "months": [
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY"
+      ],
+      "normalCurve": [
+          15,
+          30,
+          45,
+          60,
+          95,
+          140,
+          80,
+          20
+      ],
+      "thisSeasonCurve": [
+          18,
+          35,
+          52,
+          70,
+          115,
+          168,
+          92,
+          22
+      ],
+      "aliases": [
+          "sundarbans",
+          "sundarban",
+          "shundarbans",
+          "shundarban",
+          "sundorbon",
+          "shundorbon",
+          "sundarbans mangrove",
+          "sundarban national park",
+          "mangrove forest"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "April 2024",
+              "title": "NASA FIRMS Satellite Observation: Sundarbans Biosphere Reserve",
+              "source": "NASA Applied Sciences / Forest Department",
+              "summary": "High-resolution VIIRS and MODIS thermal detection monitors peripheral dry biomass burns and agricultural boundary clearings around Satkhira and Khulna mangrove corridors.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "World's largest contiguous mangrove delta; continuous space observation safeguards UNESCO biosphere from fringe wildland fires."
+  },
+  "beijing": {
+      "key": "beijing",
+      "name": "Beijing, China",
+      "country": "China",
+      "stateOrDivision": "North China Plain",
+      "coords": [
+          116.4074,
+          39.9042
+      ],
+      "bbox": [
+          115.42,
+          39.44,
+          117.51,
+          41.06
+      ],
+      "defaultMultiplier": 1.3,
+      "criticalWeeks": "CRITICAL WEEKS: JUN (POST-WHEAT) & OCT (CORN STALKS)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL",
+          "AUG",
+          "SEP",
+          "OCT"
+      ],
+      "normalCurve": [
+          40,
+          80,
+          150,
+          420,
+          210,
+          90,
+          110,
+          310
+      ],
+      "thisSeasonCurve": [
+          45,
+          92,
+          175,
+          546,
+          240,
+          98,
+          125,
+          390
+      ],
+      "aliases": [
+          "beijing",
+          "peking",
+          "beijing municipality",
+          "jing jin ji",
+          "capital of china"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "June 2024",
+              "title": "Satellite Surveillance Regulates Crop Straw Burns Across Beijing-Tianjin-Hebei Region",
+              "source": "China Meteorological Administration / NASA Earth Observatory",
+              "summary": "Real-time thermal satellite tracking enforces clean-air straw burning prohibitions in suburban Beijing and surrounding agricultural districts.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Beijing Municipality and North China Plain agrarian periphery monitoring post-harvest straw disposal."
+  },
+  "shanghai": {
+      "key": "shanghai",
+      "name": "Shanghai, China",
+      "country": "China",
+      "stateOrDivision": "Yangtze River Delta",
+      "coords": [
+          121.4737,
+          31.2304
+      ],
+      "bbox": [
+          120.85,
+          30.68,
+          122.25,
+          31.88
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: MAY – JUN (YANGTZE DELTA HARVEST)",
+      "criticalSpan": [
+          2,
+          4
+      ],
+      "months": [
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL",
+          "AUG",
+          "SEP",
+          "OCT"
+      ],
+      "normalCurve": [
+          30,
+          50,
+          120,
+          260,
+          140,
+          60,
+          80,
+          190
+      ],
+      "thisSeasonCurve": [
+          34,
+          58,
+          140,
+          312,
+          160,
+          68,
+          90,
+          220
+      ],
+      "aliases": [
+          "shanghai",
+          "shanghai municipality",
+          "yangtze river delta"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "May 2024",
+              "title": "Yangtze River Delta Satellite Patrols Monitor Crop Residue Clearance",
+              "source": "Ministry of Ecology and Environment / NASA FIRMS",
+              "summary": "Spaceborne thermal sensors track seasonal paddy and rapeseed residue burning across suburban Shanghai delta farmlands.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Shanghai Municipality and lower Yangtze delta seasonal agricultural residue observation."
   }
 };
 
@@ -8275,8 +8484,8 @@ export function findRegionInQuery(rawQuery: string): RegionProfile | null {
   if (q.includes('jhum') || q.includes('hill tract') || q.includes('cht')) {
     return REGION_REGISTRY['chattogram'] || REGION_REGISTRY['bandarban'];
   }
-  if (q.includes('sundarban') || q.includes('mangrove')) {
-    return REGION_REGISTRY['bagerhat'] || REGION_REGISTRY['satkhira'];
+  if (q.includes('sundarban') || q.includes('shundarban') || q.includes('sundorbon') || q.includes('shundorbon') || q.includes('mangrove')) {
+    return REGION_REGISTRY['sundarbans'] || REGION_REGISTRY['bagerhat'];
   }
   if (q.includes('ncr') || q.includes('new delhi')) {
     return REGION_REGISTRY['delhi'];

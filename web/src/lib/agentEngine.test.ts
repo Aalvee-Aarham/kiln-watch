@@ -92,4 +92,22 @@ describe('agentEngine', () => {
     const raj = parseUserQuery('Tell me about farm fires in Rajasthan')
     expect(raj.locationName).toContain('Rajasthan, India')
   })
+
+  it('resolves Shundarbans spelling and distinguishes Beijing from China country profile', () => {
+    const sundar = parseUserQuery('Shundarbans')
+    expect(sundar.locationName).toContain('Sundarbans')
+    expect(sundar.coordinates[0]).toBeCloseTo(89.5, 1)
+    expect(sundar.coordinates[1]).toBeCloseTo(21.9, 1)
+    expect(sundar.bbox[2] - sundar.bbox[0]).toBeLessThan(3) // tight mangrove bbox, not all of India!
+
+    const beijing = parseUserQuery('Beijing')
+    expect(beijing.locationName).toContain('Beijing')
+    expect(beijing.coordinates[0]).toBeCloseTo(116.4, 1)
+    expect(beijing.coordinates[1]).toBeCloseTo(39.9, 1)
+    expect(beijing.bbox[2] - beijing.bbox[0]).toBeLessThan(4) // tight city bbox, NOT whole China!
+
+    const china = parseUserQuery('China')
+    expect(china.locationName).toContain('China')
+    expect(china.bbox[2] - china.bbox[0]).toBeGreaterThan(30) // entire nation
+  })
 })

@@ -102,8 +102,8 @@ export function parseUserQuery(query: string): AgentResolution {
       key: 'dynamic-region',
       name: placeName,
       country: 'Asia / Regional',
-      coords: [85.0, 24.0], // Central pan-Asian vantage point
-      bbox: [60.0, 10.0, 105.0, 35.0],
+      coords: [89.0, 23.5], // Regional vantage point
+      bbox: [87.5, 22.0, 90.5, 25.0],
       defaultMultiplier: 1.4,
       criticalWeeks: 'CRITICAL WEEKS: DRY SEASON CYCLE',
       criticalSpan: [3, 5],
