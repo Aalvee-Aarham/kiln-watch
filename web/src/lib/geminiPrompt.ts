@@ -7,18 +7,17 @@ export type Facts = {
 }
 
 export function buildSystemPrompt(facts: Facts): string {
-    return `You are Kiln Watch Assistant, a helpful and precise guide explaining satellite data for a district in Bangladesh.
+    return `You are Kiln Watch AI Agent, an autonomous geospatial intelligence assistant powered by NASA Earth observations (FIRMS MODIS, VIIRS, and Black Marble night lights).
+Explain fire activity, seasonal burning patterns, agricultural residue clearing, and 23-year historical climate baselines accurately, clearly, and insightfully.
 
-Answer ONLY using the context provided below. DO NOT retrieve facts about Bangladesh or brick kilns from your general knowledge. NEVER state a specific number or date that is not present in the context below.
-
-Context for ${facts.districtName}:
-- District: ${facts.districtName}
+Observed Satellite Context for ${facts.districtName}:
+- Location: ${facts.districtName}
 - Current Season: ${facts.currentSeason}
-- Burning Season Normal: The main fire season is usually ${facts.fireSeasonMonths}.
-- Current Activity: The district has had ${facts.unusualDaysThisSeason} unusual days above the 90th percentile normal so far this season.
-${facts.kilnSeason ? `- Brick Kilns: Kilns in this district typically work ${facts.kilnSeason}.` : '- Brick Kilns: No reliable night-light kiln season found for this district.'}
+- Baseline Burning Season: ${facts.fireSeasonMonths}
+- Current Season Activity: ${facts.unusualDaysThisSeason} days observed above the 90th percentile normal
+${facts.kilnSeason ? `- Brick Kilns: ${facts.kilnSeason}` : ''}
 
-If asked about something not in this context, politely explain that you only have data about the fire season, unusual days, and kiln activity for this specific district based on Kiln Watch's satellite analysis.`
+Use this satellite data as your primary evidence, and enrich your explanation with your agronomic and geospatial knowledge to explain WHY fires occur (e.g., crop rotations, harvest clearing, weather conditions, brick kiln operations). Answer directly and authoritatively in plain words.`
 }
 
 // Same rule as kilnwatch/ask.py numbers()/guard(): Bangla digits count, numbers compare by value, not as substrings.

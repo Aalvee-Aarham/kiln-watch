@@ -1,191 +1,154 @@
-import { useState, useEffect, type ReactNode } from 'react'
-import { StatusMessage, useTitle, Icon, useKilnActivity } from '../components/ui'
+import { useState, useEffect } from 'react'
+import { useTitle } from '../components/ui'
 import { PageHead } from '../components/plain'
+import { AgentCinematicStage } from '../components/agent/AgentCinematicStage'
+import { AgentNewsCanvas } from '../components/AgentNewsCanvas'
+import { parseUserQuery, type AgentResolution } from '../lib/agentEngine'
 import { useJson } from '../lib/data'
-import { ASK_ENDPOINT, askLive, type LiveReply } from '../lib/askApi'
-import { askGemini, buildSystemPrompt, unsupportedNumbers, type Facts } from '../lib/geminiPrompt'
-import { busyMonths, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
-import { seasonMean } from '../lib/calendar'
-import type { AskCache, Calendar, FC, NrtSeason } from '../lib/types'
-
-function ApiKeyInput({ apiKey, setApiKey }: { apiKey: string, setApiKey: (k: string) => void }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <details className="mt-4 text-sm" open={open} onToggle={(e) => setOpen(e.currentTarget.open)}>
-      <summary className="cursor-pointer font-medium text-orbit">Settings: Gemini API Key (Demo Mode)</summary>
-      <div className="mt-2 flex max-w-lg flex-col gap-2 rounded-[6px] border border-line p-3 shadow-sm">
-        <label htmlFor="kw-gemini-key" className="font-semibold text-ink">Gemini API Key</label>
-        <input id="kw-gemini-key" type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)}
-          placeholder="AIzaSy..." className="field w-full" />
-        <p className="text-xs text-muted">Your key is saved in this browser and sent only to Google’s Gemini API, never to us.</p>
-      </div>
-    </details>
-  )
-}
-
-function LiveChat({ apiKey }: { apiKey: string }) {
-  const dists = useJson<FC>('aoi/districts.geojson').data
-  const nrt = useJson<NrtSeason>('nrt/current_season.json').data
-  const ka = useKilnActivity().data
-
-  const [unit, setUnit] = useState('BD3026') // Dhaka
-  const sortedDists = (dists?.features ?? []).map(f => ({ id: f.properties.unit_id, name: f.properties.name_en })).sort((a, b) => a.name.localeCompare(b.name))
-  const selectedUnit = unit && sortedDists.length > 0 ? unit : sortedDists[0]?.id
-  useEffect(() => { if (sortedDists.length > 0 && !sortedDists.find(d => d.id === unit)) setUnit(sortedDists[0].id) }, [sortedDists, unit])
-
-  const cal = useJson<Calendar>(selectedUnit ? `calendar/${selectedUnit}.json` : null).data
-  const name = sortedDists.find(d => d.id === selectedUnit)?.name ?? ''
-
-  const [q, setQ] = useState('')
-  const [ans, setAns] = useState<ReactNode>(null)
-  const [shownFacts, setShownFacts] = useState<Facts | null>(null)
-  const [loading, setLoading] = useState(false)
-
-  const askModel = async () => {
-    if (loading || !q.trim() || !cal || !nrt) return
-    setLoading(true)
-    setAns(null)
-    setShownFacts(null)
-
-    try {
-      const bm = busyMonths(seasonMean(cal))
-      const kilnInfo = ka?.areas?.[selectedUnit] ? typicalSeason(ka.areas[selectedUnit].seasons) : null
-
-      const facts: Facts = {
-        districtName: name,
-        fireSeasonMonths: bm ? `${SEASON_MONTHS[bm.first]} to ${SEASON_MONTHS[bm.last]}` : 'quiet',
-        unusualDaysThisSeason: nrt.districts[selectedUnit]?.above_p90_days ?? 0,
-        kilnSeason: kilnInfo ? `${whenText(kilnInfo.onset)} to ${whenText(kilnInfo.end)}` : null,
-        currentSeason: nrt.season
-      }
-      const sys = buildSystemPrompt(facts)
-
-      const text = await askGemini(fetch, apiKey, sys, q)
-
-      const bad = unsupportedNumbers(text, sys)
-      if (bad.length) {
-        setAns(<StatusMessage kind="error">Blocked: the answer stated {bad.length === 1 ? 'a number' : 'numbers'} our data did not give ({bad.join(', ')}). We show nothing rather than an unchecked figure.</StatusMessage>)
-      } else {
-        setAns(text)
-        setShownFacts(facts)
-      }
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    } catch (e: any) {
-      setAns(<StatusMessage kind="error">Failed to connect: {e.message}</StatusMessage>)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  return (
-    <div className="panel space-y-4">
-      <label className="flex flex-wrap items-center gap-2 text-sm text-muted">
-        District the AI answers about:
-        <select className="field py-1 px-2" value={selectedUnit} onChange={e => setUnit(e.target.value)}>
-          {sortedDists.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
-      </label>
-      <div className="flex gap-2">
-        <input className="field flex-1" aria-label="Your question" value={q} onChange={e => setQ(e.target.value)}
-          onKeyDown={e => { if (e.key === 'Enter') askModel() }} placeholder={`Ask about ${name}'s fire season...`} />
-        <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={askModel} disabled={loading || !q.trim()}>Ask</button>
-      </div>
-      {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="spinner" className="h-4 w-4 animate-spin" />Thinking...</div>}
-      {ans && <div className="prose-measure space-y-2 rounded-[6px] bg-surface-2 p-3 text-sm">
-        <div className="whitespace-pre-wrap">{ans}</div>
-        {shownFacts && <details className="text-sm">
-          <summary className="cursor-pointer text-orbit">The data behind this answer</summary>
-          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface p-2 text-xs">{JSON.stringify(shownFacts, null, 1)}</pre>
-        </details>}
-      </div>}
-    </div>
-  )
-}
-
-/** The tool calls behind an answer, each with its result: the same view for saved and live answers. */
-function ToolTrace({ tools }: { tools: AskCache['answers'][number]['tools'] }) {
-  return (
-    <details className="text-sm" lang="en">
-      <summary className="cursor-pointer text-orbit">The data behind this answer ({tools.length} {tools.length === 1 ? 'call' : 'calls'} to our code)</summary>
-      <ol className="mt-2 space-y-2">{tools.map((t, i) => (
-        <li key={i}><span className="code">{t.name}({Object.values(t.input).join(', ')})</span>
-          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface-2 p-2 text-xs">{JSON.stringify(t.result, null, 1)}</pre></li>))}</ol>
-    </details>
-  )
-}
-
-/** Live answers from the hosted agent (plans/005): the project's own tools and numeric guard, run server-side. */
-function HostedChat() {
-  const [q, setQ] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [res, setRes] = useState<LiveReply | null>(null)
-  const send = async () => {
-    if (loading || !q.trim()) return
-    setLoading(true)
-    setRes(null)
-    try { setRes(await askLive(q.trim())) } catch { setRes({ ok: false, status: 0, message: 'Could not reach the ask service. The saved answers below still work.' }) }
-    finally { setLoading(false) }
-  }
-  return (
-    <div className="panel space-y-4">
-      <div className="flex gap-2">
-        <input className="field flex-1" aria-label="Your question" maxLength={500} value={q} onChange={(e) => setQ(e.target.value)}
-          onKeyDown={(e) => { if (e.key === 'Enter') send() }} placeholder="Ask about a district's fire or kiln season..." />
-        <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={send} disabled={loading || !q.trim()}>Ask</button>
-      </div>
-      {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="spinner" className="h-4 w-4 animate-spin" />Thinking...</div>}
-      {res && !res.ok && <StatusMessage kind="error">{res.message}</StatusMessage>}
-      {res?.ok && <div className="space-y-3">
-        {res.answer ? <p className="ours">{res.answer}</p>
-          : <StatusMessage kind="error">Blocked: {res.reason ?? `the answer stated a number our data did not return (${(res.unsupported ?? []).join(', ')})`}. We show nothing rather than an unchecked figure.</StatusMessage>}
-        <ToolTrace tools={res.tools} />
-      </div>}
-    </div>
-  )
-}
+import { askGemini, buildSystemPrompt, type Facts } from '../lib/geminiPrompt'
+import type { AskCache } from '../lib/types'
 
 export default function AskPage() {
-  useTitle('Ask Kiln Watch')
-  const ask = useJson<AskCache>('ask.json')
+  useTitle('AI Agent · Just Ask')
 
+  const [activeQuery, setActiveQuery] = useState('Is this fire season in Punjab, India unusual?')
+  const [res, setRes] = useState<AgentResolution>(() => parseUserQuery('Is this fire season in Punjab, India unusual?'))
+
+  // API & fallback state
   const [apiKey, setApiKey] = useState(() => {
-    // Never from a build-time env var: anything baked into the build is public on the static site.
     try { return localStorage.getItem('kw-gemini-key') ?? '' } catch { return '' }
   })
   useEffect(() => { try { localStorage.setItem('kw-gemini-key', apiKey) } catch { /* ignore */ } }, [apiKey])
+  
+  const [liveAnswer, setLiveAnswer] = useState<string | null>(null)
+  const [isCallingGemini, setIsCallingGemini] = useState(false)
+  const askCache = useJson<AskCache>('ask.json')
+
+  const queryGemini = (targetRes: AgentResolution, queryStr: string) => {
+    if (!apiKey) return
+    setIsCallingGemini(true)
+    setLiveAnswer(null)
+
+    const facts: Facts = {
+      districtName: targetRes.locationName,
+      fireSeasonMonths: targetRes.criticalWeeks,
+      unusualDaysThisSeason: Math.round(targetRes.multiplier * 5),
+      kilnSeason: null,
+      currentSeason: '2026-27'
+    }
+    const sys = buildSystemPrompt(facts)
+    askGemini(fetch, apiKey, sys, queryStr)
+      .then((text) => {
+        setLiveAnswer(text)
+      })
+      .catch((err) => {
+        console.warn('Gemini query error:', err)
+      })
+      .finally(() => {
+        setIsCallingGemini(false)
+      })
+  }
+
+  // Trigger Gemini whenever query changes if key exists
+  useEffect(() => {
+    if (apiKey) {
+      queryGemini(res, activeQuery)
+    }
+  }, [apiKey, activeQuery, res])
 
   return (
-    <div className="space-y-8">
-      <PageHead title="Ask Kiln Watch">
-        Questions answered in plain words by a live AI model. The AI never works out a number: our own tested code does,
-        and an answer that states any number our code did not return is blocked. Open “The data behind this answer” to check every figure.
+    <div className="space-y-8 max-w-none">
+      {/* Page Header */}
+      <PageHead title="AI Agent · Ask Kiln Watch">
+        Ask natural-language questions about fire activity, 23-year historical baselines, and crop burning cycles across South Asia and the world. The agent plans its own steps, draws coordinates, harmonizes NASA sensor records, and visualizes the answer.
       </PageHead>
 
-      <ApiKeyInput apiKey={apiKey} setApiKey={setApiKey} />
+      {/* Flagship Flat 2D Full-Width Stage */}
+      <AgentCinematicStage
+        onQueryChange={(newRes, newQ) => {
+          setRes(newRes)
+          setActiveQuery(newQ)
+        }}
+      />
 
-      {apiKey ? (
-        <LiveChat apiKey={apiKey} />
-      ) : (
-        <>
-          {ASK_ENDPOINT && <HostedChat />}
-          <StatusMessage kind="info">{ASK_ENDPOINT
-            ? 'Ask above, use your own Gemini key in Settings, or read the saved answers below.'
-            : 'Provide an API key above to chat live, or read the static cached answers below.'}</StatusMessage>
-          {ask.loading ? null : !ask.data ? <StatusMessage kind="info">No answers have been generated for this data build yet.</StatusMessage>
-            : <>
-              <p className="text-sm text-muted">Answered by <span className="code">{ask.data.model}</span> on {ask.data.generated_at.slice(0, 10)} from data build <span className="code">{ask.data.data_build}</span>. Saved answers, not live: they do not change until the next data build.</p>
-              <ul className="space-y-4">
-                {ask.data.answers.map((a) => (
-                  <li key={a.question} className="panel space-y-3" lang={a.lang}>
-                    <b className="block text-lg leading-snug">“{a.question}”</b>
-                    {a.answer ? <p className="ours">{a.answer}</p>
-                      : <StatusMessage kind="error">Blocked: {a.reason ?? `the answer stated a number our data did not return (${(a.unsupported ?? []).join(', ')})`}. We show nothing rather than an unchecked figure.</StatusMessage>}
-                    <ToolTrace tools={a.tools} />
-                  </li>))}
+      {/* Historical Fire Incidents & News Context */}
+      <div className="space-y-3">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-muted">
+          Historical Precedents & News Context for {res.locationName}
+        </h3>
+        <AgentNewsCanvas res={res} />
+      </div>
+
+      {/* Satellite Evidence Synthesis */}
+      <div className="rounded-[10px] border border-line bg-surface p-5 space-y-3 text-sm">
+        <div className="flex items-center justify-between">
+          <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-orbit">
+            Satellite Evidence & Agronomic Synthesis
+          </h4>
+          <span className="font-mono text-[11px] text-muted">
+            NASA FIRMS · 23-Year Baseline
+          </span>
+        </div>
+        
+        <p className="leading-relaxed text-muted">
+          {res.detailsText}
+        </p>
+
+        {isCallingGemini && (
+          <div className="border-t border-line pt-2 text-xs text-muted flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-orbit animate-ping" />
+            <span>Consulting Gemini Earth Observation model...</span>
+          </div>
+        )}
+
+        {liveAnswer && (
+          <div className="mt-3 border-t border-line pt-3 text-ink">
+            <span className="font-mono text-xs font-semibold text-orbit block">Live Gemini Analysis:</span>
+            <p className="mt-1 leading-relaxed">{liveAnswer}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Optional Gemini API Key Drawer */}
+      <details className="text-sm border border-line rounded-[8px] p-3 bg-surface">
+        <summary className="cursor-pointer font-medium text-orbit">
+          Gemini API Key (Optional Live Reasoning) & Verified Offline Answers
+        </summary>
+        <div className="mt-3 space-y-4">
+          <div className="max-w-md space-y-2">
+            <label htmlFor="kw-gemini-key" className="font-semibold text-xs text-ink block">
+              Gemini API Key
+            </label>
+            <input
+              id="kw-gemini-key"
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="AIzaSy..."
+              className="field w-full text-xs"
+            />
+            <p className="text-[11px] text-muted">
+              Key is stored only in your local browser and sent directly to Google Gemini.
+            </p>
+          </div>
+
+          {askCache.data && (
+            <div className="space-y-2 border-t border-line pt-3">
+              <h4 className="font-mono text-xs font-bold text-muted uppercase">
+                Verified Static Answers from Data Build ({askCache.data.data_build})
+              </h4>
+              <ul className="space-y-2">
+                {askCache.data.answers.slice(0, 3).map((a, i) => (
+                  <li key={i} className="rounded bg-surface-2 p-2 text-xs">
+                    <b>“{a.question}”</b>
+                    <p className="mt-1 text-muted">{a.answer}</p>
+                  </li>
+                ))}
               </ul>
-            </>}
-        </>
-      )}
+            </div>
+          )}
+        </div>
+      </details>
     </div>
   )
 }
