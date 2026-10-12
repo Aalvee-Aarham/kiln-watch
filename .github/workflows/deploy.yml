@@ -68,3 +68,19 @@ jobs:
         with: { path: web/dist }
       - id: d
         uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e  # v4.0.5
+  notify:
+    needs: [nrt, deploy]
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions: { issues: write }  # the only job with issue rights; it holds no data secrets
+    env: { GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}' }
+    steps:
+      - run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          num=$(gh issue list --state open --search 'in:title "Daily deploy failed"' --json number --jq '.[0].number // empty')
+          if [ -z "$num" ]; then
+            gh issue create --title "Daily deploy failed ($(date -u +%F))" \
+              --body "The daily NRT update or Pages deploy failed; the last good deployment stays live. Run: $run_url. Follow docs/BLOCKERS.md; close this issue when a green deploy lands."
+          else
+            gh issue comment "$num" --body "Failed again: $run_url"
+          fi

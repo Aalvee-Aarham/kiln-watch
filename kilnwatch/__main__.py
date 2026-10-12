@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import argparse
 import logging
+import shutil
+import subprocess
 import sys
 from pathlib import Path
 
@@ -56,6 +58,7 @@ def main(argv=None) -> int:
     s.add_argument("--start", help="YYYY-MM-DD")
     s.add_argument("--end", help="YYYY-MM-DD")
     s.add_argument("--cached-only", dest="cached_only", action="store_true", help="use the existing verify cache; no downloads")
+    sub.add_parser("release", help="publish the real export (safety checks, tarball, research zip, GitHub Releases), then rebuild fixtures from it")
     sub.add_parser("all", help="every stage after gee, in order (fails fast without the GEE cache)")
     a = ap.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(message)s")
@@ -118,6 +121,17 @@ def main(argv=None) -> int:
     elif a.stage == "verify-firms":
         from . import verify_firms
         verify_firms.run(a.sources, a.start, a.end, a.cached_only)
+    elif a.stage == "release":
+        from . import export
+
+        export.run(publish_=True)  # safety checks first; raises on any failure
+        # publish() deletes its root-level tarball; fixtures read data/releases/, so fetch the release just made
+        subprocess.run(["gh", "release", "download", "data-current", "--pattern", "public-data.tar.gz",
+                        "--dir", str(C.ROOT / "data" / "releases"), "--clobber"], check=True)
+        # fixtures.py reuses data/releases/public/ whenever its meta.json exists: drop the stale extraction first
+        shutil.rmtree(C.ROOT / "data" / "releases" / "public", ignore_errors=True)
+        export.run(fixtures=True)
+        print("release done: data-current updated and fixtures rebuilt from it. A DOI stays a team decision.")
     elif a.stage == "all":
         if not _gee_cache_ready(C.RAW):
             print("ERROR GeeCacheMissing: data/raw/gee/clear/admin is missing. Run `python -m kilnwatch gee` first.", file=sys.stderr)
