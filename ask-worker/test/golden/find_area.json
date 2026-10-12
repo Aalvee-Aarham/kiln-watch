@@ -1,0 +1,102 @@
+[
+ {
+  "data": "full",
+  "input": {
+   "name": "Dhaka"
+  },
+  "output": {
+   "matches": [
+    {
+     "division": "Dhaka",
+     "level": "district",
+     "name_bn": "ঢাকা",
+     "name_en": "Dhaka",
+     "unit_id": "BD3026"
+    },
+    {
+     "division": "Dhaka",
+     "level": "upazila",
+     "name_bn": "Dhaka North City Corporation",
+     "name_en": "Dhaka North City Corporation",
+     "unit_id": "BD30262500"
+    },
+    {
+     "division": "Dhaka",
+     "level": "upazila",
+     "name_bn": "Dhaka South City Corporation",
+     "name_en": "Dhaka South City Corporation",
+     "unit_id": "BD30262000"
+    },
+    {
+     "division": "Rangpur",
+     "level": "upazila",
+     "name_bn": "Jaldhaka",
+     "name_en": "Jaldhaka",
+     "unit_id": "BD55730036"
+    }
+   ],
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "OCHA HDX COD-AB Bangladesh boundaries",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/aoi/districts.geojson"
+   }
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "name": "rajshahi"
+  },
+  "output": {
+   "matches": [
+    {
+     "division": "Rajshahi",
+     "level": "district",
+     "name_bn": "রাজশাহী",
+     "name_en": "Rajshahi",
+     "unit_id": "BD5081"
+    },
+    {
+     "division": "Rajshahi",
+     "level": "upazila",
+     "name_bn": "Rajshahi City Corporation",
+     "name_en": "Rajshahi City Corporation",
+     "unit_id": "BD50816600"
+    }
+   ],
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "OCHA HDX COD-AB Bangladesh boundaries",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/aoi/districts.geojson"
+   }
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "name": ""
+  },
+  "output": {
+   "matches": [],
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "OCHA HDX COD-AB Bangladesh boundaries",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/aoi/districts.geojson"
+   }
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "name": "nowhere"
+  },
+  "output": {
+   "matches": [],
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "OCHA HDX COD-AB Bangladesh boundaries",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/aoi/districts.geojson"
+   }
+  }
+ }
+]

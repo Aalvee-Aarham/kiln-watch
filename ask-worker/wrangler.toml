@@ -1,0 +1,15 @@
+# Hosted live "Ask Kiln Watch" (plans/005). Decisions recorded in README.md.
+name = "kiln-watch-ask"
+main = "src/index.ts"
+compatibility_date = "2026-10-12"
+
+[vars]
+DATA_ORIGIN = "https://aalvee-aarham.github.io/kiln-watch/data"  # the public export the tools read
+ALLOWED_ORIGIN = "https://aalvee-aarham.github.io"               # the only browser origin served (CORS)
+DAILY_CAP = "200"                                                # questions per UTC day across all visitors (approved 2026-10-12)
+
+# Daily and per-IP counters. The operator creates the namespace (`npx wrangler kv namespace create SPEND`)
+# and pastes its id here before the first deploy (README.md).
+[[kv_namespaces]]
+binding = "SPEND"
+id = "REPLACE_WITH_KV_NAMESPACE_ID"

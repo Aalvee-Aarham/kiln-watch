@@ -1,0 +1,85 @@
+[
+ {
+  "data": "full",
+  "input": {},
+  "output": {
+   "area": "Bangladesh (national)",
+   "kiln_clusters": 3653,
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "Kiln Watch kiln activity from NASA Black Marble night lights, area-level",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/kiln_activity.json"
+   },
+   "typical_season": {
+    "busiest": "late January",
+    "ends": "early May",
+    "length_days": 167,
+    "seasons_used": [
+     "2022-23",
+     "2023-24",
+     "2024-25"
+    ],
+    "starts": "late November"
+   }
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "area": "BD3026",
+   "kiln_clusters": 120,
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "Kiln Watch kiln activity from NASA Black Marble night lights, area-level",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/kiln_activity.json"
+   },
+   "typical_season": {
+    "busiest": "late January",
+    "ends": "early May",
+    "length_days": 167,
+    "seasons_used": [
+     "2022-23",
+     "2023-24",
+     "2024-25"
+    ],
+    "starts": "mid-November"
+   }
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD99"
+  },
+  "output": {
+   "error": "no kiln season for BD99"
+  }
+ },
+ {
+  "data": "nokiln",
+  "input": {},
+  "output": {
+   "area": "Bangladesh (national)",
+   "kiln_clusters": 3653,
+   "provenance": {
+    "data_build": "f2bf67d",
+    "dataset_id": "Kiln Watch kiln activity from NASA Black Marble night lights, area-level",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/kiln_activity.json"
+   },
+   "typical_season": {
+    "busiest": "mid-February",
+    "ends": "mid-April",
+    "length_days": 152,
+    "seasons_used": [
+     "2023-24",
+     "2024-25",
+     "2025-26"
+    ],
+    "starts": "mid-November"
+   }
+  }
+ }
+]

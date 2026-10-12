@@ -1,0 +1,80 @@
+[
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "latest_full_season": {
+    "duration_days": 150.0,
+    "duration_days_95ci": [
+     130.0,
+     170.0
+    ],
+    "season": "2024-25"
+   },
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/calendar/BD3026.json"
+   },
+   "record_starts": "2003-01-01",
+   "seasons_measured": 22,
+   "typical_year": {
+    "busiest_month": "March",
+    "usual_first_month": "November",
+    "usual_last_month": "May"
+   },
+   "unit_id": "BD3026",
+   "years_of_record": 22
+  }
+ },
+ {
+  "data": "nokiln",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "latest_full_season": {
+    "duration_days": 0.0,
+    "duration_days_95ci": [
+     0.0,
+     37.0
+    ],
+    "season": "2026-27"
+   },
+   "provenance": {
+    "data_build": "f2bf67d",
+    "dataset_id": "NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/calendar/BD3026.json"
+   },
+   "record_starts": "2003-01-01",
+   "seasons_measured": 21,
+   "typical_year": {
+    "busiest_month": "April",
+    "usual_first_month": "September",
+    "usual_last_month": "April"
+   },
+   "unit_id": "BD3026",
+   "years_of_record": 24
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD99"
+  },
+  "output": {
+   "error": "no calendar for BD99"
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "../meta"
+  },
+  "output": {
+   "error": "unit_id must be an area code such as BD3026 (from find_area), got '../meta'"
+  }
+ }
+]

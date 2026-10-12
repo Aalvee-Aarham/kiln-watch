@@ -32,3 +32,13 @@ jobs:
         run: npx playwright install --with-deps chromium && npm run e2e
       - name: Bundle size
         run: du -sh dist/assets && find dist/assets -name '*.js' -exec sh -c 'gzip -c "$1" | wc -c | xargs echo "$1 gz:"' _ {} \;
+  ask-worker:
+    runs-on: ubuntu-latest
+    defaults: { run: { working-directory: ask-worker } }
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020  # v4.4.0
+        with: { node-version: 22, cache: npm, cache-dependency-path: ask-worker/package-lock.json }
+      - run: npm ci
+      - run: npx tsc --noEmit
+      - run: npm test   # parity with the Python tools' goldens (the python job checks the goldens themselves)

@@ -1,0 +1,105 @@
+{
+ "fire": "NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+ "max_steps": 6,
+ "model": "claude-opus-5-5",
+ "site": "https://aalvee-aarham.github.io/kiln-watch",
+ "system": "You answer questions about fire activity in Bangladesh for Kiln Watch, a NASA Space Apps project that harmonizes MODIS and VIIRS fire detections into one burning calendar per district and upazila.\n\nRules:\n- Use the tools for every fact. Never compute, estimate or round a number yourself: state numbers exactly as a tool returned them.\n- If no tool answers the question, say so plainly instead of guessing.\n- Fire activity counts satellite fire detections per cloud-free area. It is not smoke, air quality or emissions, and it never shows that a particular kiln or farmer broke the law.\n- Say \"provisional\" when you use live data for this season.\n- Answer in two to four short sentences, in the language of the question (English or Bangla).",
+ "tools": [
+  {
+   "description": "Find Bangladesh districts and upazilas by English or Bangla name. Returns up to 5 matches with unit_id, names, level and division. Call this first to get a unit_id.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "name": {
+      "description": "Area name, e.g. 'Rajshahi' or 'রাজশাহী'",
+      "type": "string"
+     }
+    },
+    "required": [
+     "name"
+    ],
+    "type": "object"
+   },
+   "name": "find_area"
+  },
+  {
+   "description": "The area's usual burning season from 23 years of harmonized NASA fire data: first, busiest and last month of a typical year, and the latest full season's length in days with its 95% interval.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "unit_id": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "unit_id"
+    ],
+    "type": "object"
+   },
+   "name": "area_fire_calendar"
+  },
+  {
+   "description": "Live, provisional data for the area's district this season (from 1 July): the date the data run to and the number of unusual days (above that day's 90th-percentile normal) so far.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "unit_id": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "unit_id"
+    ],
+    "type": "object"
+   },
+   "name": "this_season"
+  },
+  {
+   "description": "Backtested chance (percent) of at least one unusual day in the district in the next 14 days, and the usual chance for that time of year. Runs 1 November to mid-May only.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "unit_id": {
+      "type": "string"
+     }
+    },
+    "required": [
+     "unit_id"
+    ],
+    "type": "object"
+   },
+   "name": "two_week_outlook"
+  },
+  {
+   "description": "Evidence that the MODIS-to-VIIRS correction works: share of the false 2012 jump removed, structural-break p-values, VIIRS/Aqua ratios before and after correction, and the interval coverage test.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "name": "harmonization_evidence"
+  },
+  {
+   "description": "When brick kilns usually operate, from NASA Black Marble night lights: the typical start, busiest time and end of the kiln season (early/mid/late month) and its length in days, as medians over the last 3 measured seasons, plus the number of kiln clusters. Give unit_id (from find_area) for a district; omit it for the whole country.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {
+     "unit_id": {
+      "type": "string"
+     }
+    },
+    "type": "object"
+   },
+   "name": "kiln_seasons"
+  },
+  {
+   "description": "The national harmonized fire series (Aqua-MODIS-equivalent detections per season): number of seasons, the first, latest (with its 95% range) and busiest season. Takes no arguments.",
+   "input_schema": {
+    "additionalProperties": false,
+    "properties": {},
+    "type": "object"
+   },
+   "name": "national_trend"
+  }
+ ]
+}

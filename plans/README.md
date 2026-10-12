@@ -16,7 +16,7 @@ and update your row when done.
 | 002 | Ask-agent test coverage + adversarial eval suite | P1 | S-M | — | DONE |
 | 003 | Expand agent tools (kiln seasons, national trend) | P1 | M | 002 | DONE |
 | 004 | ask.json cache automation (publish + daily deploy) | P2 | S-M | — | DONE |
-| 005 | Hosted live Ask worker (Cloudflare, server-side agent) | P2 | L | 001, 002, 003 | TODO — gated on human decisions (Step 0) |
+| 005 | Hosted live Ask worker (Cloudflare, server-side agent) | P2 | L | 001, 002, 003 | DONE — defaults approved 2026-10-12; deploy is an operator step (ask-worker/README.md) |
 | 006 | Agentic data-ops (twice-weekly verify cron, deploy-failure issues, `release` command) | P3 | M | — | DONE — drift rule implemented as PROPOSED (0.75); needs team approval |
 | 007 | Rehearse the 2 Nov S-NPP → NOAA-20 switch; show which satellite is live | **P1 — before 2 Nov 2026** | M | — | DONE |
 | 008 | LICENSE (MIT, as the README states) + CITATION.cff + .zenodo.json | P2 — before 13 Nov | S | — | DONE |

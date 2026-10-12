@@ -207,6 +207,11 @@ message verbatim).
 
 ### Step 3: Port tools, guard and loop
 
+> Amended at implementation (2026-10-12): `SYSTEM`, `TOOLS`, `MODEL` and `MAX_STEPS` are not hand-copied but
+> generated into `ask-worker/src/spec.json` by `make_goldens.py`, and `tests/test_ask_goldens.py` fails if they drift.
+> Goldens cover three datasets (`full`, `nokiln`, and `nokiln_nov` with the live series set to 31 October) so the
+> outlook's "on" branch is pinned too.
+
 - `src/tools.ts` — one exported function per Python tool. Each fetches its
   export file(s) from `env.DATA_ORIGIN` with
   `AbortSignal.timeout(10_000)`, returns the same shape as Python

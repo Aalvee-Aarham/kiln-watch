@@ -2,6 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { StatusMessage, useTitle, Icon, useKilnActivity } from '../components/ui'
 import { PageHead } from '../components/plain'
 import { useJson } from '../lib/data'
+import { ASK_ENDPOINT, askLive, type LiveReply } from '../lib/askApi'
 import { askGemini, buildSystemPrompt, unsupportedNumbers, type Facts } from '../lib/geminiPrompt'
 import { busyMonths, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
 import { seasonMean } from '../lib/calendar'
@@ -101,6 +102,48 @@ function LiveChat({ apiKey }: { apiKey: string }) {
   )
 }
 
+/** The tool calls behind an answer, each with its result: the same view for saved and live answers. */
+function ToolTrace({ tools }: { tools: AskCache['answers'][number]['tools'] }) {
+  return (
+    <details className="text-sm" lang="en">
+      <summary className="cursor-pointer text-orbit">The data behind this answer ({tools.length} {tools.length === 1 ? 'call' : 'calls'} to our code)</summary>
+      <ol className="mt-2 space-y-2">{tools.map((t, i) => (
+        <li key={i}><span className="code">{t.name}({Object.values(t.input).join(', ')})</span>
+          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface-2 p-2 text-xs">{JSON.stringify(t.result, null, 1)}</pre></li>))}</ol>
+    </details>
+  )
+}
+
+/** Live answers from the hosted agent (plans/005): the project's own tools and numeric guard, run server-side. */
+function HostedChat() {
+  const [q, setQ] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [res, setRes] = useState<LiveReply | null>(null)
+  const send = async () => {
+    if (loading || !q.trim()) return
+    setLoading(true)
+    setRes(null)
+    try { setRes(await askLive(q.trim())) } catch { setRes({ ok: false, status: 0, message: 'Could not reach the ask service. The saved answers below still work.' }) }
+    finally { setLoading(false) }
+  }
+  return (
+    <div className="panel space-y-4">
+      <div className="flex gap-2">
+        <input className="field flex-1" aria-label="Your question" maxLength={500} value={q} onChange={(e) => setQ(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') send() }} placeholder="Ask about a district's fire or kiln season..." />
+        <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={send} disabled={loading || !q.trim()}>Ask</button>
+      </div>
+      {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="spinner" className="h-4 w-4 animate-spin" />Thinking...</div>}
+      {res && !res.ok && <StatusMessage kind="error">{res.message}</StatusMessage>}
+      {res?.ok && <div className="space-y-3">
+        {res.answer ? <p className="ours">{res.answer}</p>
+          : <StatusMessage kind="error">Blocked: {res.reason ?? `the answer stated a number our data did not return (${(res.unsupported ?? []).join(', ')})`}. We show nothing rather than an unchecked figure.</StatusMessage>}
+        <ToolTrace tools={res.tools} />
+      </div>}
+    </div>
+  )
+}
+
 export default function AskPage() {
   useTitle('Ask Kiln Watch')
   const ask = useJson<AskCache>('ask.json')
@@ -124,7 +167,10 @@ export default function AskPage() {
         <LiveChat apiKey={apiKey} />
       ) : (
         <>
-          <StatusMessage kind="info">Provide an API key above to chat live, or read the static cached answers below.</StatusMessage>
+          {ASK_ENDPOINT && <HostedChat />}
+          <StatusMessage kind="info">{ASK_ENDPOINT
+            ? 'Ask above, use your own Gemini key in Settings, or read the saved answers below.'
+            : 'Provide an API key above to chat live, or read the static cached answers below.'}</StatusMessage>
           {ask.loading ? null : !ask.data ? <StatusMessage kind="info">No answers have been generated for this data build yet.</StatusMessage>
             : <>
               <p className="text-sm text-muted">Answered by <span className="code">{ask.data.model}</span> on {ask.data.generated_at.slice(0, 10)} from data build <span className="code">{ask.data.data_build}</span>. Saved answers, not live: they do not change until the next data build.</p>
@@ -134,12 +180,7 @@ export default function AskPage() {
                     <b className="block text-lg leading-snug">“{a.question}”</b>
                     {a.answer ? <p className="ours">{a.answer}</p>
                       : <StatusMessage kind="error">Blocked: {a.reason ?? `the answer stated a number our data did not return (${(a.unsupported ?? []).join(', ')})`}. We show nothing rather than an unchecked figure.</StatusMessage>}
-                    <details className="text-sm" lang="en">
-                      <summary className="cursor-pointer text-orbit">The data behind this answer ({a.tools.length} {a.tools.length === 1 ? 'call' : 'calls'} to our code)</summary>
-                      <ol className="mt-2 space-y-2">{a.tools.map((t, i) => (
-                        <li key={i}><span className="code">{t.name}({Object.values(t.input).join(', ')})</span>
-                          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface-2 p-2 text-xs">{JSON.stringify(t.result, null, 1)}</pre></li>))}</ol>
-                    </details>
+                    <ToolTrace tools={a.tools} />
                   </li>))}
               </ul>
             </>}
