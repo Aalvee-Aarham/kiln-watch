@@ -37,6 +37,7 @@ export type MapFocus = {
   boxW: number
   boxH: number
   zoom: number
+  bbox: [number, number, number, number]
 }
 
 export type AgentResolution = {
@@ -149,7 +150,8 @@ export function parseUserQuery(query: string): AgentResolution {
     boxY,
     boxW,
     boxH,
-    zoom
+    zoom,
+    bbox: p.bbox
   }
 
   // Assemble chart data

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
 import { BBOX, SOUTH_ASIA_BOX, type Box } from '../lib/box'
-import { boxView, clampView, labelPx, placeLabels, STATES_W, visibleCities, zoomView, type City, type View } from '../lib/world'
+import { boxView, clampView, labelPx, placeLabels, STATES_W, visibleCities, zoomView, shapes, overlaps, type City, type View } from '../lib/world'
 import type { FC } from '../lib/types'
 import { Icon } from './ui'
 // NASA GIBS WMS GetMap images in EPSG:4326, so each sits on this map's lon/lat grid by its corners. Bundled for offline use;
@@ -17,25 +17,6 @@ const IMAGES: [Box, string, string][] = [[[-180, -90, 180, 90], worldDay, worldN
 const WORLD: Box = [-180, -60, 180, 80]
 
 export type Pick = { kind: 'state' | 'country' | 'city'; id: string }
-type Shape = { id: string; name: string; d: string; x0: number; y0: number; x1: number; y1: number }
-
-/** Path in degrees (x = lon, y = −lat) plus its bounding box, for culling to the view. */
-function shapes(fc?: FC): Shape[] {
-  return (fc?.features ?? []).map((f) => {
-    let d = '', x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
-    const ring = (r: GeoJSON.Position[]) => {
-      d += 'M' + r.map(([lon, lat]) => {
-        if (lon < x0) x0 = lon; if (lon > x1) x1 = lon; if (-lat < y0) y0 = -lat; if (-lat > y1) y1 = -lat
-        return `${lon},${-lat}`
-      }).join('L') + 'Z'
-    }
-    const g = f.geometry
-    if (g.type === 'Polygon') g.coordinates.forEach(ring)
-    else if (g.type === 'MultiPolygon') g.coordinates.forEach((p) => p.forEach(ring))
-    return { id: f.properties.unit_id, name: f.properties.name_en, d, x0, y0, x1, y1 }
-  })
-}
-const overlaps = (s: Shape, v: View) => s.x1 >= v.x && s.x0 <= v.x + v.w && s.y1 >= v.y && s.y0 <= v.y + v.h
 
 /**
  * The whole globe on a lon/lat grid: countries, states and provinces (when zoomed in), and city names that grow
