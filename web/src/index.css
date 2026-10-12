@@ -709,16 +709,33 @@
 
 /* World context (BdMap `world`, #/news/map): land and borders under the districts, Bangladesh outlined bold on top. */
 .bd-world {
-  /* land a step from the sea (the page ground) in either theme; borders a step further */
+  /* land a step from the sea (the page ground) in either theme */
   fill: color-mix(in oklch, var(--color-ink) 17%, var(--color-bg));
-  stroke: color-mix(in oklch, var(--color-ink) 40%, var(--color-bg));
-  stroke-width: 0.8;
+  stroke: none;
   pointer-events: none;
 }
 
-.bd-world.on-imagery {
+/* states and provinces: faint, under the country borders */
+.bd-state {
   fill: none;
-  stroke: rgb(255 255 255 / 0.4);
+  stroke: color-mix(in oklch, var(--color-ink) 28%, var(--color-bg));
+  stroke-width: 0.6;
+  pointer-events: none;
+}
+
+.bd-border {
+  fill: none;
+  stroke: color-mix(in oklch, var(--color-ink) 42%, var(--color-bg));
+  stroke-width: 0.9;
+  pointer-events: none;
+}
+
+.bd-state.on-imagery {
+  stroke: rgb(255 255 255 / 0.22);
+}
+
+.bd-border.on-imagery {
+  stroke: rgb(255 255 255 / 0.45);
 }
 
 /* Spotlight on the analysis area: the rest of the world dimmed, a thin crisp edge (masked to outside the country, so
@@ -765,6 +782,12 @@
   stroke-width: 3px;
   stroke-linejoin: round;
   pointer-events: none;
+}
+
+.bd-country-name.is-state {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  fill-opacity: 0.8;
 }
 
 .bd-country-name.on-imagery {
