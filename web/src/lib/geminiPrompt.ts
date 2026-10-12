@@ -31,8 +31,13 @@ export function unsupportedNumbers(answer: string, context: string): number[] {
   return [...numbers(answer)].filter((n) => !allowed.has(n)).sort((a, b) => a - b)
 }
 
-/** Models tried in order; a 404 (retired model) moves to the next. Check ids against ai.google.dev before editing. */
-export const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
+/** Models tried in order: gemini-2.0-flash-lite is the fastest and most token/quota-efficient model on the free tier. */
+export const GEMINI_MODELS = [
+  'gemini-2.0-flash-lite',
+  'gemini-2.0-flash',
+  'gemini-1.5-flash-8b',
+  'gemini-1.5-flash'
+]
 export const RETIRED_MESSAGE = 'Google retired the models this page uses — the cached answers below still work.'
 
 /** The request body: the instructions travel as system_instruction, never inside the user's turn. */
@@ -40,7 +45,9 @@ export function buildGeminiRequest(sys: string, q: string) {
   return {
     system_instruction: { parts: [{ text: sys }] },
     contents: [{ role: 'user', parts: [{ text: q }] }],
-    generationConfig: { maxOutputTokens: 1024 }, // no temperature: deprecated on Gemini 3.x (ignored now, an error in later models)
+    generationConfig: {
+      maxOutputTokens: 350 // Token-frugal cap to stay well within free tier limits while keeping responses concise
+    },
   }
 }
 
