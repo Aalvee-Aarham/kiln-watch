@@ -89,9 +89,14 @@ export default function NewsMapPage() {
     <div className="flex h-full flex-col lg:flex-row">
       <aside aria-labelledby="news-map-title" className="order-2 flex min-h-0 flex-1 flex-col border-t border-line bg-surface lg:order-1 lg:w-[400px] lg:flex-none lg:border-t-0 lg:border-r">
         <header className="space-y-3 border-b border-line px-5 pt-4 pb-3 max-lg:space-y-2 max-lg:px-4 max-lg:pt-3">
-          <div className="max-lg:flex max-lg:items-baseline max-lg:justify-between max-lg:gap-2">
-            <h1 id="news-map-title" className="h-display text-[1.65rem] leading-tight max-lg:text-lg">{t('newsMapTitle')}</h1>
-            <p className="mt-1 text-sm text-muted max-lg:mt-0 max-lg:shrink-0 max-lg:text-xs">{file.data ? storyCount(groups.length, lang) : '…'} · {digits(season ?? '', lang)}</p>
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0 max-lg:flex max-lg:items-baseline max-lg:gap-2">
+              <h1 id="news-map-title" className="h-display text-[1.65rem] leading-tight max-lg:text-lg">{t('newsMapTitle')}</h1>
+              <p className="mt-1 text-sm text-muted max-lg:mt-0 max-lg:shrink-0 max-lg:text-xs">{file.data ? storyCount(groups.length, lang) : '…'} · {digits(season ?? '', lang)}</p>
+            </div>
+            {/* the map is News' front page; every story, with filters and sources, is one step away */}
+            <Link className="btn shrink-0 gap-1 px-2.5 py-1.5 text-xs font-semibold" to={`/news${lang === 'bn' ? '?lang=bn' : ''}`}>
+              <Icon name="table" className="h-3.5 w-3.5" />{t('newsListTab')}</Link>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block text-xs text-muted">{t('seasonShort')}
@@ -120,8 +125,6 @@ export default function NewsMapPage() {
         <footer className="space-y-1 border-t border-line px-5 py-2 text-[11px] leading-snug text-muted max-lg:px-4">
           <p role="note">{t('newsLabel')}</p>
           {!nrt.loading && !nrt.data && <p>{t('noLiveFire')}</p>}
-          <Link className="inline-flex items-center gap-1 font-semibold text-orbit underline" to={`/news${lang === 'bn' ? '?lang=bn' : ''}`}>
-            {t('newsListTab')}<Icon name="chevron" className="h-3 w-3" /></Link>
         </footer>
       </aside>
 

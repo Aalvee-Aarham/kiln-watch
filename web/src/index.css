@@ -801,6 +801,32 @@
   letter-spacing: 0.04em;
 }
 
+/* World-context map over imagery (#/news/map): district lines recede so the picture leads. Night lights: the image is
+   already dark, so no veil; borders barely there, and the outside dimmed a little more so Bangladesh's own lights stand out. */
+.bd-map.on-imagery .bd-feat:not(:hover):not(:focus-visible):not(.bd-sel) {
+  stroke: rgb(255 255 255 / 0.16);
+}
+
+.bd-map.is-night .bd-veil {
+  fill-opacity: 0;
+}
+
+.bd-map.is-night .bd-dim.on-imagery {
+  fill-opacity: 0.38;
+}
+
+.bd-map.is-night .bd-border.on-imagery {
+  stroke: rgb(255 255 255 / 0.2);
+}
+
+.bd-map.is-night .bd-home {
+  stroke-opacity: 0.55;
+}
+
+.bd-map.is-night .bd-country-name.on-imagery {
+  fill: rgb(255 255 255 / 0.55);
+}
+
 /* News pins (#/news/map): one per district with stories, at the district centre. */
 .bd-pin {
   cursor: pointer;

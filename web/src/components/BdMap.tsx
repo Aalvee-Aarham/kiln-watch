@@ -441,7 +441,8 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   // What is on screen (the viewBox is letterboxed, so wider than view), and whether states are near enough to show.
   const vis = ppu ? { L: view.x + view.w / 2 - svgPx.w / ppu / 2, T: view.y + view.h / 2 - svgPx.h / ppu / 2, R: view.x + view.w / 2 + svgPx.w / ppu / 2, B: view.y + view.h / 2 + svgPx.h / ppu / 2 } : null
   const onScreen = (b: number[]) => !vis || (b[2] >= vis.L && b[0] <= vis.R && b[3] >= vis.T && b[1] <= vis.B)
-  const showStates = !!vis && (vis.R - vis.L) / unitsPerDeg <= STATES_W
+  // states only on the plain map and day imagery: over night lights their lines turn the glow into a tangle
+  const showStates = !!vis && layer !== 'night' && (vis.R - vis.L) / unitsPerDeg <= STATES_W
   // Names, like any map: countries first (biggest first), then states; each at its largest piece's middle or, when that is
   // off screen, the spot on its own land nearest it; none overlapping another name, Bangladesh or the map's controls.
   const names = (() => {
@@ -478,7 +479,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   }), [world, toXY])
 
   return (
-    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative ${className} w-full overflow-hidden bg-bg select-none`}>
+    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''}${world && layer !== 'none' ? ` on-imagery is-${layer}` : ''} relative ${className} w-full overflow-hidden bg-bg select-none`}>
       <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="h-full w-full touch-none"
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
         {layer !== 'none' && imgs.map((m) => <image key={m.key} href={layer === 'day' ? m.day : m.night} x={m.x} y={m.y} width={m.w} height={m.h} preserveAspectRatio="none" aria-hidden />)}
