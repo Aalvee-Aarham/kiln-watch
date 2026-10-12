@@ -15,6 +15,7 @@ One fire record from MODIS and VIIRS: a burning-activity calendar for any area, 
 | [AI_USE.md](AI_USE.md) | Every use of AI in the project, for the Space Apps AI disclosure |
 | [amendment5_draft.md](amendment5_draft.md) | **Draft, not in force:** the proposed pre-registration of the South Asia calendar, for the team to agree |
 | [roadmap.md](roadmap.md) | The plan to the event: steps F0–F9, what each must show to be done |
+| [news_plan.md](news_plan.md) | The news page: newspaper stories beside our satellite data — decisions, sources, pipeline, contract, risks |
 | [../CLAUDE.md](../CLAUDE.md) | Living rules for coding agents (invariants, conventions, when blocked) |
 
 ## Canonical records (never rewritten)

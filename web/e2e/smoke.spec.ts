@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts', '#/ask', '#/region',
-  '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
+  '#/news', '#/news?season=all', '#/news/map', '#/news/story/2025-26/000000000000', '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
   const errors: string[] = []
@@ -342,4 +342,69 @@ test('world map: the panel shows real numbers for Bangladesh and the kiln test a
   await page.getByRole('button', { name: /^Pakistan \(country/ }).click()
   await expect(page.getByText('Kiln extension: tested here')).toBeVisible()
   await expect(page.getByText(/busiest from November to March/)).toBeVisible()
+})
+
+// --- news (docs/news_plan.md §7, §11): optional files; only the full fixture ships a synthetic set ---
+async function hasNews(page: Page) {
+  const r = await page.request.get('data/news/index.json')
+  return r.ok() && !(r.headers()['content-type'] ?? '').includes('text/html')
+}
+
+test('news: the nav item shows exactly when news/index.json exists', async ({ page }) => {
+  const shipped = await hasNews(page)
+  await page.goto('#/area')
+  await expect(page.getByRole('navigation', { name: 'Main' })).toBeVisible()
+  await page.waitForTimeout(800)
+  await expect(page.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'News' })).toHaveCount(shipped ? 1 : 0)
+  if (!shipped) {
+    await page.goto('#/news')
+    await expect(page.getByText('No news has been published for this data build.')).toBeVisible()
+  }
+})
+
+for (const [theme, width] of [['day', 1366], ['night', 1366], ['day', 390]] as const) {
+  test(`news: a story opens its earlier news (${theme}, ${width}px)`, async ({ page }) => {
+    test.skip(!(await hasNews(page)), 'this data build ships no news files')
+    const errors = watchErrors(page)
+    await page.setViewportSize({ width, height: 900 })
+    await page.addInitScript((t) => localStorage.setItem('kwTheme', t), theme)
+    await page.goto('#/news')
+    await expect(page.getByText(/Collected by AI from newspapers\. Not reviewed by a person\./)).toBeVisible()
+    const card = page.locator('main article').first()
+    await expect(card).toBeVisible()
+    await expect(card.getByRole('link').first()).toHaveAttribute('rel', 'noopener noreferrer')
+    await expect(card.locator('blockquote[cite]')).toHaveCount(1)
+    await card.locator('details > summary').first().click()
+    await expect(card.getByRole('link', { name: 'See all' })).toBeVisible()
+    await expect(card.getByText(/Loading news/)).toHaveCount(0)
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth + 1)).toBe(true)
+    await page.screenshot({ path: `test-results/${theme}_${width}_news_earlier.png`, fullPage: true })
+    await card.getByRole('link', { name: 'See all' }).click()
+    await expect(page).toHaveURL(/#\/news\?district=(BD\d{4}|BGD)&season=all/)
+    expect(errors).toEqual([])
+  })
+}
+
+test('news map: a story opens a card on the map, and View more opens it in full', async ({ page }) => {
+  test.skip(!(await hasNews(page)), 'this data build ships no news files')
+  const errors = watchErrors(page)
+  await page.goto('#/news/map')
+  const first = page.locator('[data-news]').first()
+  await expect(first).toBeVisible()
+  const id = await first.getAttribute('data-news')
+  await first.click()
+  await expect(page).toHaveURL(new RegExp(`story=${id}`))
+  await expect(first).toHaveAttribute('aria-pressed', 'true')
+  const card = page.locator('main article').filter({ has: page.getByRole('link', { name: 'View more' }) })
+  await expect(card).toBeVisible()
+  await expect(card.getByRole('link').first()).toHaveAttribute('rel', 'noopener noreferrer')
+  await card.getByRole('button', { name: 'Close' }).click()
+  await expect(card).toHaveCount(0)
+  await first.click()
+  await card.getByRole('link', { name: 'View more' }).click()
+  await expect(page).toHaveURL(new RegExp(String.raw`#/news/story/\d{4}-\d{2}/${id}$`))
+  await expect(page.locator('main article blockquote[cite]')).toHaveCount(1)
+  await page.getByRole('link', { name: 'Back to the news map' }).click()
+  await expect(page).toHaveURL(new RegExp(String.raw`#/news/map\?.*story=${id}`))
+  expect(errors).toEqual([])
 })

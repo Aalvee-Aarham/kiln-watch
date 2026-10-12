@@ -707,6 +707,181 @@
   pointer-events: none;
 }
 
+/* World context (BdMap `world`, #/news/map): land and borders under the districts, Bangladesh outlined bold on top. */
+.bd-world {
+  /* land a step from the sea (the page ground) in either theme */
+  fill: color-mix(in oklch, var(--color-ink) 17%, var(--color-bg));
+  stroke: none;
+  pointer-events: none;
+}
+
+/* states and provinces: faint, under the country borders */
+.bd-state {
+  fill: none;
+  stroke: color-mix(in oklch, var(--color-ink) 28%, var(--color-bg));
+  stroke-width: 0.6;
+  pointer-events: none;
+}
+
+.bd-border {
+  fill: none;
+  stroke: color-mix(in oklch, var(--color-ink) 42%, var(--color-bg));
+  stroke-width: 0.9;
+  pointer-events: none;
+}
+
+.bd-state.on-imagery {
+  stroke: rgb(255 255 255 / 0.22);
+}
+
+.bd-border.on-imagery {
+  stroke: rgb(255 255 255 / 0.45);
+}
+
+/* Spotlight on the analysis area: the rest of the world dimmed, a thin crisp edge (masked to outside the country, so
+   half of the stroke width shows). */
+.bd-dim {
+  fill: var(--color-bg);
+  fill-opacity: 0.18;
+  pointer-events: none;
+}
+
+/* over imagery: a light veil on the whole picture (under the fire colours) so Bangladesh isn't glaring, and a gentler
+   extra dim outside it; ≈ 15 % darker inside, ≈ 36 % outside */
+.bd-veil {
+  fill: rgb(0 0 0);
+  fill-opacity: 0.15;
+  pointer-events: none;
+}
+
+.bd-dim.on-imagery {
+  fill: rgb(0 0 0);
+  fill-opacity: 0.25;
+}
+
+.bd-home {
+  fill: none;
+  stroke: var(--color-ink);
+  stroke-opacity: 0.8;
+  stroke-width: 1.6;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.bd-home.on-imagery {
+  stroke: rgb(255 255 255);
+  stroke-opacity: 0.85;
+}
+
+.bd-country-name {
+  fill: var(--color-muted);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  paint-order: stroke;
+  stroke: var(--color-bg);
+  stroke-width: 3px;
+  stroke-linejoin: round;
+  pointer-events: none;
+}
+
+.bd-country-name.is-state {
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  fill-opacity: 0.8;
+}
+
+.bd-country-name.on-imagery {
+  fill: rgb(255 255 255 / 0.8);
+  stroke: rgb(0 0 0 / 0.55);
+}
+
+.bd-home-label {
+  fill: var(--color-ink);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+/* World-context map over imagery (#/news/map): district lines recede so the picture leads. Night lights: the image is
+   already dark, so no veil; borders barely there, and the outside dimmed a little more so Bangladesh's own lights stand out. */
+.bd-map.on-imagery .bd-feat:not(:hover):not(:focus-visible):not(.bd-sel) {
+  stroke: rgb(255 255 255 / 0.16);
+}
+
+.bd-map.is-night .bd-veil {
+  fill-opacity: 0;
+}
+
+.bd-map.is-night .bd-dim.on-imagery {
+  fill-opacity: 0.38;
+}
+
+.bd-map.is-night .bd-border.on-imagery {
+  stroke: rgb(255 255 255 / 0.2);
+}
+
+.bd-map.is-night .bd-home {
+  stroke-opacity: 0.55;
+}
+
+.bd-map.is-night .bd-country-name.on-imagery {
+  fill: rgb(255 255 255 / 0.55);
+}
+
+/* News pins (#/news/map): one per district with stories, at the district centre. */
+.bd-pin {
+  cursor: pointer;
+  outline: none;
+}
+
+.bd-pin circle {
+  fill: var(--color-orbit);
+  fill-opacity: 0.88;
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+  transition: fill-opacity 160ms var(--ease-out), stroke 160ms var(--ease-out);
+}
+
+.bd-pin text {
+  fill: var(--color-on-ink);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.bd-pin:hover circle,
+.bd-pin:focus-visible circle {
+  fill-opacity: 1;
+  stroke: var(--color-ink);
+  stroke-width: 2.2;
+}
+
+.bd-pin-sel circle {
+  fill: var(--color-heat);
+  fill-opacity: 1;
+  stroke: var(--color-ink);
+  stroke-width: 2.2;
+}
+
+.bd-pin circle.bd-pin-halo {
+  fill: var(--color-heat);
+  fill-opacity: 0.22;
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pin-halo 1.6s ease-out infinite;
+}
+
+@keyframes pin-halo {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
 .bd-boxrect {
   fill: var(--color-orbit);
   fill-opacity: 0.08;

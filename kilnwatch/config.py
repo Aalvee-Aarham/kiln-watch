@@ -46,9 +46,53 @@ MAX_CLUSTER_DIAM_M = 5_000
 MAX_CLUSTER_SHARE = 0.02
 CONTROL_ATTEMPTS_MAX = 2_000
 SEED = 20261114
-SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7, "transfer": 8}
+SEED_OFFSETS = {"kilns": 1, "gates": 2, "harmonize": 3, "classify": 4, "metrics": 5, "validate": 6, "activity": 7, "transfer": 8,
+                "news": 9, "news_audit": 10}
 FORBIDDEN_PUBLIC_KEYS = {"kiln_id", "cluster_id", "candidate", "kiln_lat", "kiln_lon"}
 TRANSFER_DISTRICT = "Faisalabad"
+
+# --- FIXED: news page (docs/news_plan.md) ------------------------------------
+NEWS_MODEL = "gemini-3.1-flash-lite"  # the primary reader; fallbacks below
+# Tried in order for every article: a provider out of quota (429) or refusing (bad key/model) is dropped for the rest of
+# the run; a provider whose key is not set is skipped. All but Gemini speak the OpenAI-compatible chat API. Free tiers;
+# each provider's own terms apply (docs/news_plan.md §10). Model ids change: confirm them when adding a key.
+NEWS_PROVIDERS = (
+    # Five Gemini models on one key: each model has its own free daily limit (one key only: rotating keys to beat the
+    # limit breaks Google's API terms, §2(d)).
+    {"name": "gemini-3.1-flash-lite", "api": "gemini", "model": "gemini-3.1-flash-lite", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-3.5-flash-lite", "api": "gemini", "model": "gemini-3.5-flash-lite", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-3.6-flash", "api": "gemini", "model": "gemini-3.6-flash", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-3.8-flash", "api": "gemini", "model": "gemini-3.8-flash", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-3-flash-preview", "api": "gemini", "model": "gemini-3-flash-preview", "key": "GEMINI_API_KEY"},
+    {"name": "gemini-2.5-flash-lite", "api": "gemini", "model": "gemini-2.5-flash-lite", "key": "GEMINI_API_KEY"},  # spares: older models,
+    {"name": "gemini-2.5-flash", "api": "gemini", "model": "gemini-2.5-flash", "key": "GEMINI_API_KEY"},  # their own daily limits
+    # Groq: the models available on the team key (12 Oct 2026), each with its own free limit.
+    {"name": "groq-gpt-oss", "api": "openai", "model": "openai/gpt-oss-120b", "key": "GROQ_API_KEY", "base_url": "https://api.groq.com/openai/v1"},
+    {"name": "groq-qwen", "api": "openai", "model": "qwen/qwen3.8-27b", "key": "GROQ_API_KEY", "base_url": "https://api.groq.com/openai/v1"},
+    {"name": "groq-gpt-oss-20b", "api": "openai", "model": "openai/gpt-oss-20b", "key": "GROQ_API_KEY", "base_url": "https://api.groq.com/openai/v1"},
+    # Optional extras, skipped until a key is set.
+    {"name": "cerebras", "api": "openai", "model": "gpt-oss-120b", "key": "CEREBRAS_API_KEY", "base_url": "https://api.cerebras.ai/v1"},
+    {"name": "mistral", "api": "openai", "model": "mistral-small-latest", "key": "MISTRAL_API_KEY", "base_url": "https://api.mistral.ai/v1",
+     "seed_param": "random_seed"},
+    {"name": "github-models", "api": "openai", "model": "openai/gpt-4o-mini", "key": "GITHUB_MODELS_TOKEN", "base_url": "https://models.github.ai/inference"},
+)
+NEWS_FEED_FROM = "2025-07-01"  # the main feed's default view: seasons 2025-26 on
+NEWS_HISTORY_FROM = "2012-07-01"  # history start: season 2012-13, the VIIRS era
+NEWS_BURN_WINDOW_DAYS = 7
+NEWS_ENFORCE_WINDOW_DAYS = 14
+NEWS_CLOUDY_MIN_DAYS = 4  # days of the 7-day window not observed -> "can't tell", not a count
+NEWS_RARE_SEASON_FRAC = 0.5  # verdict "rare" below this share of seasons with burning; awaiting team confirmation
+NEWS_EARLIER_SHOWN = 3
+NEWS_EVENT_MAX_LAG_DAYS = 30
+NEWS_CLAIM_MAX_WORDS = 30
+NEWS_QUOTE_MAX_WORDS = 25
+NEWS_EXCERPT_MAX_WORDS = 600
+NEWS_FETCH_DELAY_S = 3.0
+NEWS_MAX_FETCH_PER_HOST_PER_RUN = 60
+NEWS_MAX_LLM_CALLS_PER_RUN = 150
+NEWS_MAX_RETRIES = 3
+NEWS_MAX_ITEMS_PER_MONTH = 1_000  # every public news array stays far below the cluster and kiln counts
+NEWS_USER_AGENT = "KilnWatch-News/1.0 (+https://github.com/Aalvee-Aarham/kiln-watch)"
 
 # --- Paths -------------------------------------------------------------------
 DATA = ROOT / "data"
@@ -57,6 +101,7 @@ INTERIM = DATA / "interim"
 MODELS = DATA / "models"
 STATIC = DATA / "static"
 NRT_DIR = DATA / "nrt"
+NEWS_DIR = DATA / "news"
 REPORTS = ROOT / "reports"
 FIGURES = REPORTS / "figures"
 WEB_DATA = ROOT / "web" / "public" / "data"
@@ -66,6 +111,11 @@ REGULATOR_DIR = ROOT / "regulator"
 FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
 OPENAQ_API_KEY = os.environ.get("OPENAQ_API_KEY", "")
 EE_PROJECT = os.environ.get("EE_PROJECT", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # news stage only; never a VITE_ variable
+GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")  # news fallbacks (NEWS_PROVIDERS); all optional
+CEREBRAS_API_KEY = os.environ.get("CEREBRAS_API_KEY", "")
+MISTRAL_API_KEY = os.environ.get("MISTRAL_API_KEY", "")
+GITHUB_MODELS_TOKEN = os.environ.get("GITHUB_MODELS_TOKEN", "")  # a PAT with models:read; CI passes the workflow token
 
 # --- DERIVED (config_derived.json) -----------------------------------------
 DERIVED_PATH = Path(__file__).with_name("config_derived.json")

@@ -445,6 +445,7 @@ Each is built from the public export alone, so none can carry more than the webs
 - **Overlap agreement** (`validate.overlap_agreement` → `harmonization.json` `overlap`): Aqua vs VIIRS on district-months both saw, raw vs harmonized, calibration vs held-out seasons, Lin's CCC with a district bootstrap.
 - **Two-week outlook** (`validate.outlook` → `outlook.json`): backtested against the district × week climatology; published only when the lower 95% bound of Brier skill is above 0. Exploratory, not pre-registered.
 - **Ask Kiln Watch** (`ask.py`, `#/ask`): Claude calls the project's functions and explains; a guard blocks any answer stating a number no function returned. See [AI_USE.md](AI_USE.md).
+- **News page** (`news.py`, `news_pair.py`, `#/news`): stories found through newspapers' own sitemaps, read by Gemini, checked in code, and shown beside what our satellites saw, how common fire is in that district, and earlier news; the model never writes a number. Plan: [news_plan.md](news_plan.md).
 
 ## 6. Interim data model (`data/interim/*.parquet`, gitignored)
 
@@ -528,7 +529,7 @@ Full detail in [web-frontend.md](web-frontend.md); design rationale in [redesign
 | `ci.yml` (push, PR) | `python`: Ruff + pytest — synthetic tests only; `test_isolation.py` fails if any test references `data/`. `web-fixtures`: `npm ci`, ESLint, `tsc --noEmit`, Vitest, **a `DATA_SRC=fixtures` build for each of the five fixture branches**, both safety checks, bundle-size report. |
 | `deploy.yml` (push to `main`, cron 03:00 UTC, dispatch) | `nrt` job → workflow artifact. `deploy` job (`needs: nrt`, runs if it succeeded or was skipped) → download `data-current` → download the NRT artifact → `DATA_SRC=real` build → both safety checks → Pages. |
 | Real public data | GitHub Release asset `data-current` (`public-data.tar.gz`), uploaded by `export --publish`; immutable `data-<short_sha>` releases for history. Never in git. |
-| Secrets | `FIRMS_MAP_KEY` only. Earth Engine credentials never enter CI. |
+| Secrets | `FIRMS_MAP_KEY`; `GEMINI_API_KEY` only once the news job is switched on. Earth Engine credentials never enter CI. |
 | Safety gate | Both workflows run the name grep **and** `python -m kilnwatch export --check-public web/dist/data`; either failing blocks deployment |
 | Failure behaviour | If `data-current` is missing or a check fails, deploy fails loudly and the last good Pages deployment stays live |
 | Offline fallback | `web/dist` served locally, `presentation/backup/*.png`, and the one-page headline PDF |

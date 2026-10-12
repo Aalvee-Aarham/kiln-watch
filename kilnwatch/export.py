@@ -17,8 +17,9 @@ from . import config as C
 log = logging.getLogger("kilnwatch.export")
 BUDGET = {"meta.json": 50_000, "events.json": 50_000, "harmonization.json": 200_000, "validation.json": 500_000,
           "aoi/districts.geojson": 400_000, "aoi/south_asia.geojson": 100_000, "aoi/world_countries.geojson": 1_000_000, "aoi/world_states.geojson": 3_500_000, "aoi/world_cities.json": 700_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "outlook.json": 200_000,
-          "kiln_activity.json": 1_500_000}
-BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000}
+          "kiln_activity.json": 1_500_000, "news/index.json": 50_000, "news/places.json": 50_000}
+# news/: season files (news/<season>.json, about 1.5 MB raw at the plan's starting size) and place files (news/place/)
+BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000, "news/": 400_000, "news/place/": 100_000}
 SPLITS = {
     "kiln": [("kiln", "Kiln-like heat", "ভাটা-সদৃশ তাপ"), ("vegetation", "Vegetation fires", "উদ্ভিদ আগুন"), ("unknown", "Unknown", "অজানা")],
     "nightfire": [("kiln", "Kiln-like heat (Nightfire)", "ভাটা-সদৃশ তাপ (নাইটফায়ার)"), ("vegetation", "Vegetation fires", "উদ্ভিদ আগুন"), ("unknown", "Unknown", "অজানা")],
@@ -143,14 +144,15 @@ def check_public_dir(path: Path, n_clusters=None, n_kilns=None, admin_bounds=Non
                 stack.extend((v, where) for v in o if isinstance(v, (dict, list)))
 
 
-def check_budgets(path: Path) -> list[str]:
+def check_budgets(path: Path, only: str = "") -> list[str]:
+    """Size budgets (A10). `only`: check just the budgets whose path starts with it (news-pair checks "news/")."""
     errs = []
     for rel, lim in BUDGET.items():
         p = path / rel
-        if p.exists() and p.stat().st_size > lim:
+        if rel.startswith(only) and p.exists() and p.stat().st_size > lim:
             errs.append(f"{rel}: {p.stat().st_size} > {lim}")
     for prefix, lim in BUDGET_GZ.items():
-        for p in (path / prefix).glob("*.json"):
+        for p in (path / prefix).glob("*.json") if prefix.startswith(only) else ():
             gz = len(gzip.compress(p.read_bytes()))
             if gz > lim:
                 errs.append(f"{prefix}{p.name}: {gz} gz > {lim}")
@@ -207,7 +209,7 @@ def publish() -> None:
     tar = C.ROOT / "public-data.tar.gz"
     with tarfile.open(tar, "w:gz") as t:
         for p in C.WEB_DATA.rglob("*"):
-            if p.is_file() and "nrt" not in p.relative_to(C.WEB_DATA).parts:
+            if p.is_file() and not {"nrt", "news"} & set(p.relative_to(C.WEB_DATA).parts):  # rebuilt at every deploy
                 t.add(p, arcname=str(p.relative_to(C.WEB_DATA)))
     from . import research
 
@@ -249,6 +251,7 @@ def write_fixtures(out: Path = C.WEB_FIXT) -> None:
 
 RELEASE_TARBALL = C.ROOT / "data" / "releases" / "public-data.tar.gz"
 RELEASE_NRT = C.ROOT / "data" / "releases" / "nrt-current.json"
+RELEASE_NEWS_STORE = C.ROOT / "data" / "releases" / "news-store.json"  # committed snapshot of the news-current store
 
 
 def _real_release_dir() -> Path | None:
@@ -301,6 +304,11 @@ def _fixture_set_real(d: Path, src: Path) -> None:
     if repairs:
         ka_p.write_text(json.dumps(ka, separators=(",", ":"), ensure_ascii=False), encoding="utf-8")
         log.info("real fixture: nulled %d non-bracketing season CIs in kiln_activity.json", repairs)
+    if RELEASE_NEWS_STORE.exists():  # real news paired with this verbatim copy, as the deploy job does
+        from . import news_pair, news_store
+
+        store = news_store.load(RELEASE_NEWS_STORE)
+        news_pair.run(d, store=store, generated_at=store.get("updated_at") or "unknown")
 
 
 def add_overlap(d: Path) -> None:
@@ -396,6 +404,107 @@ def _fixture_set(branch: str, d: Path) -> None:
     _dump(_fixture_kiln_activity(rng), d / "kiln_activity.json")
     add_overlap(d)
     write_region(d)
+    if branch == "full":  # last, and with no random draws: every other fixture file stays byte-identical
+        _fixture_news(d)
+
+
+FIXTURE_NEWS_SOURCES = [  # fictional outlets on reserved example domains (RFC 2606)
+    {"key": "example_daily", "outlet": "Example Daily", "domain": "example.com", "lang": "en", "status": "active", "reason": ""},
+    {"key": "namuna_dainik", "outlet": "নমুনা দৈনিক", "domain": "example.org", "lang": "bn", "status": "active", "reason": ""},
+    {"key": "example_weekly", "outlet": "Example Weekly", "domain": "example.net", "lang": "en", "status": "excluded",
+     "reason": "Synthetic test outlet: no news sitemap"},
+]
+
+
+def _fixture_news_store() -> dict:
+    """A small synthetic news store: clearly synthetic stories on fictional outlets, all four published kinds, national
+    stories, multi-district stories, a policy story (never published), a blocklisted one and one outside the data (dropped
+    as no_satellite_data). Dates fall inside the synthetic calendars (to 2025-06-30) and NRT (2026-07-01 to 2026-10-05).
+    No random draws."""
+    import hashlib
+
+    from . import news_store as S
+    from .grid import season_of
+
+    dhaka, rajshahi, khulna = "BD3026", "BD5081", "BD4047"
+    rows = [  # slug, source, kind, unit_ids, event, published, stated, title, claim_en, claim_bn, quote
+        ("burning-rajshahi", "example_daily", "burning", [rajshahi], "2025-01-10", "2025-01-11", True,
+         "Synthetic test story: field fires reported near Rajshahi", "Field fires burned on 3 farms near Rajshahi.",
+         "রাজশাহীর কাছে 3টি খামারে মাঠে আগুন জ্বলেছে।", "Fires burned on 3 farms outside the town on Friday."),
+        ("smoke-khulna-dhaka", "namuna_dainik", "burning", [khulna, dhaka], "2024-12-05", "2024-12-06", True,
+         "নমুনা পরীক্ষার খবর: খুলনা ও ঢাকায় খড় পোড়ানো", "Straw burning was reported in Khulna and Dhaka.",
+         "খুলনা ও ঢাকায় খড় পোড়ানোর খবর পাওয়া গেছে।", "খুলনা ও ঢাকায় খড় পোড়ানো হয়েছে বলে জানা গেছে।"),
+        ("court-dhaka-feb", "example_daily", "enforcement", [dhaka], "2025-02-03", "2025-02-04", True,
+         "Synthetic test story: mobile court fines kilns in Dhaka", "A mobile court fined 4 kilns in Dhaka district.",
+         "ঢাকা জেলায় ভ্রাম্যমাণ আদালত 4টি ভাটাকে জরিমানা করেছে।", "The mobile court fined 4 kilns during the drive."),
+        ("court-dhaka-june", "namuna_dainik", "enforcement", [dhaka], "2025-06-25", "2025-06-26", True,
+         "নমুনা পরীক্ষার খবর: ঢাকায় অভিযান", "Officials ran an enforcement drive in Dhaka.",
+         "ঢাকায় কর্মকর্তারা অভিযান চালিয়েছেন।", "কর্মকর্তারা ঢাকায় অভিযান চালিয়েছেন।"),
+        ("kilns-dhaka-jan", "example_daily", "kilns_operating", [dhaka], "2025-01-20", "2025-01-20", False,
+         "Synthetic test story: kilns fire up around Dhaka", "Kilns around Dhaka were operating this week.",
+         "এই সপ্তাহে ঢাকার আশপাশে ভাটা চালু ছিল।", "Kilns around the city were operating this week."),
+        ("kilns-rajshahi-nov", "namuna_dainik", "kilns_operating", [rajshahi], "2024-11-15", "2024-11-16", True,
+         "নমুনা পরীক্ষার খবর: রাজশাহীতে ভাটা চালু", "Kilns in Rajshahi started work for the season.",
+         "রাজশাহীতে ভাটাগুলো মৌসুমের কাজ শুরু করেছে।", "রাজশাহীতে ভাটাগুলো কাজ শুরু করেছে।"),
+        ("haze-dhaka-dec", "example_daily", "air_health", [dhaka], "2024-12-20", "2024-12-21", True,
+         "Synthetic test story: haze over Dhaka", "Haze over Dhaka was linked to burning nearby.",
+         "ঢাকার ওপর ধোঁয়াশা আশপাশের আগুনের সঙ্গে যুক্ত।", "The haze over the city was linked to burning nearby."),
+        ("haze-national-jan", "example_daily", "air_health", [S.NATIONAL], "2025-01-05", "2025-01-06", True,
+         "Synthetic test story: smog across Bangladesh", "Smog covered much of Bangladesh.",
+         "বাংলাদেশের বেশিরভাগ এলাকা ধোঁয়াশায় ঢাকা ছিল।", "Smog covered much of the country on Sunday."),
+        ("burning-rajshahi-sep", "example_daily", "burning", [rajshahi], "2026-09-20", "2026-09-21", True,
+         "Synthetic test story: early field burning in Rajshahi", "Early field burning was seen in Rajshahi.",
+         "রাজশাহীতে আগেভাগে মাঠে আগুন দেখা গেছে।", "Early field burning was seen in the district."),
+        ("court-khulna-aug", "namuna_dainik", "enforcement", [khulna], "2026-08-10", "2026-08-11", True,
+         "নমুনা পরীক্ষার খবর: খুলনায় ভ্রাম্যমাণ আদালত", "A mobile court closed 2 kilns in Khulna.",
+         "খুলনায় ভ্রাম্যমাণ আদালত 2টি ভাটা বন্ধ করেছে।", "ভ্রাম্যমাণ আদালত 2টি ভাটা বন্ধ করেছে।"),
+        ("court-dhaka-sep", "example_daily", "enforcement", [dhaka, rajshahi], "2026-09-28", "2026-09-29", True,
+         "Synthetic test story: kiln drive in Dhaka and Rajshahi", "Officials raided kilns in Dhaka and Rajshahi.",
+         "কর্মকর্তারা ঢাকা ও রাজশাহীতে ভাটায় অভিযান চালিয়েছেন।", "Officials raided kilns in both districts."),
+        ("kilns-dhaka-aug", "namuna_dainik", "kilns_operating", [dhaka], "2026-08-20", "2026-08-21", False,
+         "নমুনা পরীক্ষার খবর: ঢাকায় বর্ষায় ভাটা", "Some kilns near Dhaka were reported working in the monsoon.",
+         "বর্ষায় ঢাকার কাছে কিছু ভাটা চালু থাকার খবর।", "বর্ষায় কিছু ভাটা চালু ছিল বলে জানা গেছে।"),
+        ("air-dhaka-oct", "example_daily", "air_health", [dhaka], "2026-10-02", "2026-10-03", True,
+         "Synthetic test story: air quality dips in Dhaka", "Air quality in Dhaka fell this week.",
+         "এই সপ্তাহে ঢাকার বায়ুর মান কমেছে।", "Air quality in the city fell this week."),
+        ("burning-national-oct", "namuna_dainik", "burning", [S.NATIONAL], "2026-10-01", "2026-10-02", True,
+         "নমুনা পরীক্ষার খবর: দেশজুড়ে নাড়া পোড়ানো", "Stubble burning was reported across the country.",
+         "দেশজুড়ে নাড়া পোড়ানোর খবর পাওয়া গেছে।", "দেশজুড়ে নাড়া পোড়ানোর খবর পাওয়া গেছে।"),
+        ("policy-national", "example_daily", "policy", [S.NATIONAL], "2026-09-15", "2026-09-15", False,
+         "Synthetic test story: new kiln rules proposed", "New kiln rules were proposed.",
+         "নতুন ভাটা নীতিমালা প্রস্তাব করা হয়েছে।", "New kiln rules were proposed on Tuesday."),
+        ("blocked-dhaka", "example_daily", "burning", [dhaka], "2026-09-10", "2026-09-11", True,
+         "Synthetic test story: removed by the blocklist", "This story is on the blocklist.",
+         "এই খবরটি বাদের তালিকায় আছে।", "This story is on the blocklist."),
+        ("outside-data-rajshahi", "namuna_dainik", "burning", [rajshahi], "2025-10-10", "2025-10-11", True,
+         "নমুনা পরীক্ষার খবর: তথ্যের বাইরের তারিখ", "Field burning was reported in Rajshahi.",
+         "রাজশাহীতে মাঠে আগুনের খবর পাওয়া গেছে।", "রাজশাহীতে মাঠে আগুনের খবর পাওয়া গেছে।"),
+    ]
+    domains = {r["key"]: r["domain"] for r in FIXTURE_NEWS_SOURCES}
+    outlets = {r["key"]: (r["outlet"], r["lang"]) for r in FIXTURE_NEWS_SOURCES}
+    store = S.empty()
+    for slug, src, kind, units, event, pub, stated, title, claim_en, claim_bn, quote in rows:
+        url = f"https://{domains[src]}/news/{pub[:4]}/{slug}"
+        store["items"].append({
+            "news_id": S.news_id(url), "url": url, "source": src, "outlet": outlets[src][0], "lang": outlets[src][1], "title": title,
+            "published_date_local": pub, "event_date_local": event, "event_date_stated": stated, "season": season_of(event),
+            "kind": kind, "unit_ids": units, "claim_en": claim_en, "claim_bn": claim_bn, "quote": quote,
+            "text_sha256": hashlib.sha256(f"synthetic:{slug}".encode()).hexdigest(), "extracted_at": f"{pub}T06:00:00+00:00",
+            "model": C.NEWS_MODEL})
+    store["updated_at"] = "2026-10-05T03:00:00+00:00"
+    store["coverage"] = {"example_daily": {"read_back_to": "2024-07-01", "last_scanned": "2026-10-05", "history_cursor": "2024-07-01", "gaps": []},
+                         "namuna_dainik": {"read_back_to": "2025-07-01", "last_scanned": "2026-10-05", "history_cursor": None, "gaps": []}}
+    store["dropped"] = {"not_relevant": 6, "quote_not_verbatim": 2, "number_not_in_quote": 1}
+    return store
+
+
+def _fixture_news(d: Path) -> None:
+    """news/ for the `full` fixture: the synthetic store paired with this fixture set's own calendars and NRT."""
+    from . import news_pair
+
+    store = _fixture_news_store()
+    blocked = [i["url"] for i in store["items"] if i["url"].endswith("/blocked-dhaka")]
+    news_pair.run(d, store=store, sources=FIXTURE_NEWS_SOURCES, blocklist=blocked, generated_at="2026-10-06T00:00:00+00:00")
 
 
 def _fixture_kiln_activity(rng):

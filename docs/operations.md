@@ -13,6 +13,8 @@
 |---|---|
 | `FIRMS_MAP_KEY` | FIRMS archive + daily NRT (free MAP_KEY) |
 | `OPENAQ_API_KEY` | Dhaka PM2.5 validation |
+| `GROQ_API_KEY`, `CEREBRAS_API_KEY`, `MISTRAL_API_KEY`, `GITHUB_MODELS_TOKEN` | Optional fallback readers for the `news` stage (`NEWS_PROVIDERS`), tried in that order after the five Gemini models (one Gemini key only — rotating keys to beat the free limit breaks Google's terms); unset = skipped. In CI the first three are optional secrets and GitHub Models uses the job's own token |
+| `GEMINI_API_KEY` | The `news` stage (Gemini reads article excerpts). Also a GitHub secret: **adding it turns the daily news job on**; settle the Gemini terms question first (docs/news_plan.md §10). Never a `VITE_` variable |
 | `EE_PROJECT` | Earth Engine project (clear fractions, night lights, radar) |
 | `EE_API_KEY`, `EOG_USER`, `EOG_PASSWORD` | Not needed by the current pipeline |
 
@@ -30,7 +32,8 @@ Test rules that CI enforces: `tests/test_isolation.py` fails if any test referen
 Triggers: push to `main`, **cron 03:00 UTC**, manual dispatch.
 
 1. **`nrt` job** — downloads the `data-current` GitHub Release asset into `web/public/data` (district normals), restores the `data/nrt` cache, runs `python -m kilnwatch nrt` (fetch FIRMS NRT, label with the frozen classifier, convert with the frozen calibration → `nrt/current_season.json`, always `provisional: true`), runs `pytest tests/test_export.py`, uploads the NRT output as a workflow artifact. **Nothing is committed to `main`.**
-2. **`deploy` job** (needs `nrt`; runs when it succeeded or was skipped) — re-downloads the release + artifact, `DATA_SRC=real npm run build`, both safety checks, deploy `web/dist` to GitHub Pages.
+1b. **`news` job** (daily cron and manual runs only; skipped until the `GEMINI_API_KEY` secret exists; `continue-on-error`) — restores the store from the `news-current` release asset, runs `python -m kilnwatch news`, uploads the store back with `news --publish` (job-scoped `contents: write`).
+2. **`deploy` job** (needs `nrt` and `news`, runs whatever `news` did; before the build it downloads `news-current` and, when present, runs `python -m kilnwatch news-pair` against the data it deploys; runs when it succeeded or was skipped) — re-downloads the release + artifact, `DATA_SRC=real npm run build`, both safety checks, deploy `web/dist` to GitHub Pages.
 
 If `data-current` is missing or a check fails, deploy fails loudly and the last good Pages deployment stays live. The only secret is `FIRMS_MAP_KEY`; Earth Engine credentials never enter CI (the NRT job uses the climatological clear fraction, `data/models/clear_clim.parquet`).
 

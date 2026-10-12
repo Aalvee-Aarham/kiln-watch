@@ -1,16 +1,17 @@
 import { lazy, Suspense, useEffect, useId, useMemo, useState, useRef } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
-import { Icon, Loading, Skeleton, StatusMessage, useKilnActivity, useTitle } from '../components/ui'
+import { Icon, Loading, Skeleton, StatusMessage, useKilnActivity, useNewsIndex, useTitle } from '../components/ui'
 import { Caution, Gloss, MonthStrip, PageHead, useQ, windowLevels } from '../components/plain'
 import { EChart } from '../components/EChart'
 import { dataUrl, useJson } from '../lib/data'
-import { useLang, useT } from '../lib/i18n'
+import { tr, useLang, useT } from '../lib/i18n'
 import { seasonMean } from '../lib/calendar'
 import { districtOf, unitAt } from '../lib/geo'
 import { busyMonths, monthOfSeasonDay, MONTHS, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
 import { palette, useTheme } from '../lib/theme'
 import type { Calendar, Events, FC, NrtSeason, Outlook, UnitProps } from '../lib/types'
 import { outlookFor } from '../lib/outlook'
+import { digits } from '../lib/news'
 
 const BdMap = lazy(() => import('../components/BdMap'))
 
@@ -76,6 +77,7 @@ export default function AreaPage() {
               <AreaAnswers key={unit.unit_id} unit={unit} nrt={nrt.data} />
               {vs && units.find((u) => u.unit_id === vs) && <AreaAnswers key={vs} unit={units.find((u) => u.unit_id === vs)!} nrt={nrt.data} onClose={() => { const n = new URLSearchParams(sp); n.delete('vs'); setSp(n) }} />}
             </div>)}
+          {unit && <NewsLine distId={districtOf(unit.unit_id)} name={units.find((u) => u.unit_id === districtOf(unit.unit_id))?.name_en ?? unit.name_en} season={nrt.data?.season} />}
           {unit && !vs && <div className="panel space-y-2">
             <b>Compare with another area</b>
             <AreaPicker units={units.filter((u) => u.unit_id !== unit.unit_id)} onPick={(id) => { const n = new URLSearchParams(sp); n.set('vs', id); setSp(n) }} label="Area to compare" />
@@ -89,6 +91,16 @@ export default function AreaPage() {
       </div>
     </div>
   )
+}
+
+/** One line linking to this district's news this (NRT) season; nothing when there is none or no news file. */
+function NewsLine({ distId, name, season }: { distId: string; name: string; season?: string }) {
+  const lang = useLang()
+  const counts = useNewsIndex().data?.counts
+  const n = season ? counts?.[season]?.[distId] ?? 0 : 0
+  if (!n) return null
+  return <p><Link className="inline-flex items-center gap-1 text-orbit underline" to={`/news?district=${distId}${lang === 'bn' ? '&lang=bn' : ''}`}>
+    {tr(n === 1 ? 'areaNewsOne' : 'areaNews', lang, { n: digits(n, lang), name })}<Icon name="chevron" className="h-3.5 w-3.5" /></Link></p>
 }
 
 /** Native type-ahead (input + datalist): the browser filters; an exact pick navigates. */

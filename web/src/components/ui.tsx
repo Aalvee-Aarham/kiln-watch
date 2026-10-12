@@ -5,7 +5,7 @@ import { useJson } from '../lib/data'
 import { fmtNumber, useLang, useT, type Key } from '../lib/i18n'
 import { toggleTheme, useTheme } from '../lib/theme'
 import { harvestSpans, rituSpans, type Layout } from '../lib/ritu'
-import type { CI, Events, KilnActivity, Meta, NrtSeason } from '../lib/types'
+import type { CI, Events, KilnActivity, Meta, NewsIndex, NrtSeason } from '../lib/types'
 
 export function useMeta() { return useJson<Meta>('meta.json') }
 
@@ -66,6 +66,11 @@ export function useKilnsVisible() {
   return !!ka?.layer || (!!meta && meta.gate_branch !== 'partial' && meta.gate_branch !== 'nokiln')
 }
 
+/** Optional news index (docs/news_plan.md §6); a missing file means "no news page". */
+export function useNewsIndex() { return useJson<NewsIndex>('news/index.json') }
+/** The News nav item and the Area page's news line show only when news/index.json loads. */
+export function useNewsVisible() { return !!useNewsIndex().data }
+
 /** prefers-reduced-motion, live. */
 export function useReducedMotion() {
   return useSyncExternalStore(
@@ -118,6 +123,7 @@ const ICONS = {
   pin: 'M8 14.5s4.5-4 4.5-8a4.5 4.5 0 0 0-9 0c0 4 4.5 8 4.5 8zM8 5v.01',
   plus: 'M8 3v10M3 8h10',
   minus: 'M3 8h10',
+  external: 'M9.5 2.5h4v4M13.5 2.5 7.5 8.5M11.5 9.5v4h-9v-9h4',
 } as const
 export type IconName = keyof typeof ICONS
 export const Icon = ({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) => (
@@ -136,12 +142,18 @@ export function AppShell({ children }: { children: ReactNode }) {
   const navRef = useRef<HTMLElement>(null)
   const headerRef = useRef<HTMLElement>(null)
   const showKilns = useKilnsVisible()
+  const showNews = useNewsVisible()
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
+  // News opens on the map (#/news/map); the story list (#/news) and single stories keep the tab lit
+  const newsPage = /^\/news(\/|$)/.test(loc.pathname)
+  const lit = (to: string) => (to === '/experts' && expertPage) || (to === '/news/map' && newsPage)
+  // Full-screen app pages (USGS-style map + sidebar): fill the viewport under the header, no footer, no page scroll.
+  const appPage = loc.pathname === '/news/map'
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.
   useLayoutEffect(() => {
@@ -154,7 +166,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // keep the active tab visible in the scrolling pill row (no animation: it follows a navigation)
   useEffect(() => { navRef.current?.querySelector('[aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'nearest' }) }, [loc.pathname])
   return (
-    <div className="min-h-screen">
+    <div className={appPage ? 'flex h-dvh flex-col' : 'min-h-screen'}>
       <a href="#main" className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50 focus:rounded focus:bg-surface focus:px-3 focus:py-2">{t('skip')}</a>
       <DemoBanner />
       <SeasonBanner />
@@ -166,12 +178,14 @@ export function AppShell({ children }: { children: ReactNode }) {
           </NavLink>
           <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-0 overflow-x-auto px-4 pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
             {tabs.map(([to, k, short]) => {
-              const on = (isActive: boolean) => isActive || (to === '/experts' && expertPage)
+              // NavLink's own matching (this path or below it), plus the sections a tab stands for. Computed here because
+              // NavLink drops aria-current whenever its own URL doesn't match.
+              const on = loc.pathname === to || loc.pathname.startsWith(`${to}/`) || lit(to)
               return (
-                <NavLink key={to} to={to + q} aria-current={to === '/experts' && expertPage ? 'page' : undefined}
-                  className={({ isActive }) => `relative shrink-0 rounded-[4px] px-1 py-1.5 text-[14px] min-[900px]:px-2 min-[900px]:text-[15px] transition-colors duration-150 ${on(isActive) ? 'font-semibold text-ink after:absolute after:inset-x-1 min-[900px]:after:inset-x-2 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
+                <Link key={to} to={to + q} aria-current={on ? 'page' : undefined}
+                  className={`relative shrink-0 rounded-[4px] px-1 py-1.5 text-[14px] min-[900px]:px-2 min-[900px]:text-[15px] transition-colors duration-150 ${on ? 'font-semibold text-ink after:absolute after:inset-x-1 min-[900px]:after:inset-x-2 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
                   {short ? <><span className="min-[1200px]:hidden">{t(short)}</span><span className="max-[1200px]:hidden">{t(k)}</span></> : t(k)}
-                </NavLink>)
+                </Link>)
             })}
           </nav>
           <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:ml-0">
@@ -183,8 +197,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main id="main" key={loc.pathname} className="route-in mx-auto max-w-[1200px] px-4 pt-6 pb-16">{children}</main>
-      <footer className="border-t border-line">
+      <main id="main" key={loc.pathname} className={appPage ? 'route-in min-h-0 flex-1' : 'route-in mx-auto max-w-[1200px] px-4 pt-6 pb-16'}>{children}</main>
+      {!appPage && <footer className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-end gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted">
           <div className="space-y-0.5">
             <p>NASA Space Apps 2026: one fire record from MODIS and VIIRS. Bangladesh is the first region.</p>
@@ -192,7 +206,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             <p>Real NASA and ESA satellite data. <a className="underline" href="https://github.com/Aalvee-Aarham/kiln-watch">Open source code</a> · <NavLink className="underline" to={'/experts' + q}>For experts</NavLink></p>
           </div>
         </div>
-      </footer>
+      </footer>}
     </div>
   )
 }

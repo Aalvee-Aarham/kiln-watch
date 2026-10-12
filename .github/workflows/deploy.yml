@@ -27,8 +27,39 @@ jobs:
       - run: pytest -q tests/test_export.py
       - uses: actions/upload-artifact@v4
         with: { name: nrt, path: web/public/data/nrt/ }
+  news:
+    # Off until someone adds the GEMINI_API_KEY secret, after the Gemini terms question is settled (docs/news_plan.md §10).
+    # A failure here never blocks the deploy: the deploy job pairs yesterday's store instead.
+    if: github.event_name != 'push'  # daily cron and manual runs only: a push to main must not spend model quota
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions: { contents: write, models: read }  # store -> news-current asset; GitHub Models as the last fallback
+    env:
+      GH_TOKEN: ${{ github.token }}
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}  # optional fallbacks (NEWS_PROVIDERS); unset = skipped
+      CEREBRAS_API_KEY: ${{ secrets.CEREBRAS_API_KEY }}
+      MISTRAL_API_KEY: ${{ secrets.MISTRAL_API_KEY }}
+      GITHUB_MODELS_TOKEN: ${{ github.token }}
+    steps:
+      - if: env.GEMINI_API_KEY == ''
+        run: echo "::notice::news is off (no GEMINI_API_KEY secret)"
+      - if: env.GEMINI_API_KEY != ''
+        uses: actions/checkout@v4
+      - if: env.GEMINI_API_KEY != ''
+        uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: pip }
+      - if: env.GEMINI_API_KEY != ''
+        run: pip install -r requirements.txt
+      - if: env.GEMINI_API_KEY != ''
+        name: Restore the store from news-current
+        run: mkdir -p data/news && (gh release download news-current -p news-store.json -O data/news/store.json || echo "::notice::no news-current asset yet; starting an empty store")
+      - if: env.GEMINI_API_KEY != ''
+        run: python -m kilnwatch news
+      - if: env.GEMINI_API_KEY != ''
+        run: python -m kilnwatch news --publish
   deploy:
-    needs: nrt
+    needs: [nrt, news]
     if: always() && (needs.nrt.result == 'success' || needs.nrt.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
@@ -41,6 +72,15 @@ jobs:
       - run: mkdir -p web/public/data && gh release download data-current -p public-data.tar.gz -O - | tar -xz -C web/public/data
       - uses: actions/download-artifact@v4
         with: { name: nrt, path: web/public/data/nrt }
+      - name: Download news-current (absent = no news page)
+        run: mkdir -p data/news && (gh release download news-current -p news-store.json -O data/news/store.json || echo "::notice::no news-current asset; the news page stays hidden")
+      - uses: actions/setup-python@v5
+        with: { python-version: '3.11', cache: pip }
+      - name: Pair the news with the satellite data being deployed (no AI, no network)
+        run: |
+          if [ -f data/news/store.json ]; then
+            pip install -q -r requirements.txt && python -m kilnwatch news-pair
+          fi
       - uses: actions/setup-node@v4
         with: { node-version: 22, cache: npm, cache-dependency-path: web/package-lock.json }
       - run: cd web && npm ci && DATA_SRC=real npm run build

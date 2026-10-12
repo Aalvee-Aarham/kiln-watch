@@ -180,5 +180,93 @@ def test_other_files(branch):
     assert all(len(r) == 3 for r in t["rows"])
 
 
+NEWS_KINDS = {"burning", "enforcement", "kilns_operating", "air_health"}
+NEWS_ITEM_KEYS = ["news_id", "url", "outlet", "lang", "title", "published_date_local", "event_date_local", "event_date_stated",
+                  "kind", "unit_ids", "claim_en", "claim_bn", "quote", "sat", "season_so_far", "how_common", "earlier_news"]
+
+
+def _check_window(w, national):
+    has(w, ["from", "to", "unusual_days", "not_observed_days"])
+    assert w["from"] <= w["to"]
+    assert ("districts_unusual" in w) == national
+    if national:
+        assert w["unusual_days"] is None and isinstance(w["districts_unusual"], int)
+    for k in ("unusual_days", "not_observed_days"):
+        assert w[k] is None or (isinstance(w[k], int) and w[k] >= 0)
+
+
+def check_news(news: Path):
+    """news/ against web/src/lib/types.ts (NewsIndex, NewsPlaces, NewsSeason, NewsPlaceStories) and its own counts."""
+    rd = lambda rel: json.loads((news / rel).read_text(encoding="utf-8"))  # noqa: E731
+    idx = rd("index.json")
+    assert set(idx) == {"generated_at", "store_updated_at", "data_build", "model", "seasons", "rules", "sources", "counts", "dropped"}
+    assert set(idx["rules"]) == {"burn_window_days", "enforce_window_days", "cloudy_min_days", "rare_season_frac", "earlier_shown"}
+    assert idx["seasons"] == sorted(idx["seasons"], reverse=True)
+    for s in idx["sources"]:
+        has(s, ["key", "outlet", "lang", "status"])
+        assert s["lang"] in ("en", "bn") and s["status"] in ("active", "excluded")
+    assert all(set(d) == {"reason", "n"} and d["n"] > 0 for d in idx["dropped"])
+    places = rd("places.json")
+    assert "BGD" in places and places["BGD"]["typical"] is None
+    for u, p in places.items():
+        assert set(p) == {"unit_id", "name_en", "name_bn", "record_from", "seasons_in_record", "seasons_with_burning",
+                          "typical_duration_days", "typical", "news_total", "news_from"} and p["unit_id"] == u
+        assert 0 <= p["seasons_with_burning"] <= p["seasons_in_record"]
+        assert p["typical"] is None or set(p["typical"]) == {"first_month", "busiest_month", "last_month"}
+    counts: dict = {}
+    for season in idx["seasons"]:
+        f = rd(f"{season}.json")
+        assert f["season"] == season
+        for month, items in f["months"].items():
+            for it in items:
+                assert list(it) == NEWS_ITEM_KEYS
+                assert it["kind"] in NEWS_KINDS and it["lang"] in ("en", "bn") and it["event_date_local"][:7] == month
+                national = it["unit_ids"] == ["BGD"]
+                sat = it["sat"]
+                if sat["type"] == "window":
+                    assert sat["level"] == ("national" if national else "district") and isinstance(sat["provisional"], bool)
+                    _check_window(sat["before"], national)
+                    assert ("after" in sat) == (it["kind"] == "enforcement")
+                    if sat.get("after"):
+                        _check_window(sat["after"], national)
+                else:
+                    assert not national and sat["type"] == ("kiln_months" if it["kind"] == "kilns_operating" else "burning_season")
+                    assert (sat["usual_months"] is None) == (sat["inside"] is None)
+                sf = it["season_so_far"]
+                has(sf, ["unusual_days", "not_observed_days", "provisional", "to"])
+                assert ("districts_unusual" in sf) == national and sf["to"] <= it["event_date_local"]
+                assert (it["how_common"] is None) == national
+                assert it["how_common"] in (None, "common_now", "outside_season", "rare") and it["earlier_news"] >= 0
+                for u in it["unit_ids"]:
+                    counts.setdefault(season, {}).setdefault(u, 0)
+                    counts[season][u] += 1
+    assert counts == idx["counts"]
+    for u in {u for c in counts.values() for u in c}:
+        pf = rd(f"place/{u}.json")
+        rows = [r for v in pf["months"].values() for r in v]
+        assert pf["unit_id"] == u and len(rows) == places[u]["news_total"] == sum(c.get(u, 0) for c in counts.values())
+        assert all(set(r) == {"news_id", "date_local", "season", "kind", "outlet", "lang", "title", "url"} for r in rows)
+        assert [r["date_local"] for r in rows] == sorted((r["date_local"] for r in rows), reverse=True)
+    assert len(list((news / "place").glob("*.json"))) == len({u for c in counts.values() for u in c})
+
+
+@pytest.mark.parametrize("branch", BRANCHES)
+def test_news(branch):
+    """News files are optional: `full` ships the synthetic set, the other synthetic sets none, nokiln only once a real
+    news store snapshot exists."""
+    news = FIXT / branch / "data" / "news"
+    if branch == "full":
+        assert (news / "index.json").exists()
+        check_news(news)
+        idx = load(branch, "news/index.json")
+        assert {"no_satellite_data", "blocklisted"} <= {d["reason"] for d in idx["dropped"]}
+        kinds = {it["kind"] for s in idx["seasons"] for v in load(branch, f"news/{s}.json")["months"].values() for it in v}
+        assert kinds == NEWS_KINDS
+    elif branch == "nokiln" and news.exists():
+        check_news(news)
+    else:
+        assert not news.exists()
+
+
 def test_fixture_dir_is_not_public_dir():
     assert Path(FIXT).resolve() != C.WEB_DATA.resolve()

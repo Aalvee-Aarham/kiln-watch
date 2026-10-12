@@ -1,21 +1,11 @@
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
-import { LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
-import { BBOX, SOUTH_ASIA_BOX, type Box } from '../lib/box'
+import { IMAGERY, LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
+import { BBOX, SOUTH_ASIA_BOX, WORLD_BOX, type Box } from '../lib/box'
 import { boxView, clampView, labelPx, placeLabels, STATES_W, visibleCities, zoomView, type City, type View } from '../lib/world'
 import type { FC } from '../lib/types'
 import { Icon } from './ui'
-// NASA GIBS WMS GetMap images in EPSG:4326, so each sits on this map's lon/lat grid by its corners. Bundled for offline use;
-// fetched only when a background is chosen. Coarse world first, then sharper South Asia and Bangladesh on top.
-import worldDay from '../assets/basemap/world_bluemarble-ng.jpg'
-import worldNight from '../assets/basemap/world_black-marble-2016.jpg'
-import saDay from '../assets/basemap/south-asia_bluemarble-ng.jpg'
-import saNight from '../assets/basemap/south-asia_black-marble-2016.jpg'
-import bdDay from '../assets/basemap/bluemarble-ng_bd.jpg'
-import bdNight from '../assets/basemap/black-marble-2016_bd.jpg'
 
-const IMAGES: [Box, string, string][] = [[[-180, -90, 180, 90], worldDay, worldNight], [SOUTH_ASIA_BOX, saDay, saNight], [BBOX, bdDay, bdNight]]
 const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
-const WORLD: Box = [-180, -60, 180, 80]
 
 export type Pick = { kind: 'state' | 'country' | 'city'; id: string }
 type Shape = { id: string; name: string; d: string; x0: number; y0: number; x1: number; y1: number }
@@ -153,14 +143,14 @@ export default function WorldMap({ countries, states, region, cities, selected, 
           <span className="flex items-center gap-1.5"><span className="h-2 w-3 rounded-[2px] border border-line bg-surface-2 opacity-60"></span>Not yet covered</span>
         </div>
         <div className="flex items-center gap-0.5 rounded-[6px] border border-line bg-surface p-0.5" role="group" aria-label="Jump to">
-          {([['South Asia', SOUTH_ASIA_BOX], ['Bangladesh', BBOX], ['World', WORLD]] as [string, Box][]).map(([l, b]) =>
+          {([['South Asia', SOUTH_ASIA_BOX], ['Bangladesh', BBOX], ['World', WORLD_BOX]] as [string, Box][]).map(([l, b]) =>
             <button key={l} type="button" onClick={() => goBox(b)} className="rounded-[4px] px-2.5 py-1.5 text-muted hover:bg-surface-2 hover:text-ink">{l}</button>)}
         </div>
       </div>
       <div ref={wrapRef} className={`relative h-[min(620px,75vh)] min-h-[420px] w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none ${layer !== 'none' ? 'wm-imagery' : ''}`}>
         <svg viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} preserveAspectRatio="none" className="h-full w-full touch-none" role="group"
           aria-label="World map, opening on South Asia. Drag to move, use the zoom buttons, or search for a place.">
-          {layer !== 'none' && IMAGES.map(([b, day, night]) => (
+          {layer !== 'none' && IMAGERY.map(([b, day, night]) => (
             <image key={b.join()} href={layer === 'day' ? day : night} x={b[0]} y={-b[3]} width={b[2] - b[0]} height={b[3] - b[1]} preserveAspectRatio="none" aria-hidden />))}
           {layer === 'none' && vis.c.map((s) => <path key={s.id} d={s.d} className="wm-land" aria-hidden />)}
           {vis.s.map((s) => (

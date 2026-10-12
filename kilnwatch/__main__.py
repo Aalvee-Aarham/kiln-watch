@@ -46,6 +46,16 @@ def main(argv=None) -> int:
     s.add_argument("--build-cache", action="store_true", help="answer the demo questions and write ask.json into --src")
     s = sub.add_parser("nrt", help="daily near-real-time update")
     s.add_argument("--days", type=int, default=5)
+    s = sub.add_parser("news", help="find, read and check newspaper stories (Gemini reads; needs GEMINI_API_KEY; not part of `all`)")
+    s.add_argument("--backfill", action="store_true", help="continue the history newest first, back to NEWS_HISTORY_FROM")
+    s.add_argument("--check-sources", dest="check_sources", action="store_true", help="robots.txt and feed reachability per outlet; no article fetches, no AI")
+    s.add_argument("--dry-run", dest="dry_run", action="store_true", help="discover and filter only; list what would be fetched")
+    s.add_argument("--publish", action="store_true", help="upload the store as release asset news-current")
+    s.add_argument("--policy-review", dest="policy_review", action="store_true", help="print the policy stories for a person to add to the Timeline")
+    s.add_argument("--limit", type=int, default=None, help="cap model calls this run (at most NEWS_MAX_LLM_CALLS_PER_RUN)")
+    s = sub.add_parser("news-pair", help="add the satellite parts to news stories and write news/ into a public export (no AI, no network)")
+    s.add_argument("--src", default=str(C.WEB_DATA), help="public export to pair against and write news/ into")
+    s.add_argument("--store", default=None, help="news store (default data/news/store.json)")
     s = sub.add_parser("verify-firms", help="independent FIRMS re-fetch + cross-check (not part of `all`)")
     s.add_argument("--sources", nargs="+", default=None, help="FIRMS source ids (default: all)")
     s.add_argument("--start", help="YYYY-MM-DD")
@@ -110,6 +120,13 @@ def main(argv=None) -> int:
     elif a.stage == "nrt":
         from . import nrt
         nrt.run(a.days)
+    elif a.stage == "news":
+        from . import news
+        return news.run(backfill=a.backfill, check_sources=a.check_sources, dry_run=a.dry_run, publish=a.publish,
+                        policy_review=a.policy_review, limit=a.limit)
+    elif a.stage == "news-pair":
+        from . import news_pair
+        news_pair.run(Path(a.src), Path(a.store) if a.store else None)
     elif a.stage == "verify-firms":
         from . import verify_firms
         verify_firms.run(a.sources, a.start, a.end, a.cached_only)
