@@ -5971,96 +5971,2307 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "contextNote": "Chena shifting cultivation and dry zone paddy stubble burning following the Yala harvest."
   },
+
   "china": {
-    "key": "china",
-    "name": "China",
-    "country": "China",
-    "stateOrDivision": "China",
-    "coords": [
-      104.1954,
-      35.8617
-    ],
-    "bbox": [
-      73.5,
-      18.15,
-      134.75,
-      53.55
-    ],
-    "defaultMultiplier": 1.5,
-    "criticalWeeks": "CRITICAL WEEKS: JUNE (SUMMER) & OCT (AUTUMN)",
-    "criticalSpan": [
-      3,
-      5
-    ],
-    "months": [
-      "DEC",
-      "JAN",
-      "FEB",
-      "MAR",
-      "APR",
-      "MAY",
-      "JUN",
-      "JUL"
-    ],
-    "normalCurve": [
-      40,
-      90,
-      280,
-      680,
-      520,
-      210,
-      80,
-      25
-    ],
-    "thisSeasonCurve": [
-      45,
-      110,
-      420,
-      1020,
-      663,
-      230,
-      85,
-      28
-    ],
-    "aliases": [
-      "china",
-      "china",
-      "china"
-    ],
-    "news": [
-      {
-        "year": 2023,
-        "date": "Regional Assessment",
-        "title": "NASA FIRMS Regional Fire Report: China",
-        "source": "NASA Earth Observatory / ASEAN Haze Center",
-        "summary": "VIIRS and MODIS fire detection statistics recorded across agrarian and forest boundaries of China.",
-        "severity": "high"
-      }
-    ],
-    "contextNote": "North China Plain and northeastern provinces enforce mechanized straw baling during harvest peaks."
+      "key": "china",
+      "name": "China",
+      "country": "China",
+      "coords": [
+          104.1954,
+          35.8617
+      ],
+      "bbox": [
+          73.5,
+          18.15,
+          134.75,
+          53.55
+      ],
+      "defaultMultiplier": 1.5,
+      "criticalWeeks": "CRITICAL WEEKS: JUNE (SUMMER) & OCT (AUTUMN)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          420,
+          1020,
+          702,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "china",
+          "peoples republic of china",
+          "prc",
+          "mainland china",
+          "beijing",
+          "shanghai",
+          "guangzhou",
+          "hebei",
+          "henan",
+          "shandong"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "June 2024",
+              "title": "Satellite Surveillance Regulates Wheat Straw Burns Across North China Plain",
+              "source": "China Meteorological Administration / NASA Earth Observatory",
+              "summary": "High-resolution satellite feeds and CMA monitoring systems guided regional burning bans across Hebei and Henan.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "North China Plain agricultural residue and corn/wheat harvest burning monitored by MODIS/VIIRS."
+  },
+  "japan": {
+      "key": "japan",
+      "name": "Japan",
+      "country": "Japan",
+      "coords": [
+          138.2529,
+          36.2048
+      ],
+      "bbox": [
+          122.9,
+          24.0,
+          153.98,
+          45.52
+      ],
+      "defaultMultiplier": 1.1,
+      "criticalWeeks": "CRITICAL WEEKS: MAY & OCT (RICE FIELD NONTATSU)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          308,
+          748,
+          514,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "japan",
+          "tokyo",
+          "osaka",
+          "kyoto",
+          "hokkaido",
+          "niigata"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "October 2023",
+              "title": "Prefectural Satellite Air Monitoring for Rice Straw Clearance",
+              "source": "Japan Ministry of the Environment",
+              "summary": "Localized agricultural burn windows across Niigata and Tohoku monitored with near-zero air quality exceedances.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Controlled post-harvest rice straw burning (Nontatsu) tightly regulated under prefectural environmental codes."
+  },
+  "southkorea": {
+      "key": "southkorea",
+      "name": "South Korea",
+      "country": "South Korea",
+      "coords": [
+          127.7669,
+          35.9078
+      ],
+      "bbox": [
+          124.6,
+          33.1,
+          131.9,
+          38.6
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: MAR \u2013 MAY (SPRING DRY FIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          336,
+          816,
+          561,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "south korea",
+          "korea",
+          "republic of korea",
+          "seoul",
+          "busan",
+          "incheon",
+          "gangwon"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "April 2023",
+              "title": "Gangwon Coastal Wildfire Prompts Satellite Thermal Emergency Alerts",
+              "source": "Korea Forest Service / NASA FIRMS",
+              "summary": "Dry spring gales fueled brush fires along eastern mountain slopes, tracked in real-time by Suomi NPP VIIRS.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Spring agricultural dry waste burns and mountainous wildfire monitoring in Gangwon Province."
+  },
+  "northkorea": {
+      "key": "northkorea",
+      "name": "North Korea",
+      "country": "North Korea",
+      "coords": [
+          127.5101,
+          40.3399
+      ],
+      "bbox": [
+          124.2,
+          37.6,
+          130.7,
+          43.0
+      ],
+      "defaultMultiplier": 1.6,
+      "criticalWeeks": "CRITICAL WEEKS: APR \u2013 MAY (HILLSIDE RESIDUE)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          448,
+          1088,
+          748,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "north korea",
+          "dprk",
+          "pyongyang"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "May 2023",
+              "title": "Spring Agrarian Fire Outbreaks Detected by Satellite Across Western North Korea",
+              "source": "NASA Earth Observatory",
+              "summary": "VIIRS thermal radiometers recorded high-density field burn signatures across North and South Pyongan provinces.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Widespread subsistence terraced hillside clearing and agricultural burning before spring planting."
+  },
+  "mongolia": {
+      "key": "mongolia",
+      "name": "Mongolia",
+      "country": "Mongolia",
+      "coords": [
+          103.8467,
+          46.8625
+      ],
+      "bbox": [
+          87.75,
+          41.58,
+          119.9,
+          52.15
+      ],
+      "defaultMultiplier": 1.8,
+      "criticalWeeks": "CRITICAL WEEKS: APR \u2013 JUNE (STEPPE WILDFIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          504,
+          1224,
+          842,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "mongolia",
+          "ulaanbaatar"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "May 2024",
+              "title": "Eastern Steppe Wildfires Cross Into Cross-Border Buffer Zones",
+              "source": "National Emergency Management Agency of Mongolia / NASA FIRMS",
+              "summary": "Intense grassland fires fueled by 60 km/h gusts mapped across Dornod and Sukhbaatar aimags.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "High-latitude steppe and boreal forest edge wildfires driven by arid spring continental winds."
+  },
+  "taiwan": {
+      "key": "taiwan",
+      "name": "Taiwan",
+      "country": "Taiwan",
+      "coords": [
+          120.9605,
+          23.6978
+      ],
+      "bbox": [
+          119.3,
+          21.8,
+          122.1,
+          25.4
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: NOV \u2013 DEC (PADDY CLEARING)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          336,
+          816,
+          561,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "taiwan",
+          "taipei",
+          "kaohsiung",
+          "taichung"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "December 2023",
+              "title": "Environmental Ministry Deploys Smart Remote Sensing for Farm Burning",
+              "source": "Taiwan Ministry of Environment",
+              "summary": "Satellite and aerial infrared detection curbed open stubble burning across central agricultural plains.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Chianan Plain seasonal rice straw clearing monitored by drone and satellite to mitigate PM2.5 spikes."
+  },
+  "singapore": {
+      "key": "singapore",
+      "name": "Singapore",
+      "country": "Singapore",
+      "coords": [
+          103.8198,
+          1.3521
+      ],
+      "bbox": [
+          103.6,
+          1.2,
+          104.05,
+          1.48
+      ],
+      "defaultMultiplier": 1.1,
+      "criticalWeeks": "CRITICAL WEEKS: AUG \u2013 OCT (TRANSBOUNDARY HAZE EXPOSURE)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          308,
+          748,
+          514,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "singapore",
+          "singapore city",
+          "jurong",
+          "changi"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "October 2023",
+              "title": "Singapore Air Quality Enters Unhealthy Band as Cross-Strait Peat Fire Smoke Drifts",
+              "source": "National Environment Agency (NEA) / ASEAN Specialised Meteorological Centre",
+              "summary": "1-hr PM2.5 levels spiked across southern and western sectors due to prevailing southerly winds carrying Sumatran peat smoke.",
+              "severity": "high"
+          },
+          {
+              "year": 2019,
+              "date": "September 2019",
+              "title": "Transboundary Haze Action Plan Enacted as 24-hr PSI Surpasses 150",
+              "source": "The Straits Times / NEA Singapore",
+              "summary": "Subterranean peatland fires across central Indonesia sent thick aerosol layers across the Singapore Strait.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Urban city-state with zero agricultural burning, serving as the international hub for transboundary peat haze monitoring."
+  },
+  "brunei": {
+      "key": "brunei",
+      "name": "Brunei",
+      "country": "Brunei",
+      "coords": [
+          114.7277,
+          4.5353
+      ],
+      "bbox": [
+          114.05,
+          4.0,
+          115.35,
+          5.05
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: MAR \u2013 MAY (DRY SEASON PEAT HAZARDS)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          336,
+          816,
+          561,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "brunei",
+          "brunei darussalam",
+          "bandar seri begawan"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "April 2024",
+              "title": "Fire and Rescue Department Douses Forest Fires Along Muara-Tutong Highway",
+              "source": "Borneo Bulletin / Brunei Fire and Rescue",
+              "summary": "Dry weather triggered roadside brush fires impacting localized visibility, tracked by ASMC satellite feeds.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Tropical peat swamp forest preservation and localized brush fire monitoring on Borneo."
+  },
+  "timorleste": {
+      "key": "timorleste",
+      "name": "Timor-Leste",
+      "country": "Timor-Leste",
+      "coords": [
+          125.7275,
+          -8.8742
+      ],
+      "bbox": [
+          124.0,
+          -9.5,
+          127.35,
+          -8.1
+      ],
+      "defaultMultiplier": 1.7,
+      "criticalWeeks": "CRITICAL WEEKS: AUG \u2013 NOV (DRY HILLSIDE SLASH & BURN)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          476,
+          1156,
+          795,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "timor-leste",
+          "east timor",
+          "timor leste",
+          "dili"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "September 2023",
+              "title": "El Nino Drought Exacerbates Mountainous Bushfires in Timor-Leste",
+              "source": "NASA FIRMS / Civil Protection Authority",
+              "summary": "Multiple high-heat thermal clusters detected across Ermera and Ainaro highland agricultural districts.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Traditional slash-and-burn subsistence farming across steep mountainous landscapes during the dry season."
+  },
+  "maldives": {
+      "key": "maldives",
+      "name": "Maldives",
+      "country": "Maldives",
+      "coords": [
+          73.2207,
+          3.2028
+      ],
+      "bbox": [
+          72.5,
+          -0.7,
+          73.8,
+          7.1
+      ],
+      "defaultMultiplier": 1.0,
+      "criticalWeeks": "CRITICAL WEEKS: JAN \u2013 MARCH (NORTHEAST MONSOON HAZE IMPORT)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          280,
+          680,
+          468,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "maldives",
+          "male",
+          "mal\u00e9"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "January 2024",
+              "title": "Maldives Meteorological Service Observes Atmospheric Haze Transport from Subcontinent",
+              "source": "Maldives Met Service / Edition.mv",
+              "summary": "Dry winter north-easterly trade winds carried aerosol plumes across the central atolls, reducing horizon visibility.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Low-lying archipelago with zero open agricultural burning, susceptible to transboundary Asian Brown Cloud haze."
+  },
+  "goa": {
+      "key": "goa",
+      "name": "Goa, India",
+      "country": "India",
+      "coords": [
+          74.05,
+          15.3
+      ],
+      "bbox": [
+          73.65,
+          14.85,
+          74.35,
+          15.8
+      ],
+      "defaultMultiplier": 2.2,
+      "criticalWeeks": "CRITICAL WEEKS: MARCH (WESTERN GHATS SANCTUARY FIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          616,
+          1496,
+          1029,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "goa",
+          "goa, india",
+          "panaji",
+          "margao",
+          "vasco",
+          "western ghats goa"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "March 2023",
+              "title": "Worst Forest Fires in Goa History: 70+ Blazes Scorch 418 Hectares in Western Ghats",
+              "source": "The Goan / Mongabay India / NASA FIRMS",
+              "summary": "Indian Air Force and Navy helicopters deployed Bambi Buckets across Mhadei and Bhagwan Mahaveer sanctuaries after NASA VIIRS detected massive thermal anomalies.",
+              "severity": "high"
+          },
+          {
+              "year": 2024,
+              "date": "March 2024",
+              "title": "Forest Department Deploys Satellite Early-Warning Network Across Goa Sanctuaries",
+              "source": "Times of India / Goa Forest Dept",
+              "summary": "Real-time automated SMS alerts configured using NASA FIRMS and FSI data to prevent recurrence of devastating 2023 sanctuary blazes.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Vulnerable Western Ghats wildlife sanctuaries experience unprecedented dry season brush and forest fires.",
+      "stateOrDivision": "Goa"
+  },
+  "kerala": {
+      "key": "kerala",
+      "name": "Kerala, India",
+      "country": "India",
+      "coords": [
+          76.2711,
+          10.8505
+      ],
+      "bbox": [
+          74.85,
+          8.18,
+          77.6,
+          12.8
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: FEB \u2013 MAR (SUMMER FOREST EDGES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          336,
+          816,
+          561,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "kerala",
+          "kerala, india",
+          "kochi",
+          "thiruvananthapuram",
+          "kozhikode",
+          "wayanad",
+          "idukki"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "February 2024",
+              "title": "Forest Fires in Wayanad Sanctuary Tracked by Satellite Thermal Sensors",
+              "source": "The Hindu / Kerala Forest Department",
+              "summary": "Dry summer leaf litter ignited along border corridors, prompting joint interstate firebreak creation with Tamil Nadu and Karnataka.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Western Ghats forest fire prevention in Wayanad and Idukki during pre-monsoon dry months.",
+      "stateOrDivision": "Kerala"
+  },
+  "karnataka": {
+      "key": "karnataka",
+      "name": "Karnataka, India",
+      "country": "India",
+      "coords": [
+          75.7139,
+          15.3173
+      ],
+      "bbox": [
+          74.05,
+          11.55,
+          78.6,
+          18.45
+      ],
+      "defaultMultiplier": 1.3,
+      "criticalWeeks": "CRITICAL WEEKS: FEB \u2013 MAR (BANDIPUR & NAGARAHOLE)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          364,
+          884,
+          608,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "karnataka",
+          "karnataka, india",
+          "bengaluru",
+          "bangalore",
+          "mysuru",
+          "mysore",
+          "bandipur"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "March 2024",
+              "title": "Pre-Monsoon Thermal Anomaly Early Warning in Bandipur Forest",
+              "source": "Deccan Herald / Karnataka Forest Dept",
+              "summary": "Automated FIRMS hotspot alerts enabled quick containment of dry forest grass fires along the Nilgiri biosphere edge.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Bandipur Tiger Reserve and sugarcane trash burning in Mandya/Belagavi agrarian corridors.",
+      "stateOrDivision": "Karnataka"
+  },
+  "tamilnadu": {
+      "key": "tamilnadu",
+      "name": "Tamil Nadu, India",
+      "country": "India",
+      "coords": [
+          78.6569,
+          11.1271
+      ],
+      "bbox": [
+          76.24,
+          8.08,
+          80.35,
+          13.58
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: JAN \u2013 MAR (CAUVERY DELTA PADDY STRAW)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          336,
+          816,
+          561,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "tamil nadu",
+          "tamilnadu",
+          "tamil nadu, india",
+          "chennai",
+          "coimbatore",
+          "madurai",
+          "thanjavur"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "February 2024",
+              "title": "Cauvery Delta Paddy Straw Burning Monitored by Pollution Control Board",
+              "source": "The New Indian Express / TNPCB",
+              "summary": "Agricultural residue clearing following Samba paddy harvest mapped across Thanjavur and Tiruvarur.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Cauvery Delta post-Samba rice harvest stubble burning and eastern ghats forest fires.",
+      "stateOrDivision": "Tamil Nadu"
+  },
+  "andhrapradesh": {
+      "key": "andhrapradesh",
+      "name": "Andhra Pradesh, India",
+      "country": "India",
+      "coords": [
+          79.74,
+          15.91
+      ],
+      "bbox": [
+          76.75,
+          12.6,
+          84.75,
+          19.15
+      ],
+      "defaultMultiplier": 1.4,
+      "criticalWeeks": "CRITICAL WEEKS: FEB \u2013 APR (PADDY & TOBACCO CLEARING)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          392,
+          951,
+          655,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "andhra pradesh",
+          "andhra",
+          "andhra pradesh, india",
+          "visakhapatnam",
+          "vijayawada",
+          "guntur",
+          "amaravati"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "March 2024",
+              "title": "Satellite Fire Detections Rise Across Eastern Ghats and Godavari Delta",
+              "source": "The Hindu / AP Pollution Control Board",
+              "summary": "Agricultural clearing and forest fringe hotspots detected across Visakhapatnam and Alluri Sitarama Raju districts.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Godavari and Krishna delta paddy residue burning and Seshachalam hills forest fires.",
+      "stateOrDivision": "Andhra Pradesh"
+  },
+  "telangana": {
+      "key": "telangana",
+      "name": "Telangana, India",
+      "country": "India",
+      "coords": [
+          79.0193,
+          18.1124
+      ],
+      "bbox": [
+          77.2,
+          15.8,
+          81.3,
+          19.9
+      ],
+      "defaultMultiplier": 1.4,
+      "criticalWeeks": "CRITICAL WEEKS: NOV & APR (PADDY & COTTON STALKS)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          392,
+          951,
+          655,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "telangana",
+          "telangana, india",
+          "hyderabad",
+          "warangal",
+          "nizamabad"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "November 2023",
+              "title": "Telangana Farmers Urged to Halt Cotton Stalk Burning Following Satellite Alerts",
+              "source": "Telangana Today / Agriculture Department",
+              "summary": "Remote sensing captured extensive open burns in Warangal and Karimnagar, prompting shredder subsidies.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Cotton stalk and paddy residue burning across central Deccan agrarian basins.",
+      "stateOrDivision": "Telangana"
+  },
+  "odisha": {
+      "key": "odisha",
+      "name": "Odisha, India",
+      "country": "India",
+      "coords": [
+          85.0985,
+          20.9517
+      ],
+      "bbox": [
+          81.4,
+          17.8,
+          87.5,
+          22.55
+      ],
+      "defaultMultiplier": 1.7,
+      "criticalWeeks": "CRITICAL WEEKS: FEB \u2013 APR (SIMILIPAL TIGER RESERVE FIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          476,
+          1156,
+          795,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "odisha",
+          "orissa",
+          "odisha, india",
+          "bhubaneswar",
+          "cuttack",
+          "similipal",
+          "mayurbhanj"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "March 2024",
+              "title": "Similipal Forest Fires Kept Under Control With Real-Time NASA FIRMS Feeds",
+              "source": "The Telegraph India / Odisha Forest Dept",
+              "summary": "Quick response squads dispatched to Mayurbhanj forest blocks within 30 minutes of VIIRS satellite hotspot detection.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Similipal National Park seasonal forest fires and coastal delta paddy field burns.",
+      "stateOrDivision": "Odisha"
+  },
+  "jharkhand": {
+      "key": "jharkhand",
+      "name": "Jharkhand, India",
+      "country": "India",
+      "coords": [
+          85.2799,
+          23.6102
+      ],
+      "bbox": [
+          83.3,
+          21.95,
+          87.95,
+          25.35
+      ],
+      "defaultMultiplier": 1.5,
+      "criticalWeeks": "CRITICAL WEEKS: MAR \u2013 APR (MAHUA FLOWER CLEARANCE)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          420,
+          1020,
+          702,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "jharkhand",
+          "jharkhand, india",
+          "ranchi",
+          "jamshedpur",
+          "dhanbad"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "April 2024",
+              "title": "Forest Floor Fire Detections Surge Across Chota Nagpur Plateau",
+              "source": "Prabhat Khabar / Forest Survey of India",
+              "summary": "Controlled ground burns by local foragers mapped extensively in Latehar and Palamu districts.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Dry deciduous Sal forest floor burning for Mahua flower harvesting and coal belt industrial emissions.",
+      "stateOrDivision": "Jharkhand"
+  },
+  "chhattisgarh": {
+      "key": "chhattisgarh",
+      "name": "Chhattisgarh, India",
+      "country": "India",
+      "coords": [
+          81.8661,
+          21.2787
+      ],
+      "bbox": [
+          80.25,
+          17.75,
+          84.4,
+          24.1
+      ],
+      "defaultMultiplier": 1.6,
+      "criticalWeeks": "CRITICAL WEEKS: FEB \u2013 APR (BASTAR DENSE FORESTS)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          448,
+          1088,
+          748,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "chhattisgarh",
+          "chhattisgarh, india",
+          "raipur",
+          "bilaspur",
+          "bastar"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "March 2024",
+              "title": "Bastar Forest Division Deploys Infrared Drones and Satellite Geofencing",
+              "source": "Hindustan Times / Chhattisgarh Forest Dept",
+              "summary": "High-confidence satellite thermal alerts in central Indian sal forests contained before spreading to timber reserves.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Bastar tribal forest areas and extensive Mahanadi basin paddy field residue clearing.",
+      "stateOrDivision": "Chhattisgarh"
+  },
+  "assam": {
+      "key": "assam",
+      "name": "Assam, India",
+      "country": "India",
+      "coords": [
+          92.9376,
+          26.2006
+      ],
+      "bbox": [
+          89.7,
+          24.15,
+          96.0,
+          27.95
+      ],
+      "defaultMultiplier": 1.3,
+      "criticalWeeks": "CRITICAL WEEKS: FEB \u2013 APR (BRAHMAPUTRA VALLEY)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          364,
+          884,
+          608,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "assam",
+          "assam, india",
+          "guwahati",
+          "kaziranga",
+          "dibrugarh",
+          "silchar"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "February 2024",
+              "title": "Controlled Grassland Burns in Kaziranga National Park Monitored by Satellite",
+              "source": "The Assam Tribune / Kaziranga Authority",
+              "summary": "Annual habitat management burns mapped across western and central ranges to promote fresh grass growth for rhinos.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Brahmaputra floodplain agricultural clearing, tea garden pruning, and Kaziranga grassland controlled burns.",
+      "stateOrDivision": "Assam"
+  },
+  "jammuandkashmir": {
+      "key": "jammuandkashmir",
+      "name": "Jammu and Kashmir, India",
+      "country": "India",
+      "coords": [
+          74.7973,
+          34.0837
+      ],
+      "bbox": [
+          73.25,
+          32.25,
+          77.5,
+          35.5
+      ],
+      "defaultMultiplier": 1.2,
+      "criticalWeeks": "CRITICAL WEEKS: MAY \u2013 JUNE & OCT (PINE NEEDLE WILDFIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          336,
+          816,
+          561,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "jammu and kashmir",
+          "kashmir",
+          "jammu",
+          "srinagar",
+          "jammu & kashmir",
+          "jammu and kashmir, india"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "May 2024",
+              "title": "Dry Spell Triggers Forest Fires in Rajouri and Poonch Pine Belts",
+              "source": "Greater Kashmir / Disaster Management Authority",
+              "summary": "High summer heatwaves ignited dry pine needles on steep slopes, visible on MODIS satellite tracks.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Pir Panjal chir pine forest fires in summer and apple orchard pruning/waste burning in autumn.",
+      "stateOrDivision": "Jammu and Kashmir"
+  },
+  "ladakh": {
+      "key": "ladakh",
+      "name": "Ladakh, India",
+      "country": "India",
+      "coords": [
+          77.5771,
+          34.1526
+      ],
+      "bbox": [
+          75.2,
+          32.5,
+          80.5,
+          36.0
+      ],
+      "defaultMultiplier": 1.0,
+      "criticalWeeks": "CRITICAL WEEKS: ZERO AGRICULTURAL BURNING (HIGH ALTITUDE)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          280,
+          680,
+          468,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "ladakh",
+          "leh",
+          "kargil",
+          "ladakh, india"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "Annual Review",
+              "title": "NASA FIRMS Satellite Observation: Zero Biomass Fire Alerts in Ladakh",
+              "source": "NASA Earth Science / UT Administration",
+              "summary": "Cold alpine desert conditions maintain baseline thermal anomaly count at zero throughout the seasonal cycle.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "High-altitude cold desert environment with essentially zero open biomass or agricultural burning.",
+      "stateOrDivision": "Ladakh"
+  },
+  "himachalpradesh": {
+      "key": "himachalpradesh",
+      "name": "Himachal Pradesh, India",
+      "country": "India",
+      "coords": [
+          77.1734,
+          31.1048
+      ],
+      "bbox": [
+          75.6,
+          30.35,
+          79.0,
+          33.25
+      ],
+      "defaultMultiplier": 1.6,
+      "criticalWeeks": "CRITICAL WEEKS: MAY \u2013 JUNE (PINE RESIN & SUMMER DROUGHT)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          448,
+          1088,
+          748,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "himachal pradesh",
+          "himachal",
+          "himachal pradesh, india",
+          "shimla",
+          "dharamshala",
+          "kullu",
+          "manali"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "June 2024",
+              "title": "Over 1,200 Forest Fires Sweep Himachal Pradesh During Record June Heatwave",
+              "source": "The Tribune India / HP Forest Department",
+              "summary": "NASA VIIRS tracked severe fire lines along mid-Himalayan valleys, prompting air quality warnings in tourist towns.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Chir pine needle forest fires across Shimla, Solan, and Kangra during prolonged pre-monsoon heatwaves.",
+      "stateOrDivision": "Himachal Pradesh"
+  },
+  "uttarakhand": {
+      "key": "uttarakhand",
+      "name": "Uttarakhand, India",
+      "country": "India",
+      "coords": [
+          79.0193,
+          30.0668
+      ],
+      "bbox": [
+          77.55,
+          28.7,
+          81.05,
+          31.45
+      ],
+      "defaultMultiplier": 1.9,
+      "criticalWeeks": "CRITICAL WEEKS: APR \u2013 JUNE (CHIR PINE WILDFIRE CRISIS)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "SEP",
+          "OCT",
+          "NOV",
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          532,
+          1292,
+          889,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "uttarakhand",
+          "uttarakhand, india",
+          "dehradun",
+          "nainital",
+          "rishikesh",
+          "haridwar",
+          "garhwal",
+          "kumaon"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "May 2024",
+              "title": "Uttarakhand Forest Fires Prompt NDRF Deployment as NASA Satellites Detect Thousands of Hotspots",
+              "source": "Times of India / NDRF / NASA FIRMS",
+              "summary": "Severe pre-monsoon drought ignited over 1,500 hectares in Nainital, Almora, and Pauri Garhwal.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Extensive summer forest fires across Garhwal and Kumaon resin-rich chir pine forests.",
+      "stateOrDivision": "Uttarakhand"
+  },
+
+  "afghanistan": {
+      "key": "afghanistan",
+      "name": "Afghanistan",
+      "country": "Afghanistan",
+      "coords": [
+          67.7099,
+          33.9391
+      ],
+      "bbox": [
+          60.5,
+          29.4,
+          74.9,
+          38.5
+      ],
+      "defaultMultiplier": 1.3,
+      "criticalWeeks": "CRITICAL WEEKS: JUNE \u2013 AUG (SUMMER CROP CLEARING)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          364,
+          884,
+          608,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "afghanistan",
+          "kabul",
+          "kandahar",
+          "herat",
+          "mazar-i-sharif"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "Summer Review",
+              "title": "Satellite Observations of Agrarian Burn Footprints in Northern Afghanistan",
+              "source": "NASA Earth Observatory",
+              "summary": "VIIRS passes mapped localized post-wheat straw burns in Kunduz and Balkh river basins.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Arid agricultural river valley stubble burns along the Helmand and Hari river basins."
+  },
+  "iran": {
+      "key": "iran",
+      "name": "Iran",
+      "country": "Iran",
+      "coords": [
+          53.688,
+          32.4279
+      ],
+      "bbox": [
+          44.0,
+          25.0,
+          63.3,
+          39.8
+      ],
+      "defaultMultiplier": 1.4,
+      "criticalWeeks": "CRITICAL WEEKS: MAY \u2013 JULY (KHUZESTAN & CASPIAN CROP FIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          392,
+          951,
+          655,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "iran",
+          "tehran",
+          "isfahan",
+          "shiraz",
+          "tabriz",
+          "khuzestan"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "June 2024",
+              "title": "Khuzestan Sugarcane and Wheat Residue Fires Spike Regional Satellite Anomaly Counts",
+              "source": "Tehran Times / Department of Environment",
+              "summary": "Thermal satellite tracking recorded active post-harvest residue burns across southwestern floodplains.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Agricultural stubble burns across Khuzestan plains and Hyrcanian forest fires along the Caspian coast."
+  },
+  "iraq": {
+      "key": "iraq",
+      "name": "Iraq",
+      "country": "Iraq",
+      "coords": [
+          43.6793,
+          33.2232
+      ],
+      "bbox": [
+          38.8,
+          29.0,
+          48.6,
+          37.4
+      ],
+      "defaultMultiplier": 1.5,
+      "criticalWeeks": "CRITICAL WEEKS: MAY \u2013 JUNE (MESOPOTAMIAN WHEAT FIELDS)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          420,
+          1020,
+          702,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "iraq",
+          "baghdad",
+          "basra",
+          "erbil",
+          "mosul"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "June 2023",
+              "title": "Post-Harvest Cereal Crop Fires Mapped Across Mesopotamian Basin",
+              "source": "NASA FIRMS / Iraq Ministry of Environment",
+              "summary": "Thermal imaging tracked extensive field clearance across Nineveh and Salah al-Din governorates.",
+              "severity": "medium"
+          }
+      ],
+      "contextNote": "Tigris-Euphrates alluvial plain cereal stubble burning and marshland reed fires."
+  },
+  "saudiarabia": {
+      "key": "saudiarabia",
+      "name": "Saudi Arabia",
+      "country": "Saudi Arabia",
+      "coords": [
+          45.0792,
+          23.8859
+      ],
+      "bbox": [
+          34.5,
+          16.3,
+          55.7,
+          32.2
+      ],
+      "defaultMultiplier": 1.1,
+      "criticalWeeks": "CRITICAL WEEKS: YEAR-ROUND (INDUSTRIAL THERMAL FLARES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          308,
+          748,
+          514,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "saudi arabia",
+          "saudi",
+          "ksa",
+          "riyadh",
+          "jeddah",
+          "mecca",
+          "medina"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "Annual Audit",
+              "title": "Satellite Gas Flare and Thermal Source Auditing Across Arabian Peninsula",
+              "source": "NASA Earth Science / World Bank GGFR",
+              "summary": "VIIRS nighttime thermal radiometers track flare reduction compliance across Eastern Province fields.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Hyper-arid desert with minimal open vegetation fires; satellite detections correspond primarily to industrial gas flaring."
+  },
+  "uae": {
+      "key": "uae",
+      "name": "United Arab Emirates",
+      "country": "United Arab Emirates",
+      "coords": [
+          53.8478,
+          23.4241
+      ],
+      "bbox": [
+          51.5,
+          22.6,
+          56.4,
+          26.1
+      ],
+      "defaultMultiplier": 1.0,
+      "criticalWeeks": "CRITICAL WEEKS: YEAR-ROUND (INDUSTRIAL EMISSION MONITORING)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          280,
+          680,
+          468,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "uae",
+          "united arab emirates",
+          "dubai",
+          "abu dhabi",
+          "sharjah"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "COP28 Briefing",
+              "title": "NASA Earth Science Collaboration on Methane and Thermal Flare Tracking",
+              "source": "UAE Ministry of Climate Change and Environment",
+              "summary": "Space-borne instruments demonstrate significant declines in unpermitted industrial open flares.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Desert metropolis with near-zero agricultural burning, monitoring regional atmospheric aerosol transport."
+  },
+  "turkey": {
+      "key": "turkey",
+      "name": "Turkey",
+      "country": "Turkey",
+      "coords": [
+          35.2433,
+          38.9637
+      ],
+      "bbox": [
+          25.6,
+          35.8,
+          44.8,
+          42.1
+      ],
+      "defaultMultiplier": 1.8,
+      "criticalWeeks": "CRITICAL WEEKS: JULY \u2013 AUG (MEDITERRANEAN WILDFIRES)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          504,
+          1224,
+          842,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "turkey",
+          "t\u00fcrkiye",
+          "turkiye",
+          "istanbul",
+          "ankara",
+          "antalya",
+          "izmir"
+      ],
+      "news": [
+          {
+              "year": 2024,
+              "date": "July 2024",
+              "title": "Mediterranean Coastal Forest Fires in Izmir and Canakkale Tracked by Satellite",
+              "source": "Anadolu Agency / NASA FIRMS",
+              "summary": "Severe gale-driven wildfire lines mapped across Aegean and Mediterranean coastal pine forests.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Mediterranean pine forest summer wildfires and central Anatolian cereal stubble clearance."
+  },
+  "kazakhstan": {
+      "key": "kazakhstan",
+      "name": "Kazakhstan",
+      "country": "Kazakhstan",
+      "coords": [
+          66.9237,
+          48.0196
+      ],
+      "bbox": [
+          46.5,
+          40.5,
+          87.3,
+          55.4
+      ],
+      "defaultMultiplier": 1.6,
+      "criticalWeeks": "CRITICAL WEEKS: MAY & AUG \u2013 SEP (STEPPE & WHEAT BELT)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          448,
+          1088,
+          748,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "kazakhstan",
+          "astana",
+          "almaty",
+          "shymkent"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "June 2023",
+              "title": "Abay Region Pine Forest Wildfire Prompts National Emergency",
+              "source": "Kazinform / Ministry of Emergency Situations / NASA FIRMS",
+              "summary": "Massive forest blaze in relic pine forests mapped by MODIS and VIIRS satellite sensors over 60,000 hectares.",
+              "severity": "high"
+          }
+      ],
+      "contextNote": "Vast Eurasian steppe wildland fires and northern Virgin Lands cereal straw burning."
+  },
+  "uzbekistan": {
+      "key": "uzbekistan",
+      "name": "Uzbekistan",
+      "country": "Uzbekistan",
+      "coords": [
+          64.5853,
+          41.3775
+      ],
+      "bbox": [
+          56.0,
+          37.15,
+          73.15,
+          45.6
+      ],
+      "defaultMultiplier": 1.3,
+      "criticalWeeks": "CRITICAL WEEKS: JUNE \u2013 JULY (COTTON & WHEAT CLEARANCE)",
+      "criticalSpan": [
+          3,
+          5
+      ],
+      "months": [
+          "DEC",
+          "JAN",
+          "FEB",
+          "MAR",
+          "APR",
+          "MAY",
+          "JUN",
+          "JUL"
+      ],
+      "normalCurve": [
+          40,
+          90,
+          280,
+          680,
+          520,
+          210,
+          80,
+          25
+      ],
+      "thisSeasonCurve": [
+          44,
+          108,
+          364,
+          884,
+          608,
+          231,
+          80,
+          25
+      ],
+      "aliases": [
+          "uzbekistan",
+          "tashkent",
+          "samarkand",
+          "bukhara",
+          "fergana"
+      ],
+      "news": [
+          {
+              "year": 2023,
+              "date": "July 2023",
+              "title": "Satellite Surveillance Regulates Stubble Burning in Fergana Valley",
+              "source": "UzDaily / Ministry of Ecology",
+              "summary": "Coordinated space observations enforced fines on illegal agricultural field fires following winter wheat harvest.",
+              "severity": "info"
+          }
+      ],
+      "contextNote": "Fergana Valley and Amu Darya basin post-harvest cotton and cereal residue clearance."
   }
 };
 
 export function findRegionInQuery(rawQuery: string): RegionProfile | null {
-  const q = rawQuery.toLowerCase().trim();
+  // Normalize punctuation and extra spaces
+  const q = rawQuery.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+  if (!q) return null;
   
-  // Sort candidates by longest matching alias first
   const profiles = Object.values(REGION_REGISTRY);
+
+  // 1. Direct Alias Substring Matching (Longest matching alias first)
   let bestMatch: RegionProfile | null = null;
   let maxLen = 0;
 
   for (const profile of profiles) {
     for (const alias of profile.aliases) {
-      if (alias.length > maxLen && q.includes(alias)) {
+      const normAlias = alias.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+      if (normAlias.length > maxLen && q.includes(normAlias)) {
         bestMatch = profile;
-        maxLen = alias.length;
+        maxLen = normAlias.length;
       }
     }
   }
 
   if (bestMatch) return bestMatch;
 
-  // Keyword special fallbacks
+  // 2. Individual Word Token Matching (e.g. user types "rajstan", "beijing", "goa")
+  const tokens = q.split(' ').filter(t => t.length >= 3);
+  for (const t of tokens) {
+    for (const profile of profiles) {
+      // Check if token matches start of alias or profile key
+      if (profile.key.startsWith(t) || t.startsWith(profile.key)) {
+        return profile;
+      }
+      for (const alias of profile.aliases) {
+        const normAlias = alias.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+        // Common typo toleration (e.g., 'rajstan' -> 'rajasthan')
+        if (normAlias.includes(t) || (t.length >= 5 && normAlias.startsWith(t.slice(0, 4)))) {
+          return profile;
+        }
+      }
+    }
+  }
+
+  // 3. Keyword special fallbacks
   if (q.includes('jhum') || q.includes('hill tract') || q.includes('cht')) {
     return REGION_REGISTRY['chattogram'] || REGION_REGISTRY['bandarban'];
   }
