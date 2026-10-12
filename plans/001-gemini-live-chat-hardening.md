@@ -92,7 +92,9 @@ const bad = unsupportedNumbers(text, sys)
 - Model ids (checked 2026-10-12 against https://ai.google.dev/gemini-api/docs/models
   and the Interactions API reference): `gemini-3.1-flash-lite` is GA;
   `gemini-3.5-flash-lite` is listed as current. There is **no** plain
-  `gemini-3.1-flash` text model — do not use it.
+  `gemini-3.1-flash` text model — do not use it. `temperature`/`top_p`/`top_k`
+  are deprecated on these models (ignored now, an error in later
+  generations), so the request sends none (amended 2026-10-12).
 - Conventions (`CLAUDE.md`): tests assert fixed expected values, never
   current output; `web/` never holds kiln-level data (the facts object is
   district-level — safe).
@@ -146,7 +148,7 @@ export function buildGeminiRequest(sys: string, q: string) {
   return {
     system_instruction: { parts: [{ text: sys }] },
     contents: [{ role: 'user', parts: [{ text: q }] }],
-    generationConfig: { temperature: 0.2, maxOutputTokens: 1024 },
+    generationConfig: { maxOutputTokens: 1024 }, // no temperature: deprecated on Gemini 3.x (ignored now, an error in later models)
   }
 }
 
@@ -235,7 +237,7 @@ const fake = (...replies: { status: number; body?: unknown }[]) => {
 
 Cases (fixed expected values only — CLAUDE.md invariant 8):
 1. `buildGeminiRequest('SYS', 'Q')` deep-equals
-   `{ system_instruction: { parts: [{ text: 'SYS' }] }, contents: [{ role: 'user', parts: [{ text: 'Q' }] }], generationConfig: { temperature: 0.2, maxOutputTokens: 1024 } }`.
+   `{ system_instruction: { parts: [{ text: 'SYS' }] }, contents: [{ role: 'user', parts: [{ text: 'Q' }] }], generationConfig: { maxOutputTokens: 1024 } }`.
 2. Fallback: replies `[{ status: 404 }, { status: 200, body: { candidates: [{ content: { parts: [{ text: 'March is the peak.' }] } }] } }]`
    → resolves `'March is the peak.'`; `urls.length === 2` and `urls[1]`
    contains `GEMINI_MODELS[1]`.

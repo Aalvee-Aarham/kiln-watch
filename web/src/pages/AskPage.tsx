@@ -2,7 +2,7 @@ import { useState, useEffect, type ReactNode } from 'react'
 import { StatusMessage, useTitle, Icon, useKilnActivity } from '../components/ui'
 import { PageHead } from '../components/plain'
 import { useJson } from '../lib/data'
-import { buildSystemPrompt, unsupportedNumbers, type Facts } from '../lib/geminiPrompt'
+import { askGemini, buildSystemPrompt, unsupportedNumbers, type Facts } from '../lib/geminiPrompt'
 import { busyMonths, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
 import { seasonMean } from '../lib/calendar'
 import type { AskCache, Calendar, FC, NrtSeason } from '../lib/types'
@@ -37,12 +37,14 @@ function LiveChat({ apiKey }: { apiKey: string }) {
 
   const [q, setQ] = useState('')
   const [ans, setAns] = useState<ReactNode>(null)
+  const [shownFacts, setShownFacts] = useState<Facts | null>(null)
   const [loading, setLoading] = useState(false)
 
   const askModel = async () => {
     if (loading || !q.trim() || !cal || !nrt) return
     setLoading(true)
     setAns(null)
+    setShownFacts(null)
 
     try {
       const bm = busyMonths(seasonMean(cal))
@@ -57,20 +59,14 @@ function LiveChat({ apiKey }: { apiKey: string }) {
       }
       const sys = buildSystemPrompt(facts)
 
-      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite:generateContent', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, // a header, so the key never lands in URL logs
-        body: JSON.stringify({ contents: [{ role: 'user', parts: [{ text: sys + '\n\nUser Question: ' + q }] }] })
-      })
-      if (!res.ok) throw new Error(`API error: ${res.status}`)
-      const data = await res.json()
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text ?? 'No answer returned.'
+      const text = await askGemini(fetch, apiKey, sys, q)
 
       const bad = unsupportedNumbers(text, sys)
       if (bad.length) {
         setAns(<StatusMessage kind="error">Blocked: the answer stated {bad.length === 1 ? 'a number' : 'numbers'} our data did not give ({bad.join(', ')}). We show nothing rather than an unchecked figure.</StatusMessage>)
       } else {
         setAns(text)
+        setShownFacts(facts)
       }
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
@@ -94,7 +90,13 @@ function LiveChat({ apiKey }: { apiKey: string }) {
         <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={askModel} disabled={loading || !q.trim()}>Ask</button>
       </div>
       {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="spinner" className="h-4 w-4 animate-spin" />Thinking...</div>}
-      {ans && <div className="prose-measure whitespace-pre-wrap rounded-[6px] bg-surface-2 p-3 text-sm">{ans}</div>}
+      {ans && <div className="prose-measure space-y-2 rounded-[6px] bg-surface-2 p-3 text-sm">
+        <div className="whitespace-pre-wrap">{ans}</div>
+        {shownFacts && <details className="text-sm">
+          <summary className="cursor-pointer text-orbit">The data behind this answer</summary>
+          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface p-2 text-xs">{JSON.stringify(shownFacts, null, 1)}</pre>
+        </details>}
+      </div>}
     </div>
   )
 }

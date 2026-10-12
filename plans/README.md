@@ -12,7 +12,7 @@ and update your row when done.
 
 | Plan | Title | Priority | Effort | Depends on | Status |
 |------|-------|----------|--------|------------|--------|
-| 001 | Gemini live-chat hardening (prompt separation, transparency, model fallback, tests) | P1 | S | — | TODO |
+| 001 | Gemini live-chat hardening (prompt separation, transparency, model fallback, tests) | P1 | S | — | DONE |
 | 002 | Ask-agent test coverage + adversarial eval suite | P1 | S-M | — | TODO |
 | 003 | Expand agent tools (kiln seasons, national trend) | P1 | M | 002 | TODO |
 | 004 | ask.json cache automation (publish + daily deploy) | P2 | S-M | — | TODO |
