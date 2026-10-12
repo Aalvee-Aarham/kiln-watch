@@ -45,4 +45,51 @@ describe('agentEngine', () => {
     expect(punjab.mapFocus.targetX).not.toEqual(dhaka.mapFocus.targetX)
     expect(punjab.mapFocus.targetY).not.toEqual(dhaka.mapFocus.targetY)
   })
+
+  it('resolves any of the 64 Bangladesh districts properly (e.g. Bogura, Dinajpur, Cumilla, Barishal, Sylhet)', () => {
+    const bogura = parseUserQuery('Tell me about agricultural fires in Bogura')
+    expect(bogura.locationName).toContain('Bogura, Bangladesh')
+    expect(bogura.chartData.length).toBe(8)
+    expect(bogura.coordinates[0]).toBeCloseTo(89.37, 1)
+
+    const dinajpur = parseUserQuery('Is burning high in Dinajpur right now?')
+    expect(dinajpur.locationName).toContain('Dinajpur, Bangladesh')
+
+    const cumilla = parseUserQuery('Show brick kiln fires in Cumilla')
+    expect(cumilla.locationName).toContain('Cumilla, Bangladesh')
+
+    const barishal = parseUserQuery('Check fires in Barishal')
+    expect(barishal.locationName).toContain('Barishal, Bangladesh')
+
+    const sylhet = parseUserQuery('Is Sylhet experiencing haor fires?')
+    expect(sylhet.locationName).toContain('Sylhet, Bangladesh')
+  })
+
+  it('resolves Southeast Asian (SEA) countries properly (e.g. Myanmar, Thailand, Vietnam, Indonesia)', () => {
+    const myanmar = parseUserQuery('Show forest and crop burning in Myanmar')
+    expect(myanmar.locationName).toContain('Myanmar')
+    expect(myanmar.criticalWeeks).toContain('DRY SEASON CLEARING')
+    expect(myanmar.multiplier).toBeGreaterThanOrEqual(1.5)
+
+    const thailand = parseUserQuery('What is the sugarcane fire season in Thailand?')
+    expect(thailand.locationName).toContain('Thailand')
+
+    const vietnam = parseUserQuery('Check Mekong delta rice stubble fires in Vietnam')
+    expect(vietnam.locationName).toContain('Vietnam')
+
+    const indonesia = parseUserQuery('Show peatland burning in Indonesia')
+    expect(indonesia.locationName).toContain('Indonesia')
+    expect(indonesia.multiplier).toBe(2.3)
+  })
+
+  it('resolves Indian states across the continent (e.g. Uttar Pradesh, Maharashtra, Rajasthan)', () => {
+    const up = parseUserQuery('Show crop burning in Uttar Pradesh')
+    expect(up.locationName).toContain('Uttar Pradesh, India')
+
+    const maha = parseUserQuery('Check sugarcane burning in Maharashtra')
+    expect(maha.locationName).toContain('Maharashtra, India')
+
+    const raj = parseUserQuery('Tell me about farm fires in Rajasthan')
+    expect(raj.locationName).toContain('Rajasthan, India')
+  })
 })
