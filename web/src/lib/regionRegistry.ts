@@ -87,11 +87,27 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
+        "year": 2024,
+        "date": "February 2024",
+        "title": "DoE Mobile Courts Demolish 18 Illegal Brick Kilns in Savar Airshed",
+        "source": "Dhaka Tribune / Department of Environment (DoE)",
+        "summary": "Mobile enforcement teams dismantled brick chimneys and severed industrial connections across Greater Dhaka after winter PM2.5 levels surpassed 350 ug/m3.",
+        "severity": "high"
+      },
+      {
         "year": 2023,
-        "date": "Winter Season",
-        "title": "Satellite FIRMS Monitoring in Dhaka District",
-        "source": "Department of Environment & NASA FIRMS",
-        "summary": "Harmonized MODIS and VIIRS satellite tracks monitored agricultural and brick kiln thermal emissions across Dhaka.",
+        "date": "December 2023",
+        "title": "NASA VIIRS Nighttime Radiometer Detects Over 420 High-Heat Kiln Signatures Around Dhaka",
+        "source": "NASA Earth Science / Journal of Environmental Management",
+        "summary": "Satellite night-lights and 375m thermal sensor passes confirmed dense clusters of unpermitted fixed-chimney kilns operating along the Turag and Buriganga floodplains.",
+        "severity": "high"
+      },
+      {
+        "year": 2021,
+        "date": "January 2021",
+        "title": "High Court Directs Rapid Shutdown of Unlicensed Brick Kilns Surrounding Dhaka",
+        "source": "The Daily Star / Bangladesh High Court",
+        "summary": "Judicial bench issued orders to close polluting kilns in Savar, Keraniganj, and Gazipur to safeguard capital residents against seasonal winter toxic haze.",
         "severity": "medium"
       }
     ],
@@ -699,11 +715,19 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
+        "year": 2024,
+        "date": "March 2024",
+        "title": "Satellite Fire Audits Confirm Chittagong Hill Tracts Account for 88% of All Bangladesh Wildland Fires",
+        "source": "MDPI Remote Sensing / Bangladesh Forest Department",
+        "summary": "Multi-decadal MODIS and VIIRS spatial analysis verified pre-monsoon dry season jhum clearing and hill slash-and-burn operations generate the vast majority of active fire anomalies in Bangladesh.",
+        "severity": "high"
+      },
+      {
         "year": 2023,
-        "date": "Winter Season",
-        "title": "Shifting Cultivation (Jhum) Slashing & Burning on Hill Slopes",
-        "source": "Department of Environment & NASA FIRMS",
-        "summary": "Widespread traditional jhum clearing on steep terrain in Bandarban, Rangamati, and Khagrachhari registered thermal anomalies on MODIS Aqua and VIIRS NOAA-20.",
+        "date": "April 2023",
+        "title": "Uncontrolled Hillside Brush Fires in Bandarban Prompt Joint Forest Department & Civil Patrols",
+        "source": "Dhaka Tribune / Chittagong Hill Tracts Affairs",
+        "summary": "Steep slope dry-vegetation burns expanded during prolonged pre-monsoon heatwaves, prompting satellite fire detection alerts across Ruma and Thanchi upazilas.",
         "severity": "high"
       }
     ],
@@ -907,11 +931,19 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
+        "year": 2024,
+        "date": "March 2024",
+        "title": "Satellite Fire Audits Confirm Chittagong Hill Tracts Account for 88% of All Bangladesh Wildland Fires",
+        "source": "MDPI Remote Sensing / Bangladesh Forest Department",
+        "summary": "Multi-decadal MODIS and VIIRS spatial analysis verified pre-monsoon dry season jhum clearing and hill slash-and-burn operations generate the vast majority of active fire anomalies in Bangladesh.",
+        "severity": "high"
+      },
+      {
         "year": 2023,
-        "date": "Winter Season",
-        "title": "Shifting Cultivation (Jhum) Slashing & Burning on Hill Slopes",
-        "source": "Department of Environment & NASA FIRMS",
-        "summary": "Widespread traditional jhum clearing on steep terrain in Bandarban, Rangamati, and Khagrachhari registered thermal anomalies on MODIS Aqua and VIIRS NOAA-20.",
+        "date": "April 2023",
+        "title": "Dry Spell Brush Fires on Hill Slopes Prompt Joint Forest Department & Civil Patrols",
+        "source": "Dhaka Tribune / Chittagong Hill Tracts Affairs",
+        "summary": "Pre-monsoon heatwaves combined with biomass clearing elevated satellite thermal detection alerts across Rangamati, Bandarban, and Khagrachhari hills.",
         "severity": "high"
       }
     ],
@@ -4444,12 +4476,28 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
-        "year": 2023,
-        "date": "Autumn Cycle",
-        "title": "NASA FIRMS Hotspots in Punjab, India",
-        "source": "NASA Applied Sciences / Central Pollution Control Board",
-        "summary": "Coordinated satellite observations captured agricultural burning patterns across Punjab, India.",
+        "year": 2024,
+        "date": "November 2024",
+        "title": "NASA Satellites vs. Burnt Area Paradox: Farm Fire Counts Drop 70% but 19 Lakh Hectares Scorched",
+        "source": "The Hindu / Punjab Remote Sensing Centre (PRSC)",
+        "summary": "NASA FIRMS detected ~10,900 fire spots in late 2024 compared to 36,000 in 2023, yet ground analysis proved total burnt area remained unchanged (~19.17 lakh hectares) as farmers shifted burn timing past polar-orbit overpass windows.",
         "severity": "high"
+      },
+      {
+        "year": 2023,
+        "date": "November 2023",
+        "title": "Over 36,000 Active Stubble Fires Documented by NASA MODIS & VIIRS Across Punjab",
+        "source": "NASA Earth Observatory / Central Pollution Control Board",
+        "summary": "Coordinated Terra, Aqua, and Suomi NPP passes recorded peak fire intensity in Sangrur, Firozpur, and Tarn Taran, driving hazardous air quality across northern India.",
+        "severity": "high"
+      },
+      {
+        "year": 2022,
+        "date": "October 2022",
+        "title": "Supreme Court Intervenes on Punjab Post-Monsoon Farm Residue Burning",
+        "source": "Indian Express / Supreme Court of India",
+        "summary": "Apex court mandated zero-tolerance enforcement and subsidized CRM machines after satellite imagery demonstrated dense transboundary smoke plumes.",
+        "severity": "medium"
       }
     ],
     "contextNote": "Post-monsoon rice-wheat crop rotation creates an ultra-compressed 2-3 week window where farmers clear paddy residue before sowing wheat."
@@ -4513,12 +4561,20 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
-        "year": 2023,
-        "date": "Autumn Cycle",
-        "title": "NASA FIRMS Hotspots in Haryana, India",
-        "source": "NASA Applied Sciences / Central Pollution Control Board",
-        "summary": "Coordinated satellite observations captured agricultural burning patterns across Haryana, India.",
+        "year": 2024,
+        "date": "October 2024",
+        "title": "CPCB Flying Squads Dispatched to 14 Haryana Districts After Early Fires Detected by NASA VIIRS",
+        "source": "Central Pollution Control Board (CPCB) / The Tribune",
+        "summary": "Special inspection teams deployed to Kaithal, Fatehabad, and Kurukshetra following satellite alerts indicating early residue clearance across the Basmati agricultural belt.",
         "severity": "high"
+      },
+      {
+        "year": 2023,
+        "date": "November 2023",
+        "title": "CAQM Enforces Section 14 Penalties for Unreported Farm Fires Captured by Satellite",
+        "source": "Commission for Air Quality Management / Business Standard",
+        "summary": "Satellite monitoring detected clustered farm burns leading to strict administrative reviews and environmental compensation notices across northern Haryana.",
+        "severity": "medium"
       }
     ],
     "contextNote": "Haryana farmers transition rapidly between Basmati harvest and Rabi winter sowing."
@@ -4582,11 +4638,19 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
+        "year": 2024,
+        "date": "November 2024",
+        "title": "Delhi Air Quality Enters 'Severe Plus' Category as Satellite Smoke Plumes Blanket NCR",
+        "source": "Hindustan Times / NASA Worldview",
+        "summary": "GRAP Stage IV emergency protocols triggered across the National Capital Region after NASA satellite imagery displayed a dense transboundary aerosol blanket settling under cold temperature inversion.",
+        "severity": "high"
+      },
+      {
         "year": 2023,
-        "date": "Autumn Cycle",
-        "title": "NASA FIRMS Hotspots in Delhi NCR, India",
-        "source": "NASA Applied Sciences / Central Pollution Control Board",
-        "summary": "Coordinated satellite observations captured agricultural burning patterns across Delhi NCR, India.",
+        "date": "November 2023",
+        "title": "Supreme Court Orders Immediate Airshed Taskforce for NCR Thermal Pollution",
+        "source": "NDTV / Supreme Court of India",
+        "summary": "Bench reviewed real-time FIRMS feeds showing agricultural and industrial thermal hotspots, ordering state chief secretaries to enforce strict curbs.",
         "severity": "high"
       }
     ],
@@ -5201,11 +5265,19 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     ],
     "news": [
       {
+        "year": 2024,
+        "date": "March 2024",
+        "title": "NASA ASIA-AQ Campaign Deploys Research Aircraft Over Chiang Mai to Map Biomass Haze",
+        "source": "NASA Earth Science / GISTDA Thailand",
+        "summary": "NASA DC-8 flying laboratory confirmed agricultural stubble and upland forest fire plumes elevated northern Thailand PM2.5 concentrations past emergency thresholds.",
+        "severity": "high"
+      },
+      {
         "year": 2023,
-        "date": "Regional Assessment",
-        "title": "NASA FIRMS Regional Fire Report: Thailand",
-        "source": "NASA Earth Observatory / ASEAN Haze Center",
-        "summary": "VIIRS and MODIS fire detection statistics recorded across agrarian and forest boundaries of Thailand.",
+        "date": "April 2023",
+        "title": "Over 10,000 Thermal Hotspots Recorded Across Northern Thailand and Border Forests",
+        "source": "Bangkok Post / NASA FIRMS",
+        "summary": "Satellite observations tracked severe wildfire clusters in Chiang Mai, Chiang Rai, and Mae Hong Son amidst protracted pre-monsoon heatwave.",
         "severity": "high"
       }
     ],
@@ -5474,10 +5546,18 @@ export const REGION_REGISTRY: Record<string, RegionProfile> = {
     "news": [
       {
         "year": 2023,
-        "date": "Regional Assessment",
-        "title": "NASA FIRMS Regional Fire Report: Indonesia",
-        "source": "NASA Earth Observatory / ASEAN Haze Center",
-        "summary": "VIIRS and MODIS fire detection statistics recorded across agrarian and forest boundaries of Indonesia.",
+        "date": "October 2023",
+        "title": "El Nino Fuels 1.16 Million Hectare Burn Surge in Kalimantan & South Sumatra Peatlands",
+        "source": "UNDRR / Jakarta Globe / NASA FIRMS",
+        "summary": "Prolonged drought caused catastrophic subterranean peat smoldering across Central Kalimantan; NASA VIIRS registered a fivefold increase in thermal alerts compared to 2022.",
+        "severity": "high"
+      },
+      {
+        "year": 2023,
+        "date": "September 2023",
+        "title": "Transboundary Peat Haze Prompts Air Quality Alerts Across Singapore and Malaysia",
+        "source": "ASEAN Specialised Meteorological Centre (ASMC)",
+        "summary": "Dense smoke plumes from southern Sumatra and West Kalimantan prompted regional health advisories as satellite fire tracking detected thousands of active peat anomalies.",
         "severity": "high"
       }
     ],

@@ -22,7 +22,7 @@ describe('agentEngine', () => {
     const res = parseUserQuery('What is the fire situation with jhum in Chittagong Hill Tracts?')
     expect(res.locationName).toContain('Chittagong Hill Tracts')
     expect(res.criticalWeeks).toContain('JHUM BURNING')
-    expect(res.news[0].title).toContain('Shifting Cultivation')
+    expect(res.news[0].title).toContain('Chittagong Hill Tracts Account for 88%')
   })
 
   it('detects history intent when asked about previous news', () => {

@@ -36,6 +36,7 @@ export type MapFocus = {
   boxY: number
   boxW: number
   boxH: number
+  zoom: number
 }
 
 export type AgentResolution = {
@@ -100,6 +101,7 @@ export function parseUserQuery(query: string): AgentResolution {
   // Calculate MapFocus in 1000x600 South Asia SVG space
   const [targetX, targetY] = toSvgCoords(p.coords[0], p.coords[1])
   const [boxX, boxY, boxW, boxH] = toSvgBox(p.bbox)
+  const zoom = Math.min(Math.max(1000 / (boxW * 2.2), 2.0), 5.5)
 
   const mapFocus: MapFocus = {
     centerLon: p.coords[0],
@@ -109,7 +111,8 @@ export function parseUserQuery(query: string): AgentResolution {
     boxX,
     boxY,
     boxW,
-    boxH
+    boxH,
+    zoom
   }
 
   // Assemble chart data
