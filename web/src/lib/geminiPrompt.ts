@@ -31,12 +31,16 @@ export function unsupportedNumbers(answer: string, context: string): number[] {
   return [...numbers(answer)].filter((n) => !allowed.has(n)).sort((a, b) => a - b)
 }
 
-/** Models tried in order: gemini-2.0-flash-lite is the fastest and most token/quota-efficient model on the free tier. */
+/**
+ * Active verified Google Gemini models (ai.google.dev):
+ * - gemini-3.1-flash-lite: Active primary; lowest latency and highest free-tier token efficiency.
+ * - gemini-3.8-flash: Latest standard Flash model for complex agent reasoning.
+ * - gemini-2.5-flash-lite: Active legacy fallback.
+ */
 export const GEMINI_MODELS = [
-  'gemini-2.0-flash-lite',
-  'gemini-2.0-flash',
-  'gemini-1.5-flash-8b',
-  'gemini-1.5-flash'
+  'gemini-3.1-flash-lite',
+  'gemini-3.8-flash',
+  'gemini-2.5-flash-lite',
 ]
 export const RETIRED_MESSAGE = 'Google retired the models this page uses — the cached answers below still work.'
 
