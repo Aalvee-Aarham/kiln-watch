@@ -3,6 +3,7 @@ import { palette, rampColor, useTheme } from '../lib/theme'
 import type { FC } from '../lib/types'
 import { BBOX, boxAreaKm2, type Box } from '../lib/box'
 import { LAYERS, readLayer, saveLayer, type Layer } from '../lib/basemap'
+import { Icon } from './ui'
 // NASA GIBS WMS GetMap images, EPSG:4326, BBOX = the analysis extent (lib/box.ts), 960×1240 px: plate carrée, so they
 // line up with this map's equirectangular projection by their corners. Bundled, so the layers work with the network off.
 import dayImg from '../assets/basemap/bluemarble-ng_bd.jpg'
@@ -86,10 +87,10 @@ const clampView = (v: View, fit: View): View => {
  * Ctrl+wheel zoom and drag pan; click selects; optional box drawing. No third-party tiles, no library.
  * Optional `pins` (count per area) draw at each area's centre — area-level, never a kiln or fire location.
  */
-export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, className = 'h-[440px]' }: {
+export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, controls, wheelZoom, className = 'h-[440px] rounded-[10px] border border-line' }: {
   fc: FC; selected?: string; onSelect: (id: string) => void; drawing: boolean; box?: Box; onBox: (b: Box) => void
   values?: Record<string, number>; labels: boolean
-  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; className?: string
+  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; controls?: boolean; wheelZoom?: boolean; className?: string
 }) {
   const theme = useTheme()
   const p = palette()
@@ -114,8 +115,13 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     return [pt.x, pt.y]
   }
 
+  const glideTarget = useRef<View | null>(null) // where wheel/button zooms are easing to; successive ticks add up
+  const dragged = useRef(false) // the last press became a drag: its click must not select
+  const show = (v: View) => { viewRef.current = v; setView(v) }
+
   const animateTo = (target: View, from?: View) => {
     cancelAnimationFrame(raf.current)
+    glideTarget.current = null
     if (REDUCED || !from) { setView(target); return }
     const t0 = performance.now()
     const step = (now: number) => {
@@ -141,7 +147,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     const bw = f.x1 - f.x0
     const w = Math.max(bw * 2.4, fit.w * 0.12) // context around the pick, clamped from losing the country
     const h = w * (fit.h / fit.w)
-    animateTo(clampView({ w, h, x: f.cx - w / 2, y: f.cy - h / 2 }, fit))
+    animateTo(clampView({ w, h, x: f.cx - w / 2, y: f.cy - h / 2 }, fit), viewRef.current) // fly there, don't jump
   }, [selected, feats, fit])
 
   useEffect(() => { if (drawing) setHover(null) }, [drawing])
@@ -157,49 +163,158 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     return () => ro.disconnect()
   }, [hasPins])
 
-  const zoomAt = (cx: number, cy: number, f: number) => {
-    const [px, py] = toVB(cx, cy)
-    setView((v) => {
-      const nv = clampView({ ...v, w: v.w / f, h: v.h / f }, fit)
-      return { ...nv, x: px - (px - v.x) * (nv.w / v.w), y: py - (py - v.y) * (nv.h / v.h) } // keep the cursor point fixed
-    })
-  }
+  // --- motion: zooms glide to a target; drags follow the pointer 1:1 and coast on release ---
 
-  // Pan (Ctrl/⌘+wheel zoom; plain wheel scrolls the page, with a hint), double-click zoom.
+  /** Client point → fraction of the drawn map (the viewBox keeps the fit's aspect, centred, so this is zoom-independent). */
+  const frac = (cx: number, cy: number): [number, number] => {
+    const r = svgRef.current!.getBoundingClientRect()
+    const s = Math.min(r.width / fit.w, r.height / fit.h), cw = fit.w * s, ch = fit.h * s
+    return [(cx - r.left - (r.width - cw) / 2) / cw, (cy - r.top - (r.height - ch) / 2) / ch]
+  }
+  /** Ease the view toward `target` every frame (exponential smoothing), so wheel ticks and button presses blend. */
+  const glide = (target: View) => {
+    cancelAnimationFrame(raf.current)
+    if (REDUCED) { glideTarget.current = null; show(target); return }
+    glideTarget.current = target
+    let last = performance.now()
+    const step = (now: number) => {
+      const t = glideTarget.current
+      if (!t) return
+      const k = 1 - Math.exp(-(now - last) / 70) // ~70 ms time constant, frame-rate independent
+      last = now
+      const v = viewRef.current
+      const nv = { x: lerp(v.x, t.x, k), y: lerp(v.y, t.y, k), w: lerp(v.w, t.w, k), h: lerp(v.h, t.h, k) }
+      const done = Math.abs(nv.w - t.w) + Math.abs(nv.x - t.x) + Math.abs(nv.y - t.y) < t.w * 2e-4
+      show(done ? t : nv)
+      if (done) glideTarget.current = null
+      else raf.current = requestAnimationFrame(step)
+    }
+    raf.current = requestAnimationFrame(step)
+  }
+  /** Zoom by `f` about a fraction of the map, from where the view is heading (so repeated ticks accumulate). */
+  const zoomFrac = (fx: number, fy: number, f: number) => {
+    const base = glideTarget.current ?? viewRef.current
+    const z = clampView({ ...base, w: base.w / f, h: base.h / f }, fit) // clamps the zoom level
+    glide(clampView({ ...z, x: base.x + fx * (base.w - z.w), y: base.y + fy * (base.h - z.h) }, fit))
+  }
+  const zoomBy = (f: number) => zoomFrac(0.5, 0.5, f) // +/- buttons
+  const zoomAt = (cx: number, cy: number, f: number) => { const [fx, fy] = frac(cx, cy); zoomFrac(fx, fy, f) }
+
+  // Drag anywhere to pan (a press that moves < 4 px stays a click), fling to coast, pinch to zoom, wheel to zoom
+  // (plain wheel when `wheelZoom`, else Ctrl/⌘+wheel with a hint so the page still scrolls), double-click to zoom in.
   useEffect(() => {
     const el = svgRef.current
     if (!el) return
     let hintT = 0
-    let panFrom: { cx: number; cy: number; view: View } | null = null
+    const pts = new Map<number, { x: number; y: number }>()
+    let pan: { id: number; cx: number; cy: number; f: [number, number]; view: View; moved: boolean } | null = null
+    let pinch: { d0: number; p0: [number, number]; view: View } | null = null
+    let samples: { t: number; x: number; y: number }[] = []
+    const stop = () => { cancelAnimationFrame(raf.current); glideTarget.current = null }
+    const startPan = (id: number, x: number, y: number) => {
+      const v = viewRef.current
+      pan = { id, cx: x, cy: y, f: frac(x, y), view: v, moved: false }
+      samples = [{ t: performance.now(), x, y }]
+    }
+    const coast = (vx: number, vy: number) => { // px/ms → glide with friction, stopping at the map's edges
+      if (REDUCED) return
+      const r = svgRef.current!.getBoundingClientRect()
+      const upp = fit.w / (fit.w * Math.min(r.width / fit.w, r.height / fit.h)) // viewBox units per px at fit
+      let last = performance.now()
+      const step = (now: number) => {
+        const dt = Math.min(32, now - last); last = now
+        const v = viewRef.current, s = (upp * v.w) / fit.w
+        const want = { ...v, x: v.x - vx * dt * s, y: v.y - vy * dt * s }
+        const nv = clampView(want, fit)
+        if (nv.x !== want.x) vx = 0
+        if (nv.y !== want.y) vy = 0
+        show(nv)
+        const decay = Math.exp(-dt / 325)
+        vx *= decay; vy *= decay
+        if (Math.hypot(vx, vy) > 0.02) raf.current = requestAnimationFrame(step)
+      }
+      raf.current = requestAnimationFrame(step)
+    }
     const wheel = (e: WheelEvent) => {
-      if (e.ctrlKey || e.metaKey) { e.preventDefault(); zoomAt(e.clientX, e.clientY, Math.exp(-e.deltaY * 0.0015)); return }
+      if (wheelZoom || e.ctrlKey || e.metaKey) {
+        e.preventDefault()
+        const dy = Math.max(-300, Math.min(300, e.deltaY * (e.deltaMode === 1 ? 16 : 1)))
+        zoomAt(e.clientX, e.clientY, Math.exp(-dy * 0.002))
+        return
+      }
       setHint(true); clearTimeout(hintT); hintT = window.setTimeout(() => setHint(false), 1200)
     }
     const down = (e: PointerEvent) => {
-      if (drawing || !e.isPrimary || e.button !== 0 || e.target !== el) return // features handle their own clicks
-      el.setPointerCapture(e.isPrimary ? e.pointerId : 0)
-      panFrom = { cx: e.clientX, cy: e.clientY, view: viewRef.current }
-      document.documentElement.classList.add('is-panning')
+      if (drawing || (e.pointerType === 'mouse' && e.button !== 0)) return
+      stop()
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (pts.size === 1) {
+        dragged.current = false
+        startPan(e.pointerId, e.clientX, e.clientY)
+        // empty ground has no click to protect: grabbing at once (bg_cursor_plan.md §3); a feature waits for the 4 px drag
+        if (e.target === el) document.documentElement.classList.add('is-panning')
+      }
+      else if (pts.size === 2) {
+        const [a, b] = [...pts.values()]
+        const mx = (a.x + b.x) / 2, my = (a.y + b.y) / 2, v = viewRef.current, [fx, fy] = frac(mx, my)
+        pinch = { d0: Math.hypot(a.x - b.x, a.y - b.y) || 1, p0: [v.x + fx * v.w, v.y + fy * v.h], view: v }
+        pan = null; dragged.current = true
+        for (const id of pts.keys()) { try { el.setPointerCapture(id) } catch { /* pointer already gone */ } }
+      }
     }
     const move = (e: PointerEvent) => {
-      if (!panFrom) return
-      const a = toVB(panFrom.cx, panFrom.cy), b = toVB(e.clientX, e.clientY)
-      const v = panFrom.view
-      setView(clampView({ ...v, x: v.x - (b[0] - a[0]), y: v.y - (b[1] - a[1]) }, fit))
+      if (!pts.has(e.pointerId)) return
+      pts.set(e.pointerId, { x: e.clientX, y: e.clientY })
+      if (pinch && pts.size >= 2) {
+        const [a, b] = [...pts.values()]
+        const [fx, fy] = frac((a.x + b.x) / 2, (a.y + b.y) / 2)
+        const v0 = pinch.view, f = Math.hypot(a.x - b.x, a.y - b.y) / pinch.d0
+        const z = clampView({ ...v0, w: v0.w / f, h: v0.h / f }, fit)
+        show(clampView({ ...z, x: pinch.p0[0] - fx * z.w, y: pinch.p0[1] - fy * z.h }, fit)) // the pinched point stays under the fingers
+        return
+      }
+      if (!pan || pan.id !== e.pointerId) return
+      if (!pan.moved) {
+        if (Math.hypot(e.clientX - pan.cx, e.clientY - pan.cy) < 4) return
+        pan.moved = true; dragged.current = true
+        el.setPointerCapture(e.pointerId)
+        document.documentElement.classList.add('is-panning')
+      }
+      const [fx, fy] = frac(e.clientX, e.clientY), v = pan.view
+      show(clampView({ ...v, x: v.x + (pan.f[0] - fx) * v.w, y: v.y + (pan.f[1] - fy) * v.h }, fit)) // the grabbed point stays under the pointer
+      const now = performance.now()
+      samples.push({ t: now, x: e.clientX, y: e.clientY })
+      while (samples.length > 2 && now - samples[0].t > 100) samples.shift()
     }
-    const up = () => { panFrom = null; document.documentElement.classList.remove('is-panning') }
+    const up = (e: PointerEvent) => {
+      if (!pts.delete(e.pointerId)) return
+      if (pinch) {
+        if (pts.size < 2) pinch = null
+        if (pts.size === 1) { const [[id, p]] = [...pts]; startPan(id, p.x, p.y); pan!.moved = true }
+        return
+      }
+      if (pan?.moved && e.type === 'pointerup') {
+        const a = samples[0], b = samples.at(-1)!, dt = performance.now() - a.t
+        if (dt > 0 && performance.now() - b.t < 60) coast((b.x - a.x) / dt, (b.y - a.y) / dt)
+      }
+      pan = null
+      document.documentElement.classList.remove('is-panning')
+    }
+    const dbl = (e: MouseEvent) => zoomAt(e.clientX, e.clientY, 2)
     el.addEventListener('wheel', wheel, { passive: false })
     el.addEventListener('pointerdown', down); el.addEventListener('pointermove', move)
     el.addEventListener('pointerup', up); el.addEventListener('pointercancel', up)
-    el.addEventListener('dblclick', (e) => zoomAt(e.clientX, e.clientY, 1.8))
+    el.addEventListener('dblclick', dbl)
     return () => {
       el.removeEventListener('wheel', wheel)
       el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up)
+      el.removeEventListener('dblclick', dbl)
       clearTimeout(hintT)
+      cancelAnimationFrame(raf.current)
       document.documentElement.classList.remove('is-panning')
     }
-  }, [drawing, fit]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [drawing, fit, wheelZoom]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Box drawing: pointer in viewBox units, released as a lon/lat Box.
   useEffect(() => {
@@ -240,14 +355,14 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     const [x0, y0] = toXY(box[0], box[3]), [x1, y1] = toXY(box[2], box[1])
     return { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) }
   }, [box, toXY])
-  const labelSize = Math.max(10, view.w * 0.013)
   // pins keep a constant on-screen size: radius in px over px-per-unit (the viewBox is letterboxed, "meet")
   const ppu = svgPx.w && svgPx.h ? Math.min(svgPx.w / view.w, svgPx.h / view.h) : 0
   const pinR = (n: number) => (ppu ? (6 + 2.5 * Math.sqrt(n)) / ppu : 0)
+  const labelSize = ppu ? 13 / ppu : Math.max(10, view.w * 0.013) // with pins (px known): 13 px on screen at any zoom
   const img = useMemo(() => { const [x0, y0] = toXY(BBOX[0], BBOX[3]), [x1, y1] = toXY(BBOX[2], BBOX[1]); return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } }, [toXY])
 
   return (
-    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative ${className} w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none`}>
+    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative ${className} w-full overflow-hidden bg-bg select-none`}>
       <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="h-full w-full touch-none"
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
         {layer !== 'none' && <image href={layer === 'day' ? dayImg : nightImg} x={img.x} y={img.y} width={img.w} height={img.h} preserveAspectRatio="none" aria-hidden />}
@@ -261,7 +376,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
               tabIndex={drawing ? -1 : 0} role="button"
               aria-label={`${f.nameEn} · ${f.nameBn}${v != null ? ` · ${v}` : ''}`}
               aria-pressed={sel}
-              onClick={() => !drawing && onSelect(f.id)}
+              onClick={() => !drawing && !dragged.current && onSelect(f.id)}
               onKeyDown={(e) => { if (!drawing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onSelect(f.id) } }}
               onPointerMove={(e) => {
                 if (drawing) return
@@ -286,7 +401,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
           return (
             <g key={`pin-${f.id}`} className={`bd-pin${sel ? ' bd-pin-sel' : ''}${drawing ? ' pointer-events-none' : ''}`} role="button" tabIndex={drawing ? -1 : 0}
               aria-label={label} aria-pressed={sel}
-              onClick={() => !drawing && onPin?.(f.id)}
+              onClick={() => !drawing && !dragged.current && onPin?.(f.id)}
               onKeyDown={(e) => { if (!drawing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onPin?.(f.id) } }}>
               <title>{label}</title>
               {sel && <circle cx={f.cx} cy={f.cy} r={r * 1.7} className="bd-pin-halo" />}
@@ -317,6 +432,13 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
           {values?.[hovered.id] != null && <> · <span className="num">{values[hovered.id]}</span></>}
         </div>
       )}
+      {controls && (
+        <div className="absolute top-3 left-3 z-20 flex flex-col divide-y divide-line overflow-hidden rounded-[6px] border border-line bg-surface shadow-sm" role="group" aria-label="Map zoom">
+          {([['plus', 'Zoom in', () => zoomBy(1.6)], ['minus', 'Zoom out', () => zoomBy(1 / 1.6)], ['area', 'Show all of Bangladesh', () => animateTo(fit, viewRef.current)]] as const).map(([icon, label, go]) => (
+            <button key={icon} type="button" aria-label={label} title={label} onClick={go} className="grid h-9 w-9 place-items-center text-ink hover:bg-surface-2">
+              <Icon name={icon} className="h-4 w-4" />
+            </button>))}
+        </div>)}
       <div className="absolute top-2 right-2 z-20 flex gap-0.5 rounded-[6px] border border-line bg-surface/90 p-0.5 text-xs shadow-sm" role="radiogroup" aria-label="Map background">
         {LAYERS.map(([l, label]) => <button key={l} type="button" role="radio" aria-checked={layer === l} onClick={() => pickLayer(l)}
           className="rounded-[4px] px-2 py-1 text-muted hover:text-ink aria-checked:bg-surface-2 aria-checked:font-semibold aria-checked:text-ink">{label}</button>)}

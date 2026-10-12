@@ -47,7 +47,7 @@ export default function NewsStoryPage() {
         {dists.data && main !== NATIONAL && (
           <aside className="space-y-1.5 lg:sticky lg:top-20">
             <BdMap fc={dists.data} selected={main} onSelect={() => {}} drawing={false} onBox={() => {}}
-              labels={false} pins={{ [main]: 1 }} className="h-[300px]" />
+              labels={false} pins={{ [main]: 1 }} className="h-[300px] rounded-[10px] border border-line" />
           </aside>)}
       </div>
     </div>
