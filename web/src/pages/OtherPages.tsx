@@ -1,7 +1,7 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Icon, Loading, ProvisionalBadge, Section, Skeleton, SkeletonCard, Sparkline, fmt, useKilnActivity, useMeta, useTitle } from '../components/ui'
-import { useJson } from '../lib/data'
+import { dataUrl, useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import type { FC, NrtSeason } from '../lib/types'
 
@@ -11,6 +11,12 @@ export function ThisSeasonPage() {
   useTitle('This season')
   const nrt = useJson<NrtSeason>('nrt/current_season.json')
   const meta = useMeta()
+  // the Atom feed exists only on the live site (written by the daily run): offer it only when it is really there
+  const feed = dataUrl('nrt/alerts.xml')
+  const [hasFeed, setHasFeed] = useState(false)
+  useEffect(() => {
+    fetch(feed, { method: 'HEAD' }).then((r) => setHasFeed(r.ok && (r.headers.get('content-type') ?? '').includes('xml'))).catch(() => setHasFeed(false))
+  }, [feed])
   const lang = useLang()
   const t = useT()
   const [sp] = useSearchParams()
@@ -39,6 +45,9 @@ export function ThisSeasonPage() {
                 ? <>{rows.length === 1 ? 'One district has' : <><b>{rows.length}</b> districts have</>} had days above their 90th-percentile normal this season. They are ranked below.</>
                 : <><b>{above}</b> of the {rows.length} most active districts have had days above their 90th-percentile normal this season. They are ranked below.</>
               : <>No district has gone above its 90th-percentile normal yet this season.</>}</p>
+            {hasFeed && <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+              <a className="btn" href={feed}>Get alerts (Atom feed)</a>
+              Add this link to a feed reader, Outlook or a Slack/Teams RSS app to hear when a district runs above normal.</p>}
           </header>
           {meta.data && <Section title="National activity by week, by source" download={{ name: 'kilnwatch_nrt', png: true, json: n.national }}
             summary="Harmonized MYD-eq cell-days per 1,000 clear cells, summed by week. Each bar is the total; its segments are the source split.">

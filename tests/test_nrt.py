@@ -90,6 +90,9 @@ def test_rehearsal_after_snpp_ends_uses_noaa20(monkeypatch, tmp_path):
     assert out["beta_imputed_frac"] == 0.0  # every stratum has an N<-J1 beta
     assert len(out["national"]["h"]) == (date(2026, 11, 10) - date(2026, 7, 1)).days + 1
     assert json.loads((tmp_path / "data" / "nrt" / "current_season.json").read_text(encoding="utf-8")) == out
+    import xml.etree.ElementTree as ET
+
+    ET.fromstring((tmp_path / "data" / "nrt" / "alerts.xml").read_bytes())  # the daily run writes a parseable feed
 
 
 def test_rehearsal_on_snpp_last_day_still_uses_snpp(monkeypatch, tmp_path):
@@ -97,3 +100,37 @@ def test_rehearsal_on_snpp_last_day_still_uses_snpp(monkeypatch, tmp_path):
     assert out["era"] == "N" and out["sensor"] == "Suomi NPP"
     assert sum(out["districts"][d_n]["h"]) > 0
     assert sum(out["districts"][d_j1]["h"]) == 0
+
+
+# --- Atom feed of districts with unusual days ----------------------------------------------------
+ATOM = "{http://www.w3.org/2005/Atom}"
+ROWS = [{"unit_id": "BD3026", "name": "Dhaka", "days": 3, "last_day": "2026-11-08"},
+        {"unit_id": "BD1004", "name": "A & B", "days": 1, "last_day": "2026-11-09"}]
+
+
+def test_alerts_atom_is_valid_and_orders_by_latest_day():
+    import xml.etree.ElementTree as ET
+
+    feed = ET.fromstring(nrt.alerts_atom("2026-27", "2026-11-10T03:00:00+00:00", ROWS, "https://example.org/kw"))
+    entries = feed.findall(ATOM + "entry")
+    assert len(entries) == 2
+    assert entries[0].find(ATOM + "title").text == "A & B: 1 unusual fire day so far in 2026-27"  # latest day first; & survives
+    assert entries[1].find(ATOM + "link").get("href") == "https://example.org/kw/#/area/BD3026"
+    assert entries[1].find(ATOM + "id").text.endswith("days=3")
+    assert entries[1].find(ATOM + "updated").text == "2026-11-08T00:00:00Z"
+
+
+def test_alerts_atom_id_changes_only_when_the_count_changes():
+    import xml.etree.ElementTree as ET
+
+    def first_id(rows):
+        return ET.fromstring(nrt.alerts_atom("2026-27", "u", rows, "https://x")).find(ATOM + "entry").find(ATOM + "id").text
+
+    assert first_id(ROWS[:1]) != first_id([dict(ROWS[0], days=4)])
+    assert nrt.alerts_atom("2026-27", "u", ROWS, "https://x") == nrt.alerts_atom("2026-27", "u", ROWS, "https://x")
+
+
+def test_alerts_feed_has_no_forbidden_names():
+    xml = nrt.alerts_atom("2026-27", "2026-11-10T03:00:00+00:00", ROWS, "https://example.org/kw")
+    assert not [k for k in C.FORBIDDEN_PUBLIC_KEYS if k in xml]
+

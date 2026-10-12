@@ -16,7 +16,7 @@ from . import config as C
 
 log = logging.getLogger("kilnwatch.export")
 BUDGET = {"meta.json": 50_000, "events.json": 50_000, "harmonization.json": 200_000, "validation.json": 500_000,
-          "aoi/districts.geojson": 400_000, "aoi/south_asia.geojson": 100_000, "aoi/world_countries.geojson": 1_000_000, "aoi/world_states.geojson": 3_500_000, "aoi/world_cities.json": 700_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "outlook.json": 200_000,
+          "aoi/districts.geojson": 400_000, "aoi/south_asia.geojson": 100_000, "aoi/world_countries.geojson": 1_000_000, "aoi/world_states.geojson": 3_500_000, "aoi/world_cities.json": 700_000, "aoi/upazilas.geojson": 1_500_000, "nrt/current_season.json": 300_000, "nrt/alerts.xml": 100_000, "outlook.json": 200_000,
           "kiln_activity.json": 1_500_000}
 BUDGET_GZ = {"calendar/": 150_000, "grid/": 1_000_000}
 SPLITS = {

@@ -34,6 +34,33 @@ def era_beta_weights(b1, b2, key, era: str) -> np.ndarray:
     return b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
 
 
+def alerts_atom(season: str, updated_at: str, rows: list[dict], site: str) -> str:
+    """Atom feed: one entry per district with unusual days. An entry's id includes the day count, so each new
+    unusual day appears in readers as a new item; ordering and timestamps come from the data, not the clock."""
+    import xml.etree.ElementTree as ET
+
+    A = "http://www.w3.org/2005/Atom"
+    ET.register_namespace("", A)
+    feed = ET.Element(f"{{{A}}}feed")
+    ET.SubElement(feed, f"{{{A}}}title").text = "Kiln Watch: districts with unusual fire activity (provisional)"
+    ET.SubElement(feed, f"{{{A}}}id").text = f"{site}/data/nrt/alerts.xml"
+    ET.SubElement(feed, f"{{{A}}}updated").text = updated_at
+    ET.SubElement(feed, f"{{{A}}}link", rel="self", href=f"{site}/data/nrt/alerts.xml")
+    ET.SubElement(feed, f"{{{A}}}link", rel="alternate", href=f"{site}/#/season")
+    ET.SubElement(ET.SubElement(feed, f"{{{A}}}author"), f"{{{A}}}name").text = "Kiln Watch"
+    for r in sorted(rows, key=lambda r: (r["last_day"], r["unit_id"]), reverse=True):
+        e = ET.SubElement(feed, f"{{{A}}}entry")
+        days = "day" if r["days"] == 1 else "days"
+        ET.SubElement(e, f"{{{A}}}title").text = f"{r['name']}: {r['days']} unusual fire {days} so far in {season}"
+        ET.SubElement(e, f"{{{A}}}id").text = f"{site}/#/area/{r['unit_id']}?season={season}&days={r['days']}"
+        ET.SubElement(e, f"{{{A}}}updated").text = f"{r['last_day']}T00:00:00Z"
+        ET.SubElement(e, f"{{{A}}}link", rel="alternate", href=f"{site}/#/area/{r['unit_id']}")
+        ET.SubElement(e, f"{{{A}}}summary").text = (
+            f"Fire activity in {r['name']} district was above its 90th-percentile normal on {r['days']} {days} "
+            f"this season, most recently {r['last_day']}. Provisional near-real-time data from NASA FIRMS.")
+    return ET.tostring(feed, encoding="unicode", xml_declaration=True)
+
+
 def fetch(days: int, today: date | None = None) -> pd.DataFrame:
     """Last `days` days for each NRT source; an empty or 404 response is not an error."""
     import io
@@ -147,20 +174,33 @@ def run(days=5, today: date | None = None) -> dict:
             m = (e.cat == k).to_numpy()
             nat[k] = 1000 * np.bincount(e.d[m], weights=e.w[m], minlength=n_days)[:n_days] / den
     districts = {}
+    alert_rows = []  # (district, unusual days, latest unusual day) for the Atom feed
     cal_dir = C.WEB_DATA / "calendar"
     for dist_id in cells.district.unique():
         h = dist_h.get(dist_id, np.zeros(n_days))
-        above = 0
+        above, last_day = 0, None
         f = cal_dir / f"{dist_id}.json"
         if f.exists():
             p90 = np.asarray(json.loads(f.read_text(encoding="utf-8"))["normal"]["p90"])
-            above = int(np.sum(h > p90[np.arange(n_days) % 366]))
+            over = np.flatnonzero(h > p90[np.arange(n_days) % 366])
+            above = int(len(over))
+            last_day = (day0 + pd.Timedelta(days=int(over[-1]))).strftime("%Y-%m-%d") if len(over) else None
         districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above}
+        alert_rows.append((dist_id, above, last_day))
     out = {"updated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "provisional": True, "season": season, "day0": day0.strftime("%Y-%m-%d"),
            "beta_imputed_frac": round(imputed, 4), "era": era, "sensor": SENSOR_NAME[era],
            "national": {"h": np.round(nat["h"], 3).tolist(), "split": [{"key": k, "values": np.round(nat[k], 3).tolist()} for k in keys]},
            "districts": districts}
     dump_json(out, C.WEB_DATA / "nrt" / "current_season.json")
+    from .ask import SITE
+    from .ingest import atomic_write
+
+    aoi_path = C.WEB_DATA / "aoi" / "districts.geojson"
+    names = {}
+    if aoi_path.exists():
+        names = {f["properties"]["unit_id"]: f["properties"]["name_en"] for f in json.loads(aoi_path.read_text(encoding="utf-8"))["features"]}
+    rows = [{"unit_id": d, "name": names.get(d, d), "days": n, "last_day": last} for d, n, last in alert_rows if n > 0]
+    atomic_write(C.WEB_DATA / "nrt" / "alerts.xml", alerts_atom(season, out["updated_at"], rows, SITE))
     log.info("NRT: %d detections this season; written current_season.json", len(df))
     return out
 

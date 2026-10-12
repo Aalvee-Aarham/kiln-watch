@@ -30,6 +30,7 @@ Enforced by `check_budgets` in `kilnwatch/export.py`; a breach fails the export,
 | `outlook.json` | `Outlook`: the two-week unusual-fire outlook per district (P(at least one unusual day in the next 14 days) by week from 1 Nov, given whether the last 14 had one, plus the district × week climatology) and its leave-one-season-out backtest (Brier skill vs that climatology, district bootstrap). **Optional: written only when the backtest is estimable; `ships` is true only when the lower 95% bound of skill is above 0, and the site shows the outlook only then** | 200 KB |
 | `ask.json` | `AskCache`: cached Ask Kiln Watch answers with the tool calls and results behind each. **Optional: written only by `ask --build-cache`** | — |
 | `nrt/current_season.json` | `NrtSeason`: season-to-date national + per-district harmonized activity, `provisional: true`, `above_p90_days`; `era` (`N` until 2 Nov 2026, then `J1`), `sensor` (its name), `beta_imputed_frac` (share of detections on the median β) | 300 KB |
+| `nrt/alerts.xml` | Atom feed: one entry per district with `above_p90_days > 0`, newest unusual day first; the entry id includes the count, so each new unusual day is a new item; district-level only | 100 KB |
 
 ## Branch-dependent fields
 
