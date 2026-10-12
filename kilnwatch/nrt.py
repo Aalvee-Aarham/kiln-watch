@@ -15,6 +15,7 @@ from .grid import season_of
 log = logging.getLogger("kilnwatch.nrt")
 NRT_SOURCES = ["VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "MODIS_NRT", "VIIRS_SNPP_NRT"]
 SNPP_END = date(2026, 11, 2)
+SENSOR_NAME = {"N": "Suomi NPP", "J1": "NOAA-20"}
 SEASON_CSV = C.NRT_DIR / "season.csv"
 
 
@@ -33,17 +34,18 @@ def era_beta_weights(b1, b2, key, era: str) -> np.ndarray:
     return b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
 
 
-def fetch(days: int) -> pd.DataFrame:
+def fetch(days: int, today: date | None = None) -> pd.DataFrame:
     """Last `days` days for each NRT source; an empty or 404 response is not an error."""
     import io
 
     from .ingest import FIRMS, normalise, session
 
+    today = today or date.today()
     s = session()
     frames = []
-    for src in sources_for(date.today()):
+    for src in sources_for(today):
         for start in range(0, days, 5):
-            d0 = date.today() - timedelta(days=start + min(5, days - start) - 1)
+            d0 = today - timedelta(days=start + min(5, days - start) - 1)
             w, so, e, n = C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N
             r = s.get(f"{FIRMS}/api/area/csv/{C.FIRMS_MAP_KEY}/{src}/{w},{so},{e},{n}/{min(5, days - start)}/{d0}", timeout=120)
             if r.status_code == 404 or (r.ok and not r.text.strip()):
@@ -59,9 +61,10 @@ def fetch(days: int) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
-def update_season_csv(days: int) -> pd.DataFrame:
+def update_season_csv(days: int, today: date | None = None) -> pd.DataFrame:
+    today = today or date.today()
     C.NRT_DIR.mkdir(parents=True, exist_ok=True)
-    season = season_of(date.today())
+    season = season_of(today)
     old = pd.DataFrame()
     if SEASON_CSV.exists():
         old = pd.read_csv(SEASON_CSV, parse_dates=["t_utc", "t_local", "date_local"])
@@ -71,7 +74,7 @@ def update_season_csv(days: int) -> pd.DataFrame:
     if old.empty:
         log.warning("season.csv missing or archived: rebuilding the last 30 days from the API")
         days = max(days, 30)
-    new = fetch(days)
+    new = fetch(days, today)
     df = pd.concat([old, new], ignore_index=True)
     if df.empty:
         return df
@@ -85,14 +88,16 @@ def update_season_csv(days: int) -> pd.DataFrame:
     return df
 
 
-def run(days=5) -> dict:
+def run(days=5, today: date | None = None) -> dict:
     from .classify import build_features
     from .export import dump_json, split_labels
 
-    df = update_season_csv(days)
-    season = season_of(date.today())
+    today = today or date.today()
+    df = update_season_csv(days, today)
+    season = season_of(today)
     day0 = pd.Timestamp(f"{season[:4]}-07-01")
-    n_days = (pd.Timestamp.today().normalize() - day0).days + 1
+    n_days = (pd.Timestamp(today) - day0).days + 1
+    era = era_of(today)  # S-NPP until it ends, then NOAA-20 chained through S-NPP
     branch = C.load_derived()["GATE_BRANCH"]["value"]
     keys = [s["key"] for s in split_labels(branch)]
     cells = pd.read_parquet(C.MODELS / "cells.parquet")  # cell_id, district, division, loc
@@ -124,8 +129,6 @@ def run(days=5) -> dict:
 
             df["cat"] = harvest_key(df.date_local)
         df["cat"] = df["cat"].fillna("unknown") if "cat" in df else "unknown"
-        # era sensor: S-NPP until it ends, then NOAA-20 chained through S-NPP
-        era = era_of(date.today())
         e = df[df.sensor == era].drop_duplicates(["cell_id", "date_local", "pass"])
         key = pd.MultiIndex.from_arrays([e.division, pd.to_datetime(e.date_local).dt.month, e["pass"], e["loc"]])
         w = era_beta_weights(b1, b2, key, era)
@@ -154,7 +157,7 @@ def run(days=5) -> dict:
             above = int(np.sum(h > p90[np.arange(n_days) % 366]))
         districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above}
     out = {"updated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "provisional": True, "season": season, "day0": day0.strftime("%Y-%m-%d"),
-           "beta_imputed_frac": round(imputed, 4),
+           "beta_imputed_frac": round(imputed, 4), "era": era, "sensor": SENSOR_NAME[era],
            "national": {"h": np.round(nat["h"], 3).tolist(), "split": [{"key": k, "values": np.round(nat[k], 3).tolist()} for k in keys]},
            "districts": districts}
     dump_json(out, C.WEB_DATA / "nrt" / "current_season.json")

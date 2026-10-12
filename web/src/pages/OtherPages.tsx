@@ -30,8 +30,9 @@ export function ThisSeasonPage() {
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <ProvisionalBadge />
               <span>Updated {updated.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).replace('Sept', 'Sep')} UTC, refreshed daily from FIRMS near-real-time data.</span>
+              {n.sensor && <span>Live data from {n.era === 'J1' ? <>NOAA-20, on the Aqua-MODIS scale through Suomi NPP</> : n.sensor}.</span>}
               <details className="w-full sm:w-auto"><summary className="text-ink underline decoration-dotted underline-offset-4">Why provisional?</summary>
-                <p className="mt-1 prose-measure">Until archive-quality data arrive, the cloud-free share of each area uses its typical (median) value for that day of the year, and the source labels come from the frozen classifier.</p></details>
+                <p className="mt-1 prose-measure">Until archive-quality data arrive, the cloud-free share of each area uses its typical (median) value for that day of the year, and the source labels come from the frozen classifier.{n.beta_imputed_frac != null && n.beta_imputed_frac > 0 && <> {Math.round(100 * n.beta_imputed_frac)}% of this season's detections used the median correction because their area and month had none of their own.</>}</p></details>
             </div>
             <p className="mt-5 prose-measure text-lg">{above > 0
               ? above === rows.length
