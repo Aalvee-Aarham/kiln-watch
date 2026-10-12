@@ -84,10 +84,12 @@ const clampView = (v: View, fit: View): View => {
  * Basemap-free SVG choropleth of Bangladesh: districts/upazilas projected from the AOI GeoJSON,
  * fill = `values` on the fire ramp (absent = outline only). Fixed poster at country scale with
  * Ctrl+wheel zoom and drag pan; click selects; optional box drawing. No third-party tiles, no library.
+ * Optional `pins` (count per area) draw at each area's centre — area-level, never a kiln or fire location.
  */
-export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels }: {
+export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, values, labels, pins, onPin, pinLabel, className = 'h-[440px]' }: {
   fc: FC; selected?: string; onSelect: (id: string) => void; drawing: boolean; box?: Box; onBox: (b: Box) => void
   values?: Record<string, number>; labels: boolean
+  pins?: Record<string, number>; onPin?: (id: string) => void; pinLabel?: (id: string, n: number) => string; className?: string
 }) {
   const theme = useTheme()
   const p = palette()
@@ -143,6 +145,17 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   }, [selected, feats, fit])
 
   useEffect(() => { if (drawing) setHover(null) }, [drawing])
+
+  // SVG size in px, for pins only
+  const [svgPx, setSvgPx] = useState({ w: 0, h: 0 })
+  const hasPins = !!pins
+  useEffect(() => {
+    const el = svgRef.current
+    if (!el || !hasPins) return
+    const ro = new ResizeObserver(() => setSvgPx({ w: el.clientWidth, h: el.clientHeight }))
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [hasPins])
 
   const zoomAt = (cx: number, cy: number, f: number) => {
     const [px, py] = toVB(cx, cy)
@@ -228,10 +241,13 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
     return { x: Math.min(x0, x1), y: Math.min(y0, y1), w: Math.abs(x1 - x0), h: Math.abs(y1 - y0) }
   }, [box, toXY])
   const labelSize = Math.max(10, view.w * 0.013)
+  // pins keep a constant on-screen size: radius in px over px-per-unit (the viewBox is letterboxed, "meet")
+  const ppu = svgPx.w && svgPx.h ? Math.min(svgPx.w / view.w, svgPx.h / view.h) : 0
+  const pinR = (n: number) => (ppu ? (6 + 2.5 * Math.sqrt(n)) / ppu : 0)
   const img = useMemo(() => { const [x0, y0] = toXY(BBOX[0], BBOX[3]), [x1, y1] = toXY(BBOX[2], BBOX[1]); return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } }, [toXY])
 
   return (
-    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative h-[440px] w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none`}>
+    <div ref={wrapRef} className={`bd-map${drawing ? ' is-drawing' : ''} relative ${className} w-full overflow-hidden rounded-[10px] border border-line bg-bg select-none`}>
       <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.w} ${view.h}`} className="h-full w-full touch-none"
         role="group" aria-label="Bangladesh map — select an area to explore" data-theme={theme}>
         {layer !== 'none' && <image href={layer === 'day' ? dayImg : nightImg} x={img.x} y={img.y} width={img.w} height={img.h} preserveAspectRatio="none" aria-hidden />}
@@ -256,10 +272,29 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
           )
         })}
         {feats.map((f) => ((labels && view.w < fit.w * 0.6) || f.id === hovered?.id || f.id === selected) && (
-          <text key={f.id} x={f.cx} y={f.cy} className="bd-label" fontSize={labelSize} textAnchor="middle" dominantBaseline="middle">
+          // a pinned area's name sits just above its pin
+          <text key={f.id} x={f.cx} y={pins?.[f.id] ? f.cy - pinR(pins[f.id]) - labelSize * 0.6 : f.cy} className="bd-label" fontSize={labelSize} textAnchor="middle" dominantBaseline="middle">
             {f.nameEn}
           </text>
         ))}
+        {pins && ppu > 0 && feats.map((f) => {
+          const n = pins[f.id]
+          if (!n) return null
+          const r = pinR(n)
+          const sel = f.id === selected
+          const label = pinLabel ? pinLabel(f.id, n) : `${f.nameEn} · ${n}`
+          return (
+            <g key={`pin-${f.id}`} className={`bd-pin${sel ? ' bd-pin-sel' : ''}${drawing ? ' pointer-events-none' : ''}`} role="button" tabIndex={drawing ? -1 : 0}
+              aria-label={label} aria-pressed={sel}
+              onClick={() => !drawing && onPin?.(f.id)}
+              onKeyDown={(e) => { if (!drawing && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onPin?.(f.id) } }}>
+              <title>{label}</title>
+              {sel && <circle cx={f.cx} cy={f.cy} r={r * 1.7} className="bd-pin-halo" />}
+              <circle cx={f.cx} cy={f.cy} r={r} vectorEffect="non-scaling-stroke" />
+              {n > 1 && <text x={f.cx} y={f.cy} fontSize={r * 1.05} textAnchor="middle" dominantBaseline="central">{n}</text>}
+            </g>
+          )
+        })}
         {boxRect && <rect x={boxRect.x} y={boxRect.y} width={boxRect.w} height={boxRect.h} className="bd-boxrect" vectorEffect="non-scaling-stroke" />}
         {drawBox && (
           <>

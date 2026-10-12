@@ -58,6 +58,7 @@ export default function NewsPage() {
   return (
     <div className="space-y-8">
       <PageHead title={t('newsTitle')}>{t('newsIntro')}</PageHead>
+      <NewsViews current="list" />
       <p role="note" className="flex items-start gap-2 rounded-[6px] border border-warn/40 bg-warn-soft px-3 py-2 text-sm font-medium">
         <span className="text-warn"><Icon name="info" className="mt-0.5 h-4 w-4" /></span><span>{t('newsLabel')}</span>
       </p>
@@ -149,7 +150,7 @@ function StoryList({ items, idx, places, nDistricts }: { items: NewsItem[]; idx:
 }
 
 /** A headline link to the newspaper: article language, new tab, a visible and spoken external-link cue. */
-function Headline({ item, className = '' }: { item: NewsItem | { url: string; lang: 'en' | 'bn'; title: string }; className?: string }) {
+export function Headline({ item, className = '' }: { item: NewsItem | { url: string; lang: 'en' | 'bn'; title: string }; className?: string }) {
   const t = useT()
   return (
     <a href={item.url} lang={item.lang} target="_blank" rel="noopener noreferrer" className={`underline-offset-2 hover:underline ${className}`}>
@@ -158,7 +159,7 @@ function Headline({ item, className = '' }: { item: NewsItem | { url: string; la
   )
 }
 
-function StoryCard({ group, idx, places, nDistricts }: { group: NewsGroup; idx: NewsIndex; places: NewsPlaces; nDistricts: number }) {
+export function StoryCard({ group, idx, places, nDistricts }: { group: NewsGroup; idx: NewsIndex; places: NewsPlaces; nDistricts: number }) {
   const t = useT()
   const lang = useLang()
   const item = group.lead
@@ -313,5 +314,21 @@ function SourcesPanel({ idx, items }: { idx: NewsIndex; items?: NewsItem[] }) {
         })}</p>
       </div>
     </section>
+  )
+}
+
+/** Map ⇄ list switch shared by #/news and #/news/map; keeps the UI language. */
+export function NewsViews({ current }: { current: 'map' | 'list' }) {
+  const t = useT()
+  const lang = useLang()
+  const tab = (to: string, here: boolean, icon: 'pin' | 'table', label: string) => (
+    <Link to={`${to}${langQ(lang)}`} aria-current={here ? 'page' : undefined}
+      className={`inline-flex items-center gap-1.5 rounded-[6px] px-3 py-1.5 text-sm font-semibold ${here ? 'bg-ink text-on-ink' : 'text-muted hover:bg-surface-2 hover:text-ink'}`}>
+      <Icon name={icon} className="h-4 w-4" />{label}</Link>)
+  return (
+    <nav aria-label={t('newsViews')} className="inline-flex gap-1 rounded-[8px] border border-line bg-surface p-1">
+      {tab('/news/map', current === 'map', 'pin', t('newsMapTab'))}
+      {tab('/news', current === 'list', 'table', t('newsListTab'))}
+    </nav>
   )
 }

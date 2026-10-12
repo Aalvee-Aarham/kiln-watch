@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts', '#/ask', '#/region',
-  '#/news', '#/news?season=all', '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
+  '#/news', '#/news?season=all', '#/news/map', '#/news/story/2025-26/000000000000', '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
   const errors: string[] = []
@@ -384,3 +384,27 @@ for (const [theme, width] of [['day', 1366], ['night', 1366], ['day', 390]] as c
     expect(errors).toEqual([])
   })
 }
+
+test('news map: a story opens a card on the map, and View more opens it in full', async ({ page }) => {
+  test.skip(!(await hasNews(page)), 'this data build ships no news files')
+  const errors = watchErrors(page)
+  await page.goto('#/news/map')
+  const first = page.locator('[data-news]').first()
+  await expect(first).toBeVisible()
+  const id = await first.getAttribute('data-news')
+  await first.click()
+  await expect(page).toHaveURL(new RegExp(`story=${id}`))
+  await expect(first).toHaveAttribute('aria-pressed', 'true')
+  const card = page.locator('main article').filter({ has: page.getByRole('link', { name: 'View more' }) })
+  await expect(card).toBeVisible()
+  await expect(card.getByRole('link').first()).toHaveAttribute('rel', 'noopener noreferrer')
+  await card.getByRole('button', { name: 'Close' }).click()
+  await expect(card).toHaveCount(0)
+  await first.click()
+  await card.getByRole('link', { name: 'View more' }).click()
+  await expect(page).toHaveURL(new RegExp(String.raw`#/news/story/\d{4}-\d{2}/${id}$`))
+  await expect(page.locator('main article blockquote[cite]')).toHaveCount(1)
+  await page.getByRole('link', { name: 'Back to the news map' }).click()
+  await expect(page).toHaveURL(new RegExp(String.raw`#/news/map\?.*story=${id}`))
+  expect(errors).toEqual([])
+})

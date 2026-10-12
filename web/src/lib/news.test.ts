@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import {
-  byMonth, dateRange, daysIn, digits, districtCount, earlierStories, filterItems, groupStories, monthSpan, monthsText, outletCounts,
-  placeStoryList, recordHeading, seasonItems, seasonLine, seasonStart, satLines, sourceText, summaryLines, verdictText, windowText,
+  addDays, byMonth, dateRange, daysIn, digits, districtCount, earlierStories, filterItems, findGroup, groupStories, monthSpan, monthsText, outletCounts,
+  placeStoryList, recentFire, recordHeading, seasonItems, seasonLine, seasonStart, satLines, sourceText, storyPins, summaryLines, verdictText, windowText,
 } from './news'
-import type { NewsIndex, NewsItem, NewsPlace, NewsPlaceStories, NewsSat } from './types'
+import type { NewsIndex, NewsItem, NewsPlace, NewsPlaceStories, NewsSat, NrtSeason } from './types'
 
 // Small synthetic objects; every expectation is worked out by hand from them.
 const rules: NewsIndex['rules'] = { burn_window_days: 7, enforce_window_days: 14, cloudy_min_days: 4, rare_season_frac: 0.5, earlier_shown: 3 }
@@ -177,5 +177,52 @@ describe('earlier news and coverage', () => {
     expect(sourceText({ ...src, last_scanned: null }, 0, 'en')).toBe('not scanned yet')
     expect(sourceText({ key: 'kk', outlet: 'Blocked Daily', lang: 'bn', status: 'excluded', reason: 'sitemap returns 403' }, undefined, 'en')).toBe('Excluded: sitemap returns 403')
     expect(outletCounts([item({ outlet: 'A' }), item({ outlet: 'A' }), item({ outlet: 'B' })])).toEqual(new Map([['A', 2], ['B', 1]]))
+  })
+})
+
+describe('news map', () => {
+  const nrt = (h: Record<string, number[]>, days: number): NrtSeason => ({
+    updated_at: '2026-07-10T03:00:00Z', provisional: true, season: '2026-27', day0: '2026-07-01',
+    national: { h: Array(days).fill(0), split: [] },
+    districts: Object.fromEntries(Object.entries(h).map(([id, v]) => [id, { h: v, above_p90_days: 0 }])),
+  })
+  it('moves dates across month and year ends', () => {
+    expect(addDays('2026-07-01', 0)).toBe('2026-07-01')
+    expect(addDays('2026-07-01', 31)).toBe('2026-08-01')
+    expect(addDays('2025-12-29', 6)).toBe('2026-01-04')
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28')
+  })
+  it('sums each district over the last n days of the season, with the inclusive dates covered', () => {
+    const r = recentFire(nrt({ A: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10], B: [9, 9, 9, 0, 0, 0, 0, 0.1, 0.2, 0.004] }, 10), 7)!
+    expect(r.values).toEqual({ A: 4 + 5 + 6 + 7 + 8 + 9 + 10, B: 0.3 })
+    expect(r.from).toBe('2026-07-04')
+    expect(r.to).toBe('2026-07-10')
+    expect(daysIn(r.from, r.to)).toBe(7)
+  })
+  it('covers the whole season when it is shorter than the window, and nothing before day one', () => {
+    const r = recentFire(nrt({ A: [1, 2, 3] }, 3), 7)!
+    expect(r.values).toEqual({ A: 6 })
+    expect([r.from, r.to]).toEqual(['2026-07-01', '2026-07-03'])
+    expect(recentFire(nrt({ A: [] }, 0), 7)).toBeNull()
+  })
+  it('pins one story group per lead place, national stories excluded', () => {
+    const groups = groupStories([
+      item({ unit_ids: ['BD1'], event_date_local: '2026-01-01', published_date_local: '2026-01-01' }),
+      item({ unit_ids: ['BD1'], event_date_local: '2026-01-02', published_date_local: '2026-01-02' }), // same event: same group
+      item({ unit_ids: ['BD1'], event_date_local: '2026-01-20', published_date_local: '2026-01-20' }),
+      item({ unit_ids: ['BD2', 'BD1'], published_date_local: '2026-01-05' }),
+      item({ unit_ids: ['BGD'], published_date_local: '2026-01-06' }),
+    ])
+    expect(groups).toHaveLength(4)
+    expect(storyPins(groups)).toEqual({ BD1: 2, BD2: 1 })
+  })
+  it('finds a story by its own id, lead or not', () => {
+    const lead = item({ unit_ids: ['BD1'], published_date_local: '2026-01-01' })
+    const other = item({ unit_ids: ['BD1'], published_date_local: '2026-01-02' })
+    const groups = groupStories([lead, other])
+    expect(findGroup(groups, lead.news_id)?.lead).toBe(lead)
+    expect(findGroup(groups, other.news_id)?.lead).toBe(lead)
+    expect(findGroup(groups, 'nope')).toBeUndefined()
+    expect(findGroup(groups, null)).toBeUndefined()
   })
 })

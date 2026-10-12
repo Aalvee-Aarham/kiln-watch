@@ -3,7 +3,7 @@
 // arrives in news/index.json `rules` or is already applied by kilnwatch news-pair; none is written here.
 import { monthNames, tr, type Key } from './i18n'
 import type { Lang } from './url'
-import type { NewsIndex, NewsItem, NewsKind, NewsPlace, NewsPlaces, NewsPlaceStories, NewsPlaceStory, NewsSat, NewsSeason, NewsWindow } from './types'
+import type { NewsIndex, NewsItem, NewsKind, NewsPlace, NewsPlaces, NewsPlaceStories, NewsPlaceStory, NewsSat, NewsSeason, NewsWindow, NrtSeason } from './types'
 
 export const NEWS_KINDS: NewsKind[] = ['burning', 'enforcement', 'kilns_operating', 'air_health']
 export const NATIONAL = 'BGD'
@@ -213,3 +213,35 @@ export function sourceText(src: NewsIndex['sources'][number], stories: number | 
 
 /** "12 stories" / "1 story". */
 export const storyCount = (n: number, lang: Lang) => (n === 1 ? tr('newsCountOne', lang) : tr('newsCount', lang, { n: digits(n, lang) }))
+
+// --- news map (#/news/map) ---
+
+/** `iso` moved by `n` days. */
+export const addDays = (iso: string, n: number) => new Date((dayNum(iso) + n) * 86_400_000).toISOString().slice(0, 10)
+
+/**
+ * Fire in each district over the last `days` days of the live season (the sum of its daily activity, rounded to
+ * 2 decimals, as on the Area page's week view) and the inclusive dates covered. null before the season's first day.
+ */
+export function recentFire(nrt: NrtSeason, days: number): { from: string; to: string; values: Record<string, number> } | null {
+  const n = nrt.national.h.length
+  if (n === 0 || days < 1) return null
+  const start = Math.max(0, n - days)
+  const values = Object.fromEntries(Object.entries(nrt.districts).map(([id, d]) =>
+    [id, Math.round(d.h.slice(start, n).reduce((a, b) => a + b, 0) * 100) / 100]))
+  return { from: addDays(nrt.day0, start), to: addDays(nrt.day0, n - 1), values }
+}
+
+/** Story groups per district, by the lead's main place (unit_ids[0]); national stories have no pin. */
+export function storyPins(groups: NewsGroup[]): Record<string, number> {
+  const out: Record<string, number> = {}
+  for (const g of groups) {
+    const id = g.lead.unit_ids[0]
+    if (id && id !== NATIONAL) out[id] = (out[id] ?? 0) + 1
+  }
+  return out
+}
+
+/** The group a story belongs to, as lead or as "also reported by". */
+export const findGroup = (groups: NewsGroup[], newsId: string | null | undefined) =>
+  newsId ? groups.find((g) => g.lead.news_id === newsId || g.others.some((o) => o.news_id === newsId)) : undefined

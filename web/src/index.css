@@ -707,6 +707,61 @@
   pointer-events: none;
 }
 
+/* News pins (#/news/map): one per district with stories, at the district centre. */
+.bd-pin {
+  cursor: pointer;
+  outline: none;
+}
+
+.bd-pin circle {
+  fill: var(--color-orbit);
+  fill-opacity: 0.88;
+  stroke: var(--color-surface);
+  stroke-width: 1.5;
+  transition: fill-opacity 160ms var(--ease-out), stroke 160ms var(--ease-out);
+}
+
+.bd-pin text {
+  fill: var(--color-on-ink);
+  font-weight: 700;
+  pointer-events: none;
+}
+
+.bd-pin:hover circle,
+.bd-pin:focus-visible circle {
+  fill-opacity: 1;
+  stroke: var(--color-ink);
+  stroke-width: 2.2;
+}
+
+.bd-pin-sel circle {
+  fill: var(--color-heat);
+  fill-opacity: 1;
+  stroke: var(--color-ink);
+  stroke-width: 2.2;
+}
+
+.bd-pin circle.bd-pin-halo {
+  fill: var(--color-heat);
+  fill-opacity: 0.22;
+  stroke: none;
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: pin-halo 1.6s ease-out infinite;
+}
+
+@keyframes pin-halo {
+  0% {
+    transform: scale(0.6);
+    opacity: 1;
+  }
+
+  100% {
+    transform: scale(1.25);
+    opacity: 0;
+  }
+}
+
 .bd-boxrect {
   fill: var(--color-orbit);
   fill-opacity: 0.08;
