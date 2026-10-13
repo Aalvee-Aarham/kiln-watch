@@ -25,7 +25,7 @@ describe('gemini request', () => {
     expect(buildGeminiRequest('SYS', 'Q')).toEqual({
       system_instruction: { parts: [{ text: 'SYS' }] },
       contents: [{ role: 'user', parts: [{ text: 'Q' }] }],
-      generationConfig: { maxOutputTokens: 1024 },
+      generationConfig: { maxOutputTokens: 350 },
     })
   })
   it('falls back to the next model on a 404', async () => {

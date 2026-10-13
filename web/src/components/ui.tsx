@@ -140,7 +140,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/ask', 'ask', 'askShort'], ['/crops', 'crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   useEffect(() => { document.documentElement.lang = lang }, [lang])
@@ -311,6 +311,14 @@ export function Verdict({ pass, label }: { pass?: boolean; label?: string }) {
     </span>
   )
 }
+
+/** For examples that are not measured data (the agent stage's curves, multipliers and news): said plainly, every time. */
+export const IllustrativeNote = ({ children }: { children?: ReactNode }) => (
+  <p className="flex items-start gap-1.5 rounded-[4px] border border-warn/40 bg-warn-soft px-2 py-1 text-xs text-ink">
+    <span className="text-warn"><Icon name="info" className="mt-0.5 h-3.5 w-3.5" /></span>
+    <span>{children ?? 'Illustrative example, not observed data: these fire curves, multipliers and news items are typed-in examples, not Kiln Watch measurements.'}</span>
+  </p>
+)
 
 export const ProvisionalBadge = () => {
   const t = useT()

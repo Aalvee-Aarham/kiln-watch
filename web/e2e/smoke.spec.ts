@@ -359,6 +359,43 @@ test('ask: a question asked with your Gemini key is answered, saved, and still t
   await expect(page.locator('article').first()).toContainText('How is this season going?')
 })
 
+test('ask: a Bangladesh place asked on the agent stage gets a checked answer from our data, saved with its facts', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kw-gemini-key', 'test-key'))
+  let prompt = ''
+  await page.route('https://generativelanguage.googleapis.com/**', async (r) => {
+    prompt = JSON.stringify(r.request().postDataJSON())
+    await r.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Rajshahi burns most in its usual season, based on provisional data.' }] } }] }) })
+  })
+  await page.goto('#/ask')
+  await page.getByRole('button', { name: 'When is burning season in Rajshahi, Bangladesh?' }).click()
+  const card = page.locator('article').first()
+  await expect(card).toContainText('When is burning season in Rajshahi, Bangladesh?')
+  await expect(card).toContainText('Every number in this answer comes from our data.')
+  await card.getByText(/Where each figure comes from/).click()
+  await expect(card.locator('.trace-row').filter({ hasText: 'District' }).first()).toContainText('Rajshahi') // the real district, by its coordinates
+  expect(prompt).toContain('Answer ONLY using the context') // the strict prompt, not "enrich with your knowledge"
+  expect(prompt).not.toMatch(/multiplier|1\.7×/) // no typed-in registry figures reach the model
+})
+
+test('ask: a place outside Bangladesh plays the illustrative stage but never calls Gemini', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kw-gemini-key', 'test-key'))
+  let calls = 0
+  await page.route('https://generativelanguage.googleapis.com/**', (r) => { calls++; return r.abort() })
+  await page.goto('#/ask')
+  await expect(page.getByText(/Illustrative example, not observed data/).first()).toBeVisible()
+  await page.getByRole('button', { name: 'Is this fire season in Punjab, India unusual?' }).click()
+  await expect(page.getByText(/measured data only for Bangladesh districts/)).toBeVisible()
+  await page.waitForTimeout(500)
+  expect(calls).toBe(0)
+  await expect(page.locator('article')).toHaveCount(0) // nothing saved: no checked answer exists
+})
+
+test('crops: the page says its figures are illustrative', async ({ page }) => {
+  await page.goto('#/crops')
+  await expect(page.getByText(/Illustrative example, not observed data/)).toBeVisible()
+})
+
 test('world map: search finds a city anywhere and says what is covered there', async ({ page }) => {
   await page.goto('#/region')
   await expect(page.getByRole('heading', { level: 1, name: 'South Asia and the world' })).toBeVisible()

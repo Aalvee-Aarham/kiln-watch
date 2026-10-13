@@ -1,8 +1,30 @@
 import type { Box } from './box'
+import type { FC } from './types'
 
 /** World map view in degrees: x = longitude, y = −latitude (plate carrée, the same grid as NASA's EPSG:4326 images). */
 export type View = { x: number; y: number; w: number; h: number }
 export type City = { name: string; nameBn: string; lat: number; lon: number; rank: number; pop: number | null; adm0: string; adm1: string | null; capital: boolean }
+
+export type Shape = { id: string; name: string; d: string; x0: number; y0: number; x1: number; y1: number }
+
+/** Path in degrees (x = lon, y = −lat) plus its bounding box, for culling to the view. */
+export function shapes(fc?: FC): Shape[] {
+  return (fc?.features ?? []).map((f) => {
+    let d = '', x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity
+    const ring = (r: GeoJSON.Position[]) => {
+      d += 'M' + r.map(([lon, lat]) => {
+        if (lon < x0) x0 = lon; if (lon > x1) x1 = lon; if (-lat < y0) y0 = -lat; if (-lat > y1) y1 = -lat
+        return `${lon},${-lat}`
+      }).join('L') + 'Z'
+    }
+    const g = f.geometry
+    if (g.type === 'Polygon') g.coordinates.forEach(ring)
+    else if (g.type === 'MultiPolygon') g.coordinates.forEach((p) => p.forEach(ring))
+    return { id: f.properties.unit_id, name: f.properties.name_en, d, x0, y0, x1, y1 }
+  })
+}
+
+export const overlaps = (s: Shape, v: View) => s.x1 >= v.x && s.x0 <= v.x + v.w && s.y1 >= v.y && s.y0 <= v.y + v.h
 
 export const MIN_W = 0.4  // ≈ 40 km across: closer than any outline here is drawn
 export const MAX_W = 400  // a little more than the whole globe

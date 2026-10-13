@@ -1,3 +1,7 @@
+import { seasonMean } from './calendar'
+import { busyMonths, SEASON_MONTHS, typicalSeason, whenText } from './plain'
+import type { Calendar, KilnActivity, NrtSeason } from './types'
+
 export type Facts = {
     districtName: string
     fireSeasonMonths: string
@@ -5,6 +9,23 @@ export type Facts = {
     kilnSeason: string | null
     currentSeason: string
 }
+
+/** The facts the model is given about one district, all computed from the public export (never typed in). */
+export function districtFacts(name: string, unitId: string, cal: Calendar, nrt: NrtSeason, ka?: KilnActivity | null): Facts {
+  const bm = busyMonths(seasonMean(cal))
+  const kiln = ka?.areas?.[unitId] ? typicalSeason(ka.areas[unitId].seasons) : null
+  return {
+    districtName: name,
+    fireSeasonMonths: bm ? `${SEASON_MONTHS[bm.first]} to ${SEASON_MONTHS[bm.last]}` : 'quiet',
+    unusualDaysThisSeason: nrt.districts[unitId]?.above_p90_days ?? 0,
+    kilnSeason: kiln ? `${whenText(kiln.onset)} to ${whenText(kiln.end)}` : null,
+    currentSeason: nrt.season,
+  }
+}
+
+/** A saved answer's evidence row for these facts (snake_case keys read well as labels on the answer card). */
+export const factsResult = (f: Facts) => ({ district: f.districtName, fire_season_months: f.fireSeasonMonths,
+  unusual_days_this_season: f.unusualDaysThisSeason, kiln_season: f.kilnSeason, current_season: f.currentSeason })
 
 export function buildSystemPrompt(facts: Facts): string {
     return `You are Kiln Watch Assistant, a helpful and precise guide explaining satellite data for a district in Bangladesh.
@@ -36,16 +57,19 @@ export function unsupportedNumbers(answer: string, context: string): number[] {
   return [...numbers(answer)].filter((n) => !allowed.has(n)).sort((a, b) => a - b)
 }
 
-/** Models tried in order; a 404 (retired model) moves to the next. Check ids against ai.google.dev before editing. */
-export const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite']
-export const RETIRED_MESSAGE = 'Google retired the models this page uses — the cached answers below still work.'
+/** Models tried in order; a 404 (retired model) moves to the next. The first two are GA on ai.google.dev (checked
+ * 2026-10-12); the last two were added by the agent work as further fallbacks. Check ids before editing. */
+export const GEMINI_MODELS = ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-3.8-flash', 'gemini-2.5-flash-lite']
+export const RETIRED_MESSAGE = 'Google has retired the Gemini models this page uses, so live answers are unavailable for now.'
 
 /** The request body: the instructions travel as system_instruction, never inside the user's turn. */
 export function buildGeminiRequest(sys: string, q: string) {
   return {
     system_instruction: { parts: [{ text: sys }] },
     contents: [{ role: 'user', parts: [{ text: q }] }],
-    generationConfig: { maxOutputTokens: 1024 }, // no temperature: deprecated on Gemini 3.x (ignored now, an error in later models)
+    generationConfig: {
+      maxOutputTokens: 350 // Token-frugal cap to stay well within free tier limits while keeping responses concise
+    },
   }
 }
 
