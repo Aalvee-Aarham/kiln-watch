@@ -7,6 +7,9 @@ import { useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import { palette, useTheme } from '../lib/theme'
 import type { Harmonization, Sensor } from '../lib/types'
+import { source } from '../lib/cropSources'
+
+const FIRMS_FAQ = source('firms-min-fire')
 
 const SENSORS: [Sensor, string, string][] = [
   ['T', 'Terra (MODIS, 1 km)', 'jute'], ['A', 'Aqua (MODIS, 1 km)', 'orbit'], ['N', 'Suomi NPP (VIIRS, 375 m)', 'plum'],
@@ -133,14 +136,17 @@ function Guide({ h }: { h: Harmonization }) {
   )
 }
 
-// Illustration only (labelled): fire sizes in m², positions in km on a 3 km × 3 km patch.
+// A drawing: fire positions in km on a 3 km × 3 km patch; sizes in m² chosen either side of MODIS's routine limit.
 const FIRES: [number, number, number][] = [[0.6, 2.3, 2000], [2.4, 0.7, 2000], [1.3, 1.4, 300], [0.4, 0.9, 300], [2.1, 2.6, 300], [1.8, 0.3, 300], [2.7, 1.8, 300], [1.1, 2.7, 300], [0.2, 2.0, 300]]
-/** A pixel "sees" fire when burning area is at least 0.1% of it (an illustrative threshold). */
+/** MODIS routinely detects fires of 1000 m² in its 1 km² pixel (NASA FIRMS FAQ, lib/cropSources.ts 'firms-min-fire').
+ * The drawing applies that burning share of a pixel to both cameras: detection depends on how much of the pixel burns. */
+const MODIS_ROUTINE_M2 = 1000
+const MIN_SHARE = MODIS_ROUTINE_M2 / (1000 * 1000)
 const lit = (px: number) => {
   const n = Math.round(3 / px), out: [number, number][] = []
   for (let i = 0; i < n; i++) for (let j = 0; j < n; j++) {
     const area = FIRES.filter(([x, y]) => x >= i * px && x < (i + 1) * px && y >= j * px && y < (j + 1) * px).reduce((s, f) => s + f[2], 0)
-    if (area / (px * 1000) ** 2 >= 0.001) out.push([i, j])
+    if (area / (px * 1000) ** 2 >= MIN_SHARE) out.push([i, j])
   }
   return out
 }
@@ -157,13 +163,13 @@ function PixelIllustration() {
       <figure className="m-0 space-y-2">
         <SegmentedToggle label="Camera" value={cam} options={[['modis', 'Old camera (1 km pixels)'], ['viirs', 'New camera (375 m pixels)']]} onChange={setCam} />
         <svg viewBox="0 0 300 300" className="w-full rounded-[8px] border border-line" role="img"
-          aria-label={`Illustration: a 3 km field with 9 fires. The ${cam === 'modis' ? 'old' : 'new'} camera detects fire in ${hits.length} squares.`}>
+          aria-label={`Drawing: a 3 km field with 9 fires. The ${cam === 'modis' ? 'old' : 'new'} camera detects fire in ${hits.length} squares.`}>
           <rect width="300" height="300" fill="color-mix(in oklch, var(--color-paddy) 18%, var(--color-surface))" />
           {hits.map(([i, j]) => <rect key={`${i}-${j}`} x={i * px * s} y={j * px * s} width={px * s} height={px * s} fill={p.heat} opacity={0.35} />)}
           {Array.from({ length: n + 1 }, (_, k) => <g key={k} stroke={p.line} strokeWidth={1}><line x1={k * px * s} y1={0} x2={k * px * s} y2={300} /><line x1={0} y1={k * px * s} x2={300} y2={k * px * s} /></g>)}
           {FIRES.map(([x, y, a], k) => <circle key={k} cx={x * s} cy={y * s} r={a > 1000 ? 7 : 3.5} fill={p.heat} stroke={p.surface} strokeWidth={1} />)}
         </svg>
-        <figcaption className="text-xs text-muted">Illustration, not real data: one 3 km field with 2 big and 7 small fires.</figcaption>
+        <figcaption className="text-xs text-muted">Drawing to scale: one 3 km field with 2 fires of 2000 m² and 7 of 300 m². A square lights up when the burning share of it reaches what MODIS routinely detects: <a className="underline" href={FIRMS_FAQ.url} target="_blank" rel="noreferrer">{FIRMS_FAQ.text}</a></figcaption>
       </figure>
       <div className="space-y-2">
         <p className="big-num">{hits.length} <span className="text-xl font-normal">squares with fire</span></p>

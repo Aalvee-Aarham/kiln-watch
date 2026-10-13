@@ -378,22 +378,36 @@ test('ask: a Bangladesh place asked on the agent stage gets a checked answer fro
   expect(prompt).not.toMatch(/multiplier|1\.7×/) // no typed-in registry figures reach the model
 })
 
-test('ask: a place outside Bangladesh plays the illustrative stage but never calls Gemini', async ({ page }) => {
+test('ask: a place outside Bangladesh shows no figures yet and never calls Gemini', async ({ page }) => {
   await page.addInitScript(() => localStorage.setItem('kw-gemini-key', 'test-key'))
   let calls = 0
   await page.route('https://generativelanguage.googleapis.com/**', (r) => { calls++; return r.abort() })
   await page.goto('#/ask')
-  await expect(page.getByText(/Illustrative example, not observed data/).first()).toBeVisible()
   await page.getByRole('button', { name: 'Is this fire season in Punjab, India unusual?' }).click()
   await expect(page.getByText(/measured data only for Bangladesh districts/)).toBeVisible()
+  await expect(page.getByText('Not measured yet')).toBeVisible() // the stage badge: no figures outside Bangladesh
+  await expect(page.getByText(/Illustrative/)).toHaveCount(0)
   await page.waitForTimeout(500)
   expect(calls).toBe(0)
   await expect(page.locator('article')).toHaveCount(0) // nothing saved: no checked answer exists
 })
 
-test('crops: the page says its figures are illustrative', async ({ page }) => {
+test('ask: the stage shows the same figures as the Area page', async ({ page }) => {
+  await page.goto('#/ask')
+  await page.getByRole('button', { name: 'Is fire in Dhaka above normal right now?' }).click()
+  await page.getByText(/About the stage above: Dhaka/).click()
+  const details = page.locator('details', { hasText: 'About the stage above' })
+  await expect(details).toContainText(/unusual days? so far in/) // the data files have loaded
+  const m = (await details.textContent())?.match(/(\d+) unusual days? so far in/)
+  expect(m).not.toBeNull()
+  await page.goto('#/area/BD3026')
+  await expect(page.getByText(new RegExp(`\\b${m![1]}\\b.*(unusual|above)`)).first()).toBeVisible()
+})
+
+test('crops: the page names its sources', async ({ page }) => {
   await page.goto('#/crops')
-  await expect(page.getByText(/Illustrative example, not observed data/)).toBeVisible()
+  await expect(page.getByText(/Illustrative/)).toHaveCount(0)
+  await expect(page.locator('a[href*="fao.org"]').first()).toBeVisible()
 })
 
 test('world map: search finds a city anywhere and says what is covered there', async ({ page }) => {

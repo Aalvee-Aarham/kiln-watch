@@ -21,3 +21,5 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | A1-K | Kiln activity (Amendment 1): the national kiln-season curve peaks Dec–Feb and is flat Jul–Sep; 3 districts spot-checked against local knowledge of their kiln season | | | |
 | A1-K | Kiln activity: the Bangla non-claims in `kilnwatch/activity.py` read correctly to a native speaker | | | |
 | P0 | Local Lead confirms in writing how pre-event work (5–6 Oct 2026) is treated; README/submission disclosure updated with the ruling | | | |
+| RD-1 | News records in `web/src/lib/newsRecords.ts`: 5 random items open and say what their card says (none yet: the list starts empty) | | | |
+| RD-2 | Every quote in `web/src/lib/cropSources.ts` appears at its URL (check 5 at random) | | | |

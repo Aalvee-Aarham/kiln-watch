@@ -29,7 +29,8 @@ Plain-language pages, organised around the four judging questions (redesign v2):
 | `#/sensors` · `#/timeline` | `SensorsPage` · `TimelinePage` | The 2012 sensor-change puzzle; 2002→2027 events with sources |
 | `#/experts` | `ExpertsPage` | Hub to the expert pages, repo, pre-registration |
 | `#/region` (also `#/world`) | `RegionPage` | The world map (`WorldMap`): every country, state/province and city, opening on South Asia; search any place; the side panel shows what Kiln Watch has there: for a Bangladesh city, its district's fire season, this season, the two-week outlook and kiln season; for a division, its districts ranked by unusual days; for Pakistan, India and Afghanistan, the kiln test and its learned kiln months; elsewhere, that it is outside the study area |
-| `#/ask` | `AskPage` | Ask Kiln Watch: ask with your own Gemini key (or the hosted worker when `VITE_ASK_ENDPOINT` is set); your questions and answers are saved in this browser (`lib/askHistory.ts`), each figure traced to its source (`lib/askTrace.ts`, `components/AskAnswer.tsx`) |
+| `#/ask` | `AskPage` | Ask Kiln Watch: ask with your own Gemini key (or the hosted worker when `VITE_ASK_ENDPOINT` is set); your questions and answers are saved in this browser (`lib/askHistory.ts`), each figure traced to its source (`lib/askTrace.ts`, `components/AskAnswer.tsx`). The agent stage (`components/agent/*`) finds the place in a question (`lib/regionRegistry.ts`: names, aliases, map extents, and the district or Natural Earth unit) and draws it from the export (`lib/agentEngine.ts`): the district's calendar, this season, kiln seasons, this season's fire detections from `grid/` tiles, past seasons and dated events. Places outside Bangladesh show no figures until the South Asia calendar (Amendment 5) |
+| `#/crops` | `CropsPage` | Crops & harvest: a district's burning by harvest window (`splitShares`), its typical year (`components/TypicalYear.tsx`), each crop's window share (`monthsShare`), the hill districts' busiest months and, on request, their share of Aqua MODIS detections (`hillShare`); soil, smoke and health statements are cited sentence by sentence (`lib/cropSources.ts`) |
 
 Legacy expert routes are kept so shared links survive: `#/story`, `#/explore[/:level[/:unitId]]`, `#/explore/box/:box`, `#/experts/kilns/:unitId?` (renders a StatusMessage when kilns are hidden), `#/season`, `#/evidence`, `#/method`. Everything except Home is lazy-loaded.
 
@@ -53,7 +54,10 @@ The header nav (`AppShell`) shows How / Area / World / Impact / Trust / Kilns (t
 | `ritu.ts` | The six Bengali seasons (revised calendar) + aman/boro harvest spans |
 | `url.ts` | Whole view state in the URL (`useUrlState`) |
 | `chartRegistry.ts` | Live chart instances → PNG download without importing ECharts |
-| `geo.ts` | Point-in-polygon for on-device geolocation |
+| `geo.ts` | Point-in-polygon for on-device geolocation; `bboxOf` for a unit's extent |
+| `agentEngine.ts` | The Ask stage: `resolveQuery` (place and intent), `buildResolution` (fills the stage from passed-in export files; no figures for places outside Bangladesh), `stageCells` (map dots from `grid/` tiles) — pure, tested |
+| `regionRegistry.ts` | Place names, aliases and map extents for the Ask stage, each mapped to its district or Natural Earth unit; no figures |
+| `cropSources.ts` / `newsRecords.ts` | Outside statements and news reports, each with its URL and the verbatim sentence that states it; a test fails if a number in a statement is not in its quote |
 | `echarts.ts` | Tree-shaken ECharts core, lazily themed |
 
 ## `src/components`

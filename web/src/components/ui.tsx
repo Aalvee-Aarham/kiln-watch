@@ -312,11 +312,12 @@ export function Verdict({ pass, label }: { pass?: boolean; label?: string }) {
   )
 }
 
-/** For examples that are not measured data (the agent stage's curves, multipliers and news): said plainly, every time. */
+/** For anything shown that is not measured data (a drawing, an example): said plainly, every time. Unused while every
+ * figure on the site is measured or cited (docs/real_data_plan.md); kept for future drawings. */
 export const IllustrativeNote = ({ children }: { children?: ReactNode }) => (
   <p className="flex items-start gap-1.5 rounded-[4px] border border-warn/40 bg-warn-soft px-2 py-1 text-xs text-ink">
     <span className="text-warn"><Icon name="info" className="mt-0.5 h-3.5 w-3.5" /></span>
-    <span>{children ?? 'Illustrative example, not observed data: these fire curves, multipliers and news items are typed-in examples, not Kiln Watch measurements.'}</span>
+    <span>{children ?? 'Drawing, not measured data.'}</span>
   </p>
 )
 

@@ -11,6 +11,16 @@ export function cellId(meta: Grid, lat: number, lon: number): number {
   return row * g.cols + col
 }
 
+/** Centre of a grid cell, from meta.grid only (invariant 10). Inverse of cellId. */
+export function cellCenter(meta: Grid, cell: number): { lat: number; lon: number } {
+  const g = meta.grid
+  return { lat: g.origin_lat + (Math.floor(cell / g.cols) + 0.5) * g.step, lon: g.origin_lon + ((cell % g.cols) + 0.5) * g.step }
+}
+
+/** Sensor of a grid tile row's `sp` code (pipeline.py _write_grid_tiles: sensor × 2 + night): 0 Terra, 1 Aqua, 2 Suomi NPP, 3 NOAA-20. */
+export const sensorOf = (sp: number) => Math.floor(sp / 2)
+export const AQUA = 1
+
 /** 1° × 1° tile names ("lon_lat" of the SW corner) intersecting a box. */
 export function tilesForBox([w, s, e, n]: [number, number, number, number]): string[] {
   const out: string[] = []

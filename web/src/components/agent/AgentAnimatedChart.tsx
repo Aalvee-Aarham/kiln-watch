@@ -1,23 +1,29 @@
 import { useMemo } from 'react'
+import type { ChartDataPoint } from '../../lib/agentEngine'
 
 /**
- * Animated Comparative Graph Canvas Overlay
- * Replicates the exact graph drawing sequence:
+ * Animated Comparative Graph Canvas Overlay, drawn from the place's real monthly series (agentEngine chartData):
  * - Fades in over the zoomed map with translucent obsidian glass (map visible behind at ~15% opacity).
- * - Timeline axis: SEP, OCT, NOV, DEC.
- * - 3200ms - 4200ms: Blue 23-Year Normal bell curve draws left-to-right with shaded ribbon.
- * - 4200ms - 5200ms: Orange This Season spline draws left-to-right through 6 nodes, spiking high above normal.
- * - 4800ms - 5400ms: "CRITICAL WEEKS" shaded dashed box fades in over November.
- * - 5200ms - 5800ms: Hero verdict "Yes, 2.1× the normal for this week" reveals in bottom left.
+ * - Timeline axis: July to June, the project's season.
+ * - 3200ms - 4200ms: blue typical-year line (seasons before this one) draws left-to-right, with the typical high dashed.
+ * - 4200ms - 5200ms: orange this-season line draws through the months reached so far.
+ * - 4800ms - 5400ms: the busiest months, from the typical year, fade in as a shaded box.
+ * - 5200ms - 5800ms: the headline (computed by agentEngine) and its sources reveal in bottom left.
  */
 export function AgentAnimatedChart({
   timeMs,
-  locationName = 'PUNJAB, INDIA',
-  multiplier = 2.1
+  locationName,
+  chartData,
+  criticalSpan,
+  headline,
+  sources
 }: {
   timeMs: number
-  locationName?: string
-  multiplier?: number
+  locationName: string
+  chartData: ChartDataPoint[]
+  criticalSpan: [number, number] | null
+  headline: string
+  sources: string
 }) {
   // Graph visibility begins at 2800ms
   const isVisible = timeMs >= 2800
@@ -56,27 +62,22 @@ export function AgentAnimatedChart({
     return (timeMs - 5200) / 600
   }, [timeMs])
 
-  // Dynamic curve heights calibrated to region multiplier
-  const peakY = Math.max(Math.round(340 - 155 * (multiplier / 1.3)), 55)
-  const midY1 = Math.round(340 - (340 - peakY) * 0.45)
-  const midY2 = Math.round(340 - (340 - peakY) * 0.62)
-
-  // SVG Geometry definitions in 800x400 viewBox
-  const normalPath = 'M 80 340 C 180 338, 260 330, 340 280 C 420 180, 500 180, 580 290 C 640 330, 680 338, 720 340'
-  const normalArea = 'M 80 340 C 180 338, 260 330, 340 280 C 420 180, 500 180, 580 290 C 640 330, 680 338, 720 340 L 720 340 L 80 340 Z'
-
-  // Spiking Spline for This Season
-  const seasonPath = `M 80 335 C 180 335, 260 310, 340 ${midY1} C 390 ${midY2}, 410 ${peakY}, 440 ${peakY} C 475 ${peakY}, 500 ${midY2}, 540 ${midY2} C 580 290, 640 335, 720 338`
-
-  // 6 Nodes along curve
-  const nodes = [
-    { x: 80, y: 335, revealAt: 0.05 },
-    { x: 230, y: 325, revealAt: 0.22 },
-    { x: 340, y: midY1, revealAt: 0.45 },
-    { x: 440, y: peakY, revealAt: 0.65 }, // Peak
-    { x: 540, y: midY2, revealAt: 0.82 },
-    { x: 670, y: 330, revealAt: 0.95 }
-  ]
+  // Geometry in the 800x400 viewBox: 12 months from x = 80 to 720, values scaled to the largest shown.
+  const xOf = (i: number) => 80 + (i * 640) / Math.max(1, chartData.length - 1)
+  const yMax = Math.max(1e-9, ...chartData.flatMap((d) => [d.normal, d.normalP90, d.season]).filter((v): v is number => v !== null && v !== undefined))
+  const yOf = (v: number) => 340 - (v / yMax) * 250
+  const line = (key: 'normal' | 'normalP90' | 'season') => chartData
+    .map((d, i) => (d[key] === null || d[key] === undefined ? null : `${xOf(i)} ${yOf(d[key] as number)}`))
+    .filter(Boolean).map((pt, i) => `${i ? 'L' : 'M'} ${pt}`).join(' ')
+  const normalPath = line('normal')
+  const p90Path = line('normalP90')
+  const normalArea = normalPath ? `${normalPath} L ${xOf(chartData.length - 1)} 340 L 80 340 Z` : ''
+  const seasonPath = line('season')
+  const reached = chartData.map((d, i) => ({ d, i })).filter(({ d }) => d.season !== null)
+  const nodes = reached.map(({ d, i }, k) => ({ x: xOf(i), y: yOf(d.season as number), revealAt: (k + 1) / Math.max(1, reached.length) }))
+  const peakNode = nodes.reduce((m, n, k) => (n.y < (nodes[m]?.y ?? Infinity) ? k : m), 0)
+  const half = 320 / Math.max(1, chartData.length - 1)
+  const box = criticalSpan && criticalSpan[0] <= criticalSpan[1] ? { x: xOf(criticalSpan[0]) - half, w: xOf(criticalSpan[1]) - xOf(criticalSpan[0]) + 2 * half } : null
 
   if (!isVisible) return null
 
@@ -91,7 +92,7 @@ export function AgentAnimatedChart({
       {/* Top Header */}
       <div className="flex items-center justify-between border-b border-white/5 pb-3">
         <h2 className="font-mono text-[11px] font-bold uppercase tracking-[0.18em] text-neutral-300">
-          {locationName.toUpperCase()} · THIS SEASON VS 23-YEAR NORMAL
+          {locationName.toUpperCase()} · THIS SEASON VS TYPICAL YEAR
         </h2>
       </div>
 
@@ -129,12 +130,12 @@ export function AgentAnimatedChart({
           </defs>
 
           {/* Critical Weeks Highlight Box */}
-          {criticalOpacity > 0 && (
+          {box && criticalOpacity > 0 && (
             <g style={{ opacity: criticalOpacity }}>
               <rect
-                x="370"
+                x={box.x}
                 y="85"
-                width="160"
+                width={box.w}
                 height="255"
                 fill="rgba(255, 85, 0, 0.08)"
                 stroke="rgba(255, 85, 0, 0.3)"
@@ -142,7 +143,7 @@ export function AgentAnimatedChart({
                 strokeDasharray="4 3"
               />
               <text
-                x="450"
+                x={box.x + box.w / 2}
                 y="318"
                 textAnchor="middle"
                 fill="#ff9e7d"
@@ -151,14 +152,15 @@ export function AgentAnimatedChart({
                 fontWeight="700"
                 letterSpacing="0.14em"
               >
-                CRITICAL WEEKS
+                BUSIEST MONTHS
               </text>
             </g>
           )}
 
-          {/* 23-Year Normal Shaded Area & Line */}
+          {/* Typical-year Shaded Area & Line */}
           <g clipPath="url(#normalClip)">
             <path d={normalArea} fill="url(#normalGrad)" />
+            <path d={p90Path} fill="none" stroke="#38bdf8" strokeWidth="1.2" strokeOpacity="0.6" strokeDasharray="5 4" />
             <path
               d={normalPath}
               fill="none"
@@ -168,8 +170,8 @@ export function AgentAnimatedChart({
             />
           </g>
 
-          {/* 23-Year Normal Text Label */}
-          {normalProgress >= 0.95 && (
+          {/* Typical-year Text Label */}
+          {normalProgress >= 0.95 && chartData.length > 0 && (
             <text
               x="90"
               y="285"
@@ -180,7 +182,7 @@ export function AgentAnimatedChart({
               letterSpacing="0.12em"
               className="animate-fadeIn"
             >
-              23-YEAR NORMAL
+              TYPICAL YEAR (DASHED: TYPICAL HIGH)
             </text>
           )}
 
@@ -203,20 +205,20 @@ export function AgentAnimatedChart({
                 key={idx}
                 cx={nd.x}
                 cy={nd.y}
-                r={idx === 3 ? 5.5 : 4.5} // Peak node slightly larger
+                r={idx === peakNode ? 5.5 : 4.5} // Peak node slightly larger
                 fill="#ffffff"
                 stroke="#ff5500"
-                strokeWidth={idx === 3 ? 3 : 2}
+                strokeWidth={idx === peakNode ? 3 : 2}
                 className="animate-scaleIn"
               />
             )
           })}
 
           {/* "THIS SEASON" Label */}
-          {seasonProgress >= 0.85 && (
+          {seasonProgress >= 0.85 && nodes.length > 0 && (
             <text
-              x="575"
-              y="235"
+              x={Math.min(nodes[nodes.length - 1].x + 10, 640)}
+              y={Math.max(nodes[nodes.length - 1].y - 10, 70)}
               fill="#ff6a1a"
               fontSize="11"
               fontFamily="system-ui, sans-serif"
@@ -239,12 +241,12 @@ export function AgentAnimatedChart({
           />
 
           {/* Month Labels */}
-          <g fill="#64748b" fontSize="11" fontFamily="ui-monospace, monospace">
-            <text x="80" y="365">SEP</text>
-            <text x="240" y="365">OCT</text>
-            <text x="440" y="365">NOV</text>
-            <text x="680" y="365">DEC</text>
+          <g fill="#64748b" fontSize="10" fontFamily="ui-monospace, monospace" textAnchor="middle">
+            {chartData.map((d, i) => <text key={d.label} x={xOf(i)} y="365">{d.label}</text>)}
           </g>
+          {chartData.length === 0 && (
+            <text x="400" y="200" textAnchor="middle" fill="#94a3b8" fontSize="14" fontFamily="system-ui, sans-serif">No measured data for this place yet</text>
+          )}
         </svg>
       </div>
 
@@ -253,29 +255,16 @@ export function AgentAnimatedChart({
         className="flex flex-col justify-end pt-2 transition-opacity duration-500"
         style={{ opacity: verdictOpacity }}
       >
-        <div className="flex items-baseline gap-2">
-          {/* Classical serif italic "Yes," */}
-          <span
-            className="text-3xl sm:text-4xl italic font-normal"
-            style={{
-              color: '#ff9e7d',
-              fontFamily: 'Playfair Display, Georgia, "Times New Roman", serif'
-            }}
-          >
-            Yes,
-          </span>
-          {/* Bold display verdict */}
-          <span
-            className="text-2xl sm:text-3xl font-bold tracking-tight text-white"
-            style={{ fontFamily: 'Anek Display, Outfit, system-ui, sans-serif' }}
-          >
-            {multiplier.toFixed(1)}× the normal for this week
-          </span>
-        </div>
+        <p
+          className="text-base sm:text-lg font-bold leading-snug tracking-tight text-white"
+          style={{ fontFamily: 'Anek Display, Outfit, system-ui, sans-serif' }}
+        >
+          {headline}
+        </p>
 
         {/* Sources attribution */}
         <p className="mt-2 font-mono text-[10.5px] uppercase tracking-[0.16em] text-neutral-400">
-          SOURCES: NASA FIRMS · MODIS · VIIRS
+          {sources}
         </p>
       </div>
     </div>

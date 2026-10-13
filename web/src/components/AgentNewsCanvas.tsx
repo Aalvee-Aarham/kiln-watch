@@ -1,14 +1,11 @@
 import type { AgentResolution } from '../lib/agentEngine'
-import { IllustrativeNote } from './ui'
-
 /**
- * Historical Fire Incident & Precedents Canvas
- * Fulfills the requirement: "oi place aa fire lagse naki prev kokhono, erokom news thakle dekhabe"
+ * Historical Fire Incident & Precedents Canvas: the place's own past seasons from its Kiln Watch calendar, linked news
+ * reports, and dated policy and satellite events, each with its source link (built in agentEngine.records).
  */
 export function AgentNewsCanvas({ res }: { res: AgentResolution }) {
   return (
     <div className="flex h-full min-h-[460px] w-full flex-col justify-between overflow-hidden rounded-[12px] border border-white/10 bg-[#090d15] p-5 shadow-2xl">
-      <IllustrativeNote>Illustrative examples, not verified news records: titles, figures and sources here are typed-in samples.</IllustrativeNote>
       {/* Header */}
       <div className="border-b border-white/10 pb-3">
         <div className="flex items-center justify-between">
@@ -16,11 +13,11 @@ export function AgentNewsCanvas({ res }: { res: AgentResolution }) {
             {res.locationName.toUpperCase()} · HISTORICAL FIRE PRECEDENTS & NEWS
           </h2>
           <span className="rounded-full bg-orange-500/10 px-2.5 py-0.5 font-mono text-[11px] text-orange-400 border border-orange-500/20">
-            {res.news.length} Documented Records
+            {res.news.length} {res.news.length === 1 ? 'record' : 'records'}
           </span>
         </div>
         <p className="mt-1 text-xs text-neutral-400">
-          Historical fire outbreaks, satellite alert surges, and official reports cross-referenced from 2003–present.
+          From Kiln Watch&rsquo;s own record since 2003, dated policy and satellite events, and linked news reports.
         </p>
       </div>
 
@@ -56,7 +53,7 @@ export function AgentNewsCanvas({ res }: { res: AgentResolution }) {
 
             <div className="mt-2 flex items-center gap-1.5 text-[11px] text-neutral-400 font-mono">
               <span className="opacity-60">Source:</span>
-              <span className="text-neutral-300">{item.source}</span>
+              <a className="text-neutral-300 underline hover:text-white" href={item.url} target="_blank" rel="noreferrer">{item.source}</a>
             </div>
           </div>
         ))}
@@ -65,7 +62,7 @@ export function AgentNewsCanvas({ res }: { res: AgentResolution }) {
       {/* Footer Context */}
       <div className="border-t border-white/10 pt-3 text-xs text-neutral-400">
         <p className="leading-relaxed">
-          <strong className="text-neutral-200">23-Year Satellite Context:</strong> Thermal sensor records from Terra, Aqua, and Suomi-NPP verify periodic seasonal peaks. All historical news records align with verified FIRMS cluster anomalies.
+          <strong className="text-neutral-200">Where these come from:</strong> season records are computed from this area&rsquo;s harmonized calendar (Aqua MODIS, then Suomi NPP VIIRS converted to the same scale); events and reports link to their sources.
         </p>
       </div>
     </div>

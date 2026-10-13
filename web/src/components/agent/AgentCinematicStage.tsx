@@ -2,8 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { AgentAnimatedMap } from './AgentAnimatedMap'
 import { AgentAnimatedChart } from './AgentAnimatedChart'
 import { AgentStepperPanel } from './AgentStepperPanel'
-import { IllustrativeNote } from '../ui'
-import { parseUserQuery, type AgentResolution } from '../../lib/agentEngine'
+import type { AgentResolution } from '../../lib/agentEngine'
 
 const PRESET_QUERIES = [
   'Is this fire season in Punjab, India unusual?',
@@ -21,15 +20,26 @@ const COMPLETE_MS = 6000
  * - True natural daytime NASA Blue Marble satellite view.
  * - Dynamic camera zoom targeting the exact queried location.
  * - Initial state is fully rendered and visible immediately.
- * - Smooth 6.0s execution sequence whenever a query is submitted.
+ * - Smooth 6.0s execution sequence whenever a new resolution arrives.
+ * - Draws only what the page passes in: the resolution (agentEngine, filled from the public export) and real fire
+ *   detections; it never computes or invents a figure.
  */
 export function AgentCinematicStage({
-  onQueryChange
+  res,
+  cells = [],
+  ambient = [],
+  caption,
+  coverage,
+  onAsk
 }: {
-  onQueryChange?: (res: AgentResolution, query: string) => void
+  res: AgentResolution | null
+  cells?: { lat: number; lon: number }[]
+  ambient?: { lat: number; lon: number }[]
+  caption?: string
+  coverage?: string
+  onAsk: (query: string) => void
 }) {
   const [activeQuery, setActiveQuery] = useState('')
-  const [res, setRes] = useState<AgentResolution | null>(null)
   const [showGraph, setShowGraph] = useState(true)
   
   // Timeline state (0ms to 6000ms)
@@ -70,17 +80,16 @@ export function AgentCinematicStage({
   }, [])
 
   const handleUserQuery = (q: string) => {
-    const resolved = parseUserQuery(q)
     setActiveQuery(q)
-    setRes(resolved)
     setShowGraph(true)
-    onQueryChange?.(resolved, q)
-    runSequence()
+    onAsk(q)
   }
+
+  // Replay the timeline whenever the page delivers a new resolution (data loaded or a new question).
+  useEffect(() => { if (res) runSequence() }, [res, runSequence])
 
   return (
     <div className="relative w-full overflow-hidden rounded-[14px] bg-[#030712] border border-white/10 shadow-2xl">
-      <div className="px-5 pt-3"><IllustrativeNote /></div>
       {/* 1. Prompt Suggestions & Controls Toolbar */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/5 bg-[#070c18] px-5 py-3">
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -140,9 +149,9 @@ export function AgentCinematicStage({
           )}
 
           <div className="flex items-center gap-2 font-mono text-xs">
-            <span className="h-2 w-2 rounded-full bg-[#ff5500] animate-pulse" />
+            <span className={`h-2 w-2 rounded-full ${res?.status === 'measured' ? 'bg-emerald-400' : res?.status === 'error' ? 'bg-rose-500' : 'bg-neutral-500'}`} />
             <span className="text-neutral-400 font-semibold uppercase tracking-wider text-[11px]">
-              Illustrative example
+              {!res ? 'Kiln Watch data' : { measured: 'Measured data', loading: 'Loading Kiln Watch data', error: 'Could not load data', outside: 'Not measured yet', none: 'No place found' }[res.status]}
             </span>
           </div>
         </div>
@@ -157,6 +166,9 @@ export function AgentCinematicStage({
             timeMs={timeMs}
             locationName={res?.locationName}
             mapFocus={res?.mapFocus}
+            cells={cells}
+            ambient={ambient}
+            caption={showGraph ? undefined : caption}
           />
 
           {/* Animated 23-Year Comparative Graph Overlay */}
@@ -164,7 +176,10 @@ export function AgentCinematicStage({
             <AgentAnimatedChart
               timeMs={timeMs}
               locationName={res.locationName}
-              multiplier={res.multiplier}
+              chartData={res.chartData}
+              criticalSpan={res.criticalSpan}
+              headline={res.headline}
+              sources={res.sources}
             />
           )}
         </div>
@@ -174,7 +189,8 @@ export function AgentCinematicStage({
           <AgentStepperPanel
             timeMs={timeMs}
             queryText={activeQuery}
-            locationName={res?.locationName}
+            steps={res?.steps}
+            coverage={coverage}
             onUserSubmit={handleUserQuery}
           />
         </div>

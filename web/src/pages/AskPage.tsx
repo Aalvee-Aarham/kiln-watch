@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react'
-import { IllustrativeNote, StatusMessage, useTitle, Icon, useKilnActivity } from '../components/ui'
+import { useState, useEffect, useMemo } from 'react'
+import { StatusMessage, useTitle, Icon, useKilnActivity, useMeta } from '../components/ui'
 import { PageHead } from '../components/plain'
 import { AnswerCard } from '../components/AskAnswer'
 import { AgentCinematicStage } from '../components/agent/AgentCinematicStage'
 import { AgentNewsCanvas } from '../components/AgentNewsCanvas'
-import type { AgentResolution } from '../lib/agentEngine'
-import { unitAt } from '../lib/geo'
+import { buildResolution, EMPTY_STAGE_DATA, REGION_REGISTRY, resolveQuery, stageCells } from '../lib/agentEngine'
+import { tilesForBox } from '../lib/box'
+import { dayIso, seasonStart } from '../lib/days'
+import { bboxOf } from '../lib/geo'
 import { loadHistory, newId, saveHistory, withAnswer, type SavedAnswer } from '../lib/askHistory'
-import { dataUrl, useJson } from '../lib/data'
+import { dataUrl, fetchJson, useJson } from '../lib/data'
 import { ASK_ENDPOINT, askLive } from '../lib/askApi'
 import { askGemini, buildSystemPrompt, districtFacts, factsResult, unsupportedNumbers } from '../lib/geminiPrompt'
-import type { Calendar, FC, KilnActivity, NrtSeason } from '../lib/types'
+import type { Calendar, Events, FC, GridTile, Harmonization, KilnActivity, NrtSeason } from '../lib/types'
 
 function ApiKeyInput({ apiKey, setApiKey }: { apiKey: string, setApiKey: (k: string) => void }) {
   const [open, setOpen] = useState(false)
@@ -136,13 +138,58 @@ const asked = (a: SavedAnswer) => {
   return `Asked ${when}, answered by ${a.via === 'hosted' ? 'the Kiln Watch agent' : `${a.model ?? 'Gemini'} with your key`}`
 }
 
+/** Most map dots drawn on the stage (invariant 9: explicit maxima). */
+const MAX_STAGE_CELLS = 3000
+
+/** The Ask stage's data: everything it shows is read here from the public export and passed down. */
+function useStage(question: string) {
+  const dists = useJson<FC>('aoi/districts.geojson').data
+  const nrtFile = useJson<NrtSeason>('nrt/current_season.json')
+  const nrt = nrtFile.data
+  const ka = useKilnActivity().data
+  const meta = useMeta().data
+  const events = useJson<Events>('events.json').data
+  const harm = useJson<Harmonization>('harmonization.json').data
+  const r = useMemo(() => (question ? resolveQuery(question) : null), [question])
+  const unit = r?.profile?.unit.kind === 'bd' ? r.profile.unit : null
+  const calFile = useJson<Calendar>(unit ? `calendar/${unit.unit_id}.json` : null)
+  const cal = calFile.data
+  const calFailed = calFile.error && unit ? `calendar/${unit.unit_id}.json` : '', nrtFailed = nrtFile.error ? 'nrt/current_season.json' : ''
+  const feature = useMemo(() => dists?.features.find((f) => f.properties.unit_id === unit?.unit_id), [dists, unit])
+  const [tiles, setTiles] = useState<{ id: string; tiles: GridTile[] } | null>(null)
+  useEffect(() => {
+    if (!feature) return
+    let live = true
+    const id = feature.properties.unit_id
+    Promise.all(tilesForBox(bboxOf(feature.geometry)).map((t) => fetchJson<GridTile>(`grid/${t}.json`).catch(() => null)))
+      .then((x) => { if (live) setTiles({ id, tiles: x.filter(Boolean) as GridTile[] }) })
+    return () => { live = false }
+  }, [feature])
+  const res = useMemo(() => {
+    if (!r) return null
+    const also = r.profile?.alsoUnits ?? []
+    return buildResolution(r, { ...EMPTY_STAGE_DATA, unitId: unit?.unit_id ?? null, unitName: feature?.properties.name_en ?? null,
+      division: feature?.properties.division ?? null, cal: cal?.unit_id === unit?.unit_id ? cal ?? null : null, nrt: nrt ?? null, ka: ka ?? null,
+      events: events ?? null, meta: meta ?? null, harm: harm ?? null, failed: [calFailed, nrtFailed].filter(Boolean),
+      alsoNames: also.map((id) => dists?.features.find((f) => f.properties.unit_id === id)?.properties.name_en ?? id) })
+  }, [r, unit, feature, cal, nrt, ka, events, meta, harm, dists, calFailed, nrtFailed])
+  const dots = useMemo(() => (feature && meta && nrt && tiles?.id === feature.properties.unit_id
+    ? stageCells(tiles.tiles, meta, feature.geometry, seasonStart(nrt.season), MAX_STAGE_CELLS) : null), [feature, meta, nrt, tiles])
+  const caption = !r?.profile ? undefined
+    : r.profile.unit.kind === 'ne' ? 'Fire dots: Bangladesh only until the South Asia calendar (Amendment 5) is agreed.'
+      : dots ? `Fire detections in ${feature?.properties.name_en} since ${nrt?.day0}, to ${dayIso(dots.lastDay)} (latest grid day): ${dots.total.toLocaleString('en-US')} grid ${dots.total === 1 ? 'cell' : 'cells'} (1 km)${dots.total > dots.cells.length ? `, first ${dots.cells.length.toLocaleString('en-US')} shown` : ''}. Aqua MODIS and Suomi NPP, every fire, not only kilns. From grid/ tiles.`
+        : 'Loading fire detections…'
+  const bdCount = Object.values(REGION_REGISTRY).filter((p) => p.unit.kind === 'bd').length
+  const others = Object.values(REGION_REGISTRY).filter((p) => p.unit.kind === 'ne')
+  const coverage = `Measured: all ${dists?.features.length ?? bdCount} districts of Bangladesh. Named on the map: ${others.length} more places in ${new Set(others.map((p) => p.country)).size} countries, measured after the South Asia calendar (Amendment 5).`
+  return { res, cells: dots?.cells ?? [], caption, coverage, dists, nrt, ka }
+}
+
 export default function AskPage() {
   useTitle('Ask Kiln Watch')
   const [history, setHistory] = useState<SavedAnswer[]>(loadHistory)
-  const dists = useJson<FC>('aoi/districts.geojson').data
-  const nrt = useJson<NrtSeason>('nrt/current_season.json').data
-  const ka = useKilnActivity().data
-  const [stage, setStage] = useState<AgentResolution | null>(null)
+  const [question, setQuestion] = useState('')
+  const { res: stage, cells, caption, coverage, dists, nrt, ka } = useStage(question)
   const [stageNote, setStageNote] = useState<{ kind: 'info' | 'error' | 'loading'; text: string } | null>(null)
   const save = (a: SavedAnswer) => setHistory((h) => { const next = withAnswer(h, a); saveHistory(next); return next })
   const clear = () => { saveHistory([]); setHistory([]) }
@@ -153,13 +200,15 @@ export default function AskPage() {
   })
   useEffect(() => { try { localStorage.setItem('kw-gemini-key', apiKey) } catch { /* ignore */ } }, [apiKey])
 
-  // A question asked on the stage: the stage animates its illustrative example; a checked live answer comes only from
-  // real export data, so only for a Bangladesh district (matched by the place's coordinates) and only with a key.
-  const onStageQuery = async (res: AgentResolution, q: string) => {
-    setStage(res)
-    const [lon, lat] = res.coordinates
-    const unit = res.country === 'Bangladesh' && dists ? unitAt(dists, lat, lon) : undefined
-    if (!unit) return setStageNote({ kind: 'info', text: `Kiln Watch has measured data only for Bangladesh districts, so there is no checked answer for ${res.locationName}. The stage above is an illustrative example.` })
+  // A question asked on the stage: the stage shows the place's real data; a checked live answer comes only from
+  // real export data, so only for a Bangladesh district (from the registry's unit id) and only with a key.
+  const onStageQuery = async (q: string) => {
+    setQuestion(q)
+    const r = resolveQuery(q)
+    const id = r.profile?.unit.kind === 'bd' ? r.profile.unit.unit_id : null
+    const unit = id ? dists?.features.find((f) => f.properties.unit_id === id)?.properties : undefined
+    const name = r.profile?.name ?? r.placeText
+    if (!unit) return setStageNote({ kind: 'info', text: `Kiln Watch has measured data only for Bangladesh districts so far, so there is no checked answer for ${name || 'this question'}. The South Asia calendar (Amendment 5) will add places outside Bangladesh.` })
     if (!apiKey) return setStageNote({ kind: 'info', text: `Add your Gemini key in Settings to get a checked answer about ${unit.name_en} from our data.` })
     if (!nrt) return setStageNote({ kind: 'info', text: 'The live season data are still loading; try again in a moment.' })
     setStageNote({ kind: 'loading', text: `Asking Gemini about ${unit.name_en}, with facts from our data...` })
@@ -178,13 +227,13 @@ export default function AskPage() {
         and an answer that states any number our code did not return is blocked. Select any highlighted figure, or open “Where each figure comes from”, to see the call that returned it.
       </PageHead>
 
-      <AgentCinematicStage onQueryChange={(res, q) => { void onStageQuery(res, q) }} />
+      <AgentCinematicStage res={stage} cells={cells} caption={caption} coverage={coverage} onAsk={(q) => { void onStageQuery(q) }} />
       {stageNote && <StatusMessage kind={stageNote.kind}>{stageNote.text}</StatusMessage>}
       {stage && (
         <details className="panel text-sm">
-          <summary className="cursor-pointer text-orbit">About the example above: {stage.locationName}</summary>
+          <summary className="cursor-pointer text-orbit">About the stage above: {stage.locationName}</summary>
           <div className="mt-3 space-y-3">
-            <IllustrativeNote />
+            <p className="text-xs text-muted">{stage.sources}</p>
             <p className="prose-measure leading-relaxed text-muted">{stage.detailsText}</p>
             <AgentNewsCanvas res={stage} />
           </div>

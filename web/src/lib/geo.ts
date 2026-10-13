@@ -22,3 +22,13 @@ export const unitAt = (fc: FC, lat: number, lon: number): UnitProps | undefined 
 
 /** District id of an upazila id (BD + 4-digit district code + 4-digit upazila code); districts map to themselves. */
 export const districtOf = (unitId: string) => unitId.slice(0, 6)
+
+/** [west, south, east, north] of a Polygon or MultiPolygon. */
+export function bboxOf(g: GeoJSON.Geometry): [number, number, number, number] {
+  const polys = g.type === 'Polygon' ? [g.coordinates] : g.type === 'MultiPolygon' ? g.coordinates : []
+  let w = Infinity, s = Infinity, e = -Infinity, n = -Infinity
+  for (const poly of polys) for (const ring of poly) for (const [lon, lat] of ring) {
+    w = Math.min(w, lon); e = Math.max(e, lon); s = Math.min(s, lat); n = Math.max(n, lat)
+  }
+  return [w, s, e, n]
+}

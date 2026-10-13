@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { busyMonths, daysText, meanDuration, monthOfSeasonDay, typicalSeason, whenText } from './plain'
+import { busyMonths, daysText, meanDuration, monthlyMeans, monthOfSeasonDay, typicalSeason, whenText, windowsText } from './plain'
 import { districtOf, inGeometry } from './geo'
 import type { KilnSeasonRow } from './types'
 
@@ -59,4 +59,18 @@ describe('point in polygon', () => {
     expect(inGeometry(tri, 23.2, 90.2)).toBe(true)
   })
   it('maps an upazila id to its district id', () => expect(districtOf('BD20030004')).toBe('BD2003'))
+})
+
+describe('monthlyMeans', () => {
+  it('366 ones give twelve 1s; 31 ones give July and nothing after', () => {
+    expect(monthlyMeans(Array(366).fill(1))).toEqual(Array(12).fill(1))
+    expect(monthlyMeans(Array(31).fill(1))).toEqual([1, ...Array(11).fill(null)])
+  })
+})
+
+describe('windowsText', () => {
+  it('names each window on its own, never one span across them', () => {
+    expect(windowsText([[11, 12], [4, 5]])).toBe('November to December and April to May')
+    expect(windowsText([[4]])).toBe('April')
+  })
 })
