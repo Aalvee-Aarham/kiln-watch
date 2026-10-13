@@ -26,6 +26,10 @@ const NUM = /(?<![\w.])-?\d[\d,]*(?:\.\d+)?/g
 const toLatin = (s: string) => s.replace(/[০-৯]/g, (d) => String(d.charCodeAt(0) - 0x09e6))
 export const numbers = (text: string) => new Set([...toLatin(text).matchAll(NUM)].map((m) => Number(m[0].replace(/,/g, ''))))
 
+/** Where each number sits in the text (same tokenizer as the guard), with its value. Bangla digits keep their positions. */
+export const numberSpans = (text: string) =>
+  [...toLatin(text).matchAll(NUM)].map((m) => ({ start: m.index!, end: m.index! + m[0].length, value: Number(m[0].replace(/,/g, '')) }))
+
 /** Numbers stated in the answer that the context never gave (empty = the answer passes). */
 export function unsupportedNumbers(answer: string, context: string): number[] {
   const allowed = numbers(context)

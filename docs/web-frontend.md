@@ -29,7 +29,7 @@ Plain-language pages, organised around the four judging questions (redesign v2):
 | `#/sensors` · `#/timeline` | `SensorsPage` · `TimelinePage` | The 2012 sensor-change puzzle; 2002→2027 events with sources |
 | `#/experts` | `ExpertsPage` | Hub to the expert pages, repo, pre-registration |
 | `#/region` (also `#/world`) | `RegionPage` | The world map (`WorldMap`): every country, state/province and city, opening on South Asia; search any place; the side panel shows what Kiln Watch has there: for a Bangladesh city, its district's fire season, this season, the two-week outlook and kiln season; for a division, its districts ranked by unusual days; for Pakistan, India and Afghanistan, the kiln test and its learned kiln months; elsewhere, that it is outside the study area |
-| `#/ask` | `AskPage` | Ask Kiln Watch: cached answers written by Claude from the project's functions, with the tool results behind each figure (`ask.json`, optional) |
+| `#/ask` | `AskPage` | Ask Kiln Watch: ask with your own Gemini key (or the hosted worker when `VITE_ASK_ENDPOINT` is set); your questions and answers are saved in this browser (`lib/askHistory.ts`), each figure traced to its source (`lib/askTrace.ts`, `components/AskAnswer.tsx`) |
 
 Legacy expert routes are kept so shared links survive: `#/story`, `#/explore[/:level[/:unitId]]`, `#/explore/box/:box`, `#/experts/kilns/:unitId?` (renders a StatusMessage when kilns are hidden), `#/season`, `#/evidence`, `#/method`. Everything except Home is lazy-loaded.
 

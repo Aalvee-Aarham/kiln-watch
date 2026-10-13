@@ -590,6 +590,59 @@
     padding: 0.6rem 0.8rem;
   }
 
+  /* Ask: a figure in an answer that our data returned. Selecting it highlights the row it came from. */
+  .trace-num {
+    font-family: var(--font-mono);
+    font-size: 0.92em;
+    font-variant-numeric: tabular-nums;
+    padding: 0 0.2em;
+    border-radius: 3px;
+    border-bottom: 1px dotted var(--color-orbit);
+    background: color-mix(in oklch, var(--color-orbit) 12%, transparent);
+    color: inherit;
+    cursor: pointer;
+    transition: background-color var(--dur-quick) var(--ease-out);
+  }
+
+  .trace-num[data-on] {
+    background: color-mix(in oklch, var(--color-orbit) 28%, transparent);
+  }
+
+  .trace-call {
+    padding-left: 0.75rem;
+    border-left: 2px solid var(--color-line);
+  }
+
+  .trace-rows {
+    display: grid;
+    gap: 1px;
+    max-width: 68ch;
+  }
+
+  .trace-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 1rem;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    transition: background-color var(--dur-quick) var(--ease-out);
+  }
+
+  .trace-row dt {
+    color: var(--color-muted);
+  }
+
+  .trace-row dd {
+    text-align: right;
+    color: var(--color-ink);
+    overflow-wrap: anywhere;
+  }
+
+  .trace-row[data-on] {
+    background: color-mix(in oklch, var(--color-orbit) 16%, var(--color-surface));
+    box-shadow: inset 2px 0 0 var(--color-orbit);
+  }
+
   .other {
     border: 1px dashed var(--color-line);
     background: var(--color-surface-2);
@@ -962,6 +1015,11 @@
   }
 
   .seg-thumb {
+    transition: none;
+  }
+
+  .trace-num,
+  .trace-row {
     transition: none;
   }
 

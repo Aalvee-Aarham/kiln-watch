@@ -1,12 +1,14 @@
-import { useState, useEffect, type ReactNode } from 'react'
+import { useState, useEffect } from 'react'
 import { StatusMessage, useTitle, Icon, useKilnActivity } from '../components/ui'
 import { PageHead } from '../components/plain'
+import { AnswerCard } from '../components/AskAnswer'
+import { loadHistory, newId, saveHistory, withAnswer, type SavedAnswer } from '../lib/askHistory'
 import { useJson } from '../lib/data'
-import { ASK_ENDPOINT, askLive, type LiveReply } from '../lib/askApi'
+import { ASK_ENDPOINT, askLive } from '../lib/askApi'
 import { askGemini, buildSystemPrompt, unsupportedNumbers, type Facts } from '../lib/geminiPrompt'
 import { busyMonths, SEASON_MONTHS, typicalSeason, whenText } from '../lib/plain'
 import { seasonMean } from '../lib/calendar'
-import type { AskCache, Calendar, FC, NrtSeason } from '../lib/types'
+import type { Calendar, FC, NrtSeason } from '../lib/types'
 
 function ApiKeyInput({ apiKey, setApiKey }: { apiKey: string, setApiKey: (k: string) => void }) {
   const [open, setOpen] = useState(false)
@@ -23,7 +25,7 @@ function ApiKeyInput({ apiKey, setApiKey }: { apiKey: string, setApiKey: (k: str
   )
 }
 
-function LiveChat({ apiKey }: { apiKey: string }) {
+function LiveChat({ apiKey, onAnswer }: { apiKey: string; onAnswer: (a: SavedAnswer) => void }) {
   const dists = useJson<FC>('aoi/districts.geojson').data
   const nrt = useJson<NrtSeason>('nrt/current_season.json').data
   const ka = useKilnActivity().data
@@ -37,15 +39,13 @@ function LiveChat({ apiKey }: { apiKey: string }) {
   const name = sortedDists.find(d => d.id === selectedUnit)?.name ?? ''
 
   const [q, setQ] = useState('')
-  const [ans, setAns] = useState<ReactNode>(null)
-  const [shownFacts, setShownFacts] = useState<Facts | null>(null)
+  const [err, setErr] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
   const askModel = async () => {
     if (loading || !q.trim() || !cal || !nrt) return
     setLoading(true)
-    setAns(null)
-    setShownFacts(null)
+    setErr(null)
 
     try {
       const bm = busyMonths(seasonMean(cal))
@@ -63,15 +63,15 @@ function LiveChat({ apiKey }: { apiKey: string }) {
       const text = await askGemini(fetch, apiKey, sys, q)
 
       const bad = unsupportedNumbers(text, sys)
-      if (bad.length) {
-        setAns(<StatusMessage kind="error">Blocked: the answer stated {bad.length === 1 ? 'a number' : 'numbers'} our data did not give ({bad.join(', ')}). We show nothing rather than an unchecked figure.</StatusMessage>)
-      } else {
-        setAns(text)
-        setShownFacts(facts)
-      }
+      // the facts the model was given are its evidence: saved as one "call", so its figures can be traced
+      const result = { district: facts.districtName, fire_season_months: facts.fireSeasonMonths, unusual_days_this_season: facts.unusualDaysThisSeason,
+        kiln_season: facts.kilnSeason, current_season: facts.currentSeason }
+      onAnswer({ id: newId(), asked_at: new Date().toISOString(), via: 'your-gemini-key', question: q.trim(),
+        answer: bad.length ? null : text, blocked: bad.length > 0, unsupported: bad, tools: [{ name: 'district_facts', input: { district: name }, result }] })
+      setQ('')
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     } catch (e: any) {
-      setAns(<StatusMessage kind="error">Failed to connect: {e.message}</StatusMessage>)
+      setErr(`Could not get an answer: ${e.message}`)
     } finally {
       setLoading(false)
     }
@@ -91,39 +91,28 @@ function LiveChat({ apiKey }: { apiKey: string }) {
         <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={askModel} disabled={loading || !q.trim()}>Ask</button>
       </div>
       {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="spinner" className="h-4 w-4 animate-spin" />Thinking...</div>}
-      {ans && <div className="prose-measure space-y-2 rounded-[6px] bg-surface-2 p-3 text-sm">
-        <div className="whitespace-pre-wrap">{ans}</div>
-        {shownFacts && <details className="text-sm">
-          <summary className="cursor-pointer text-orbit">The data behind this answer</summary>
-          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface p-2 text-xs">{JSON.stringify(shownFacts, null, 1)}</pre>
-        </details>}
-      </div>}
+      {err && <StatusMessage kind="error">{err}</StatusMessage>}
     </div>
   )
 }
 
-/** The tool calls behind an answer, each with its result: the same view for saved and live answers. */
-function ToolTrace({ tools }: { tools: AskCache['answers'][number]['tools'] }) {
-  return (
-    <details className="text-sm" lang="en">
-      <summary className="cursor-pointer text-orbit">The data behind this answer ({tools.length} {tools.length === 1 ? 'call' : 'calls'} to our code)</summary>
-      <ol className="mt-2 space-y-2">{tools.map((t, i) => (
-        <li key={i}><span className="code">{t.name}({Object.values(t.input).join(', ')})</span>
-          <pre className="mt-1 max-h-64 overflow-auto rounded-[6px] bg-surface-2 p-2 text-xs">{JSON.stringify(t.result, null, 1)}</pre></li>))}</ol>
-    </details>
-  )
-}
-
 /** Live answers from the hosted agent (plans/005): the project's own tools and numeric guard, run server-side. */
-function HostedChat() {
+function HostedChat({ onAnswer }: { onAnswer: (a: SavedAnswer) => void }) {
   const [q, setQ] = useState('')
   const [loading, setLoading] = useState(false)
-  const [res, setRes] = useState<LiveReply | null>(null)
+  const [err, setErr] = useState<string | null>(null)
   const send = async () => {
     if (loading || !q.trim()) return
     setLoading(true)
-    setRes(null)
-    try { setRes(await askLive(q.trim())) } catch { setRes({ ok: false, status: 0, message: 'Could not reach the ask service. The saved answers below still work.' }) }
+    setErr(null)
+    try {
+      const res = await askLive(q.trim())
+      if (res?.ok) {
+        onAnswer({ id: newId(), asked_at: new Date().toISOString(), via: 'hosted', question: q.trim(), answer: res.answer, blocked: res.blocked,
+          reason: res.reason, unsupported: res.unsupported, tools: res.tools })
+        setQ('')
+      } else if (res) setErr(res.message)
+    } catch { setErr('Could not reach the ask service. Try again, or use your own Gemini key in Settings.') }
     finally { setLoading(false) }
   }
   return (
@@ -134,19 +123,21 @@ function HostedChat() {
         <button className="btn btn-primary bg-orbit text-surface hover:bg-orbit-soft transition-colors" onClick={send} disabled={loading || !q.trim()}>Ask</button>
       </div>
       {loading && <div className="text-sm text-muted flex items-center gap-2"><Icon name="spinner" className="h-4 w-4 animate-spin" />Thinking...</div>}
-      {res && !res.ok && <StatusMessage kind="error">{res.message}</StatusMessage>}
-      {res?.ok && <div className="space-y-3">
-        {res.answer ? <p className="ours">{res.answer}</p>
-          : <StatusMessage kind="error">Blocked: {res.reason ?? `the answer stated a number our data did not return (${(res.unsupported ?? []).join(', ')})`}. We show nothing rather than an unchecked figure.</StatusMessage>}
-        <ToolTrace tools={res.tools} />
-      </div>}
+      {err && <StatusMessage kind="error">{err}</StatusMessage>}
     </div>
   )
 }
 
+const asked = (a: SavedAnswer) => {
+  const when = new Date(a.asked_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return `Asked ${when}, answered by ${a.via === 'hosted' ? 'the Kiln Watch agent' : `${a.model ?? 'Gemini'} with your key`}`
+}
+
 export default function AskPage() {
   useTitle('Ask Kiln Watch')
-  const ask = useJson<AskCache>('ask.json')
+  const [history, setHistory] = useState<SavedAnswer[]>(loadHistory)
+  const save = (a: SavedAnswer) => setHistory((h) => { const next = withAnswer(h, a); saveHistory(next); return next })
+  const clear = () => { saveHistory([]); setHistory([]) }
 
   const [apiKey, setApiKey] = useState(() => {
     // Never from a build-time env var: anything baked into the build is public on the static site.
@@ -158,34 +149,27 @@ export default function AskPage() {
     <div className="space-y-8">
       <PageHead title="Ask Kiln Watch">
         Questions answered in plain words by a live AI model. The AI never works out a number: our own tested code does,
-        and an answer that states any number our code did not return is blocked. Open “The data behind this answer” to check every figure.
+        and an answer that states any number our code did not return is blocked. Select any highlighted figure, or open “Where each figure comes from”, to see the call that returned it.
       </PageHead>
 
       <ApiKeyInput apiKey={apiKey} setApiKey={setApiKey} />
 
-      {apiKey ? (
-        <LiveChat apiKey={apiKey} />
-      ) : (
-        <>
-          {ASK_ENDPOINT && <HostedChat />}
-          <StatusMessage kind="info">{ASK_ENDPOINT
-            ? 'Ask above, use your own Gemini key in Settings, or read the saved answers below.'
-            : 'Provide an API key above to chat live, or read the static cached answers below.'}</StatusMessage>
-          {ask.loading ? null : !ask.data ? <StatusMessage kind="info">No answers have been generated for this data build yet.</StatusMessage>
-            : <>
-              <p className="text-sm text-muted">Answered by <span className="code">{ask.data.model}</span> on {ask.data.generated_at.slice(0, 10)} from data build <span className="code">{ask.data.data_build}</span>. Saved answers, not live: they do not change until the next data build.</p>
-              <ul className="space-y-4">
-                {ask.data.answers.map((a) => (
-                  <li key={a.question} className="panel space-y-3" lang={a.lang}>
-                    <b className="block text-lg leading-snug">“{a.question}”</b>
-                    {a.answer ? <p className="ours">{a.answer}</p>
-                      : <StatusMessage kind="error">Blocked: {a.reason ?? `the answer stated a number our data did not return (${(a.unsupported ?? []).join(', ')})`}. We show nothing rather than an unchecked figure.</StatusMessage>}
-                    <ToolTrace tools={a.tools} />
-                  </li>))}
-              </ul>
-            </>}
-        </>
-      )}
+      {apiKey ? <LiveChat apiKey={apiKey} onAnswer={save} />
+        : ASK_ENDPOINT ? <HostedChat onAnswer={save} />
+          : <StatusMessage kind="info">Add your Gemini API key in Settings above to ask a question. Your questions and their answers are saved below, in this browser only.</StatusMessage>}
+
+      <section aria-labelledby="saved-head" className="space-y-4">
+        <div className="section-head">
+          <h2 id="saved-head" className="h-display text-2xl">Your saved answers</h2>
+          {history.length > 0 && <button type="button" className="btn btn-quiet ml-auto text-sm" onClick={clear}>Clear saved answers</button>}
+        </div>
+        {history.length === 0
+          ? <p className="text-sm text-muted">Nothing saved yet. Each question you ask is kept here with its answer, in this browser only.</p>
+          : <>
+            <p className="text-sm text-muted">{history.length} {history.length === 1 ? 'answer' : 'answers'}, newest first: {history.filter((x) => !x.blocked).length} shown, {history.filter((x) => x.blocked).length} held back by the number check. Kept in this browser only.</p>
+            <ul className="space-y-4">{history.map((a) => <li key={a.id}><AnswerCard a={a} meta={asked(a)} /></li>)}</ul>
+          </>}
+      </section>
     </div>
   )
 }
