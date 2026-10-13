@@ -5,7 +5,7 @@ import { ORIGIN, fakeKV, fixtureFetch, scriptedClient } from './helpers'
 const SITE = 'https://aalvee-aarham.github.io'
 function setup(over: Partial<Env> = {}) {
   const { kv, store } = fakeKV()
-  const env: Env = { ANTHROPIC_API_KEY: 'test-key', DATA_ORIGIN: ORIGIN, ALLOWED_ORIGIN: SITE, DAILY_CAP: '200', SPEND: kv, ...over }
+  const env: Env = { GEMINI_API_KEY: 'test-key', DATA_ORIGIN: ORIGIN, ALLOWED_ORIGIN: SITE, DAILY_CAP: '200', SPEND: kv, ...over }
   const { client, seen } = scriptedClient(['No numbers here.'])
   const deps = { makeClient: () => client, fetchFn: fixtureFetch('full'), now: () => Date.UTC(2026, 10, 10, 12) }
   return { env, deps, seen, store }
@@ -62,12 +62,12 @@ describe('POST /ask', () => {
     }
   })
   it('says the backend is unavailable without a key, and hides model errors', async () => {
-    const { env, deps } = setup({ ANTHROPIC_API_KEY: undefined })
+    const { env, deps } = setup({ GEMINI_API_KEY: undefined })
     const r = await handle(post({ question: 'q' }), env, deps)
     expect(r.status).toBe(503)
     expect(await r.json()).toEqual({ error: 'ask backend unavailable' })
     const s2 = setup()
-    const failing = { ...s2.deps, makeClient: () => ({ beta: { messages: { create: async () => { throw Object.assign(new Error('secret detail'), { status: 401 }) } } } }) }
+    const failing = { ...s2.deps, makeClient: () => async () => { throw Object.assign(new Error('secret detail'), { status: 401 }) } }
     const r2 = await handle(post({ question: 'q' }), s2.env, failing)
     expect(r2.status).toBe(503)
     expect(await r2.text()).not.toContain('secret detail')

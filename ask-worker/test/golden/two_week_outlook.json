@@ -27,6 +27,7 @@
     "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/outlook.json"
    },
    "state": "outside the outlook window (1 November to mid-May)",
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
    "window_opens": "2026-11-01"
   }
  },
@@ -51,6 +52,7 @@
    },
    "state": "on",
    "unusual_day_in_last_14_days": false,
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
    "usual_chance_for_time_of_year_pct": 22,
    "window_days": 14
   }
@@ -76,6 +78,7 @@
    },
    "state": "on",
    "unusual_day_in_last_14_days": false,
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
    "usual_chance_for_time_of_year_pct": 9,
    "window_days": 14
   }

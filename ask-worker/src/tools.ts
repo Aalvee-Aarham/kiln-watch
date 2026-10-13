@@ -12,6 +12,10 @@ const MONTHS = ['July', 'August', 'September', 'October', 'November', 'December'
 const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
 const DAY_MS = 86_400_000
 const DAY0 = Date.UTC(2003, 0, 1) // research.DAY0: calendars count days from 1 Jan 2003
+// ask.UNUSUAL_MEANS: in the tool results, so a model that explains "unusual" states a number our data returned
+const UNUSUAL_MEANS = "a day above that day's 90th-percentile normal for the district"
+/** ask._p_value: a p-value as it is reported and can be quoted exactly: 3 decimals, or "below 0.001". */
+const pValue = (p: number): number | string => (p < 0.001 ? 'below 0.001' : pyRound(p, 3))
 
 /** Read-only access to one public export (the website's data/ folder), cached per request. */
 export class Data {
@@ -139,7 +143,7 @@ export async function thisSeason(d: Data, unitId: string): Promise<Result> {
   const h = nrt.districts[dist].h
   return {
     district: dist, season: nrt.season, data_to: isoDay(parseDay(nrt.day0) + (h.length - 1) * DAY_MS),
-    unusual_days_so_far: nrt.districts[dist].above_p90_days, provisional: true,
+    unusual_days_so_far: nrt.districts[dist].above_p90_days, unusual_day_means: UNUSUAL_MEANS, provisional: true,
     provenance: await d.prov('nrt/current_season.json', 'NASA FIRMS near-real-time VIIRS (NOAA-20, Suomi NPP), harmonized'),
   }
 }
@@ -156,7 +160,7 @@ export async function twoWeekOutlook(d: Data, unitId: string): Promise<Result> {
   const opens = Date.UTC(Number(nrt.season.slice(0, 4)), mm - 1, dd)
   const k = Math.floor(Math.round((asOf + DAY_MS - opens) / DAY_MS) / o.step_days) // row k forecasts from day (opens + 7k)
   const base = {
-    district: dist, data_to: isoDay(asOf), provenance: await d.prov('outlook.json', `Kiln Watch outlook, backtested on ${FIRE}`),
+    district: dist, data_to: isoDay(asOf), unusual_day_means: UNUSUAL_MEANS, provenance: await d.prov('outlook.json', `Kiln Watch outlook, backtested on ${FIRE}`),
     backtest_brier_skill: o.backtest.brier_skill,
   }
   if (k < 0 || k >= o.weeks) return { ...base, state: 'outside the outlook window (1 November to mid-May)', window_opens: isoDay(opens) }
@@ -177,7 +181,7 @@ export async function harmonizationEvidence(d: Data): Promise<Result> {
   if (!h) throw new TypeError("'NoneType' object is not subscriptable")
   const out: Obj = {
     sensor_change_season: '2012-13', share_of_2012_jump_removed_pct: pyRound(100 * (1 - h.seam.ratio)),
-    chow_p_raw: h.seam.chow_p_raw, chow_p_harmonized: h.seam.chow_p_harm,
+    chow_p_raw: pValue(h.seam.chow_p_raw), chow_p_harmonized: pValue(h.seam.chow_p_harm),
     loso_95pct_interval_coverage: pyRound(h.loso_pooled.covered.p50, 3), loso_target: '0.90 to 0.97 (failed on the conservative side)',
     provenance: await d.prov('harmonization.json', FIRE),
   }

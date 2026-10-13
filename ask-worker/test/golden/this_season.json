@@ -14,6 +14,7 @@
    },
    "provisional": true,
    "season": "2026-27",
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
    "unusual_days_so_far": 1
   }
  },
@@ -32,6 +33,7 @@
    },
    "provisional": true,
    "season": "2026-27",
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
    "unusual_days_so_far": 1
   }
  },

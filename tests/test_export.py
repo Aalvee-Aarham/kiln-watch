@@ -78,5 +78,5 @@ def test_ask_cache_refreshes_only_with_a_key():
 
     calls = []
     assert refresh_ask_cache(env={}, build=calls.append) is False and calls == []
-    assert refresh_ask_cache(env={"ANTHROPIC_API_KEY": ""}, build=calls.append) is False and calls == []
-    assert refresh_ask_cache(env={"ANTHROPIC_API_KEY": "x"}, build=calls.append) is True and len(calls) == 1
+    assert refresh_ask_cache(env={"GEMINI_API_KEY": ""}, build=calls.append) is False and calls == []
+    assert refresh_ask_cache(env={"GEMINI_API_KEY": "x"}, build=calls.append) is True and len(calls) == 1

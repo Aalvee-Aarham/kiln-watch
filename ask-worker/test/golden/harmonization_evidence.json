@@ -4,7 +4,7 @@
   "input": {},
   "output": {
    "chow_p_harmonized": 0.61,
-   "chow_p_raw": 0.0001,
+   "chow_p_raw": "below 0.001",
    "loso_95pct_interval_coverage": 0.94,
    "loso_target": "0.90 to 0.97 (failed on the conservative side)",
    "provenance": {
@@ -30,8 +30,8 @@
   "data": "nokiln",
   "input": {},
   "output": {
-   "chow_p_harmonized": 0.2858583481577078,
-   "chow_p_raw": 5.953444009358959e-05,
+   "chow_p_harmonized": 0.286,
+   "chow_p_raw": "below 0.001",
    "loso_95pct_interval_coverage": 0.985,
    "loso_target": "0.90 to 0.97 (failed on the conservative side)",
    "provenance": {

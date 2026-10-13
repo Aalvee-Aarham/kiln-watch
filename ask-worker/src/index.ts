@@ -1,19 +1,18 @@
 // POST /ask for the Kiln Watch site: CORS-locked, size-checked, rate-limited and spend-capped. The site never depends
 // on this worker: without it, the Ask page keeps its saved answers and the bring-your-own-key chat.
-import Anthropic from '@anthropic-ai/sdk'
-import { ask, type Client } from './agent'
+import { ask, type Client, geminiClient } from './agent'
 import { Data } from './tools'
 
 export interface Env {
-  ANTHROPIC_API_KEY?: string
+  GEMINI_API_KEY?: string
   DATA_ORIGIN: string
   ALLOWED_ORIGIN: string
   DAILY_CAP: string
   MODEL?: string
   SPEND: KVNamespace
 }
-export type Deps = { makeClient: (apiKey: string) => Client; fetchFn: typeof fetch; now: () => number }
-const DEFAULT_DEPS: Deps = { makeClient: (apiKey) => new Anthropic({ apiKey }), fetchFn: (...a) => fetch(...a), now: () => Date.now() }
+export type Deps = { makeClient: (apiKey: string, model?: string) => Client; fetchFn: typeof fetch; now: () => number }
+const DEFAULT_DEPS: Deps = { makeClient: (apiKey, model) => geminiClient(apiKey, model), fetchFn: (...a) => fetch(...a), now: () => Date.now() }
 const MAX_QUESTION = 500
 const PER_IP_HOURLY = 30
 export const DAILY_LIMIT_MESSAGE = 'daily limit reached; the saved answers below still work'
@@ -51,7 +50,7 @@ export async function handle(req: Request, env: Env, deps: Deps = DEFAULT_DEPS):
   }
   const cap = Number(env.DAILY_CAP)
   // fail closed: a missing or malformed cap must never mean "no cap" on the project's key
-  if (!env.ANTHROPIC_API_KEY || !Number.isInteger(cap) || cap < 1) return reply(env, 503, { error: 'ask backend unavailable' }, cors)
+  if (!env.GEMINI_API_KEY || !Number.isInteger(cap) || cap < 1) return reply(env, 503, { error: 'ask backend unavailable' }, cors)
   const now = new Date(deps.now())
   const ip = req.headers.get('CF-Connecting-IP') ?? 'unknown'
   if (!(await take(env.SPEND, `ip:${ip}:${now.toISOString().slice(0, 13)}`, PER_IP_HOURLY, 7200))) {
@@ -61,7 +60,7 @@ export async function handle(req: Request, env: Env, deps: Deps = DEFAULT_DEPS):
     return reply(env, 429, { error: DAILY_LIMIT_MESSAGE }, cors)
   }
   try {
-    const out = await ask(question.trim(), deps.makeClient(env.ANTHROPIC_API_KEY), new Data(env.DATA_ORIGIN, deps.fetchFn), env.MODEL || undefined)
+    const out = await ask(question.trim(), deps.makeClient(env.GEMINI_API_KEY, env.MODEL || undefined), new Data(env.DATA_ORIGIN, deps.fetchFn))
     console.log(`ask 200 blocked=${out.blocked} tools=${out.tools.map((t) => t.name).join(',')}`) // status and tool names only
     return reply(env, 200, out, cors)
   } catch (e) {

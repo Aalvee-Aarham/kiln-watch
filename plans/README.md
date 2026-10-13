@@ -145,6 +145,14 @@ runs both safety checks on `web/dist/data`); per-IP/daily counters being approxi
 design); IME Enter handling (Bangla is being removed); the feed's top-level `updated` using run time
 (correct Atom semantics).
 
+### Team decision (2026-10-13): Gemini instead of Anthropic
+
+The Ask agent (`kilnwatch/ask.py`), the daily `ask.json` refresh and the worker now use Google Gemini
+(`gemini-3.5-flash-lite`, `generateContent` with function calling) and one key, `GEMINI_API_KEY`; the
+`anthropic` / `@anthropic-ai/sdk` dependencies are gone. Tools, the numeric guard, the 6-call cap, the
+refusal path and the parity tests are unchanged in substance. Plans 002–005 still describe the Anthropic
+wiring as it was when they were written.
+
 ## Findings considered and rejected
 
 - Kiln/crop season *prediction* (`docs/roadmap.md:19`): explicitly cut by

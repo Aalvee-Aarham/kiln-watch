@@ -17,7 +17,7 @@ Space Apps allows AI-generated content when the tools are named, the prompts are
 
 | Item | Detail |
 |---|---|
-| Model | Claude Opus 5.5 (`claude-opus-5-5`) through the Anthropic API, low effort, server-side refusal fallback enabled |
+| Model | Google Gemini (`gemini-3.5-flash-lite`) through the Gemini API (`generateContent` with function calling), key `GEMINI_API_KEY`; safety-blocked replies are shown as refusals, never filled in |
 | Code | `kilnwatch/ask.py`; prompt: `SYSTEM` in that file; tools: `TOOLS` |
 | What the AI does | Chooses which of seven project functions to call (find an area, its fire calendar, this season, the two-week outlook, the harmonization evidence, kiln seasons, the national trend) and writes a two-to-four-sentence answer in English or Bangla |
 | What the AI never does | Compute a number. Every figure comes from a deterministic, unit-tested function; `guard()` blocks any answer that states a number no function returned |

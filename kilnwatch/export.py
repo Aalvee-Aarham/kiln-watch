@@ -205,8 +205,8 @@ def refresh_ask_cache(env=None, build=None) -> bool:
     import os
 
     env = os.environ if env is None else env
-    if not env.get("ANTHROPIC_API_KEY"):
-        log.warning("no ANTHROPIC_API_KEY: ask.json not refreshed (the page shows its build date)")
+    if not env.get("GEMINI_API_KEY"):
+        log.warning("no GEMINI_API_KEY: ask.json not refreshed (the page shows its build date)")
         return False
     if build is None:
         from .ask import build_cache as build  # lazy: ask imports export lazily too

@@ -58,7 +58,7 @@ For each area, Kiln Watch shows every day since 2003 on the harmonized scale, an
 
 Ask a question in plain English or Bangla, for example *"When is burning season in Rajshahi, and is this year unusual so far?"* or *"Did the correction really remove the 2012 jump?"*
 
-- **It picks its own steps.** Claude (Anthropic) decides which of the project's five functions to call, and in what order: find an area, its fire calendar, this season so far, the two-week outlook, and the harmonization evidence. It takes at most 6 steps per question.
+- **It picks its own steps.** Google Gemini decides which of the project's seven functions to call, and in what order: find an area, its fire calendar, this season so far, the two-week outlook, the harmonization evidence, kiln seasons and the national trend. It takes at most 6 steps per question.
 - **Our code computes; the AI explains.** Every figure comes from a tested project function reading NASA FIRMS data in the public export. A check blocks any answer that states a number no function returned, and the page shows "blocked" rather than an unchecked figure.
 - **You can see the data behind each answer:** every function call, its result, the dataset and the data build.
 - **Where to use it.** `python -m kilnwatch ask "your question"` answers any question live (needs an `ANTHROPIC_API_KEY`). The website's AI agent page (`#/ask`) shows saved answers to demo questions, generated with `python -m kilnwatch ask --build-cache`, so it works offline. Until answers are generated for a data build, the page says so.
@@ -112,7 +112,7 @@ Every topic has three layers: *what it means* in one plain sentence, an app to *
 | **Home** | All four | The harmonized fire record in one picture, three findings, today's NASA fire data, real questions turned into actions, and a four-card guide for judges |
 | **How it works** | Creativity, Relevance | Steps through the whole approach on real data (cameras, hot pixels, one scale, calendars, who acts, then the kiln extension), then a checklist of everything the challenge asks for and where it is on the site |
 | **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, a tested two-week outlook (1 November to mid-May), a typical year month by month with the harvest windows (Extension 1) and kiln months (Extension 2); compare two areas. The map can show NASA satellite or night-lights imagery and step through this season week by week |
-| **AI agent** (Ask Kiln Watch) | Creativity, Validity | Plain-language answers written by Claude from the project's own functions, with every function call and result behind each figure |
+| **AI agent** (Ask Kiln Watch) | Creativity, Validity | Plain-language answers written by Gemini from the project's own functions, with every function call and result behind each figure |
 | **World map** | Relevance | Every country, state and city on Earth, opening on South Asia, with NASA satellite and night-light backgrounds: search any place or tap the map to see what Kiln Watch covers there. Bangladesh is live; South Asia's calendar is being built |
 | **Who benefits** | Impact | Picks a person (farm officer, family, scientist, journalist, inspector, policy maker) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
 | **Can you trust it?** | Validity | Every pre-registered test in plain words, marked passed, failed or no link found; whether the cameras agree after correction; how the outlook was tested; how we kept ourselves honest; what we never claim |
@@ -243,7 +243,7 @@ Fill in `.env` (it is gitignored; never commit it):
 | `FIRMS_MAP_KEY` | NASA FIRMS fire archive and the daily near-real-time update | https://firms.modaps.eosdis.nasa.gov/api/map_key/ |
 | `OPENAQ_API_KEY` | Dhaka PM2.5 readings (validation only) | https://explore.openaq.org/register |
 | `EE_PROJECT` | Google Earth Engine: clear-land fractions, night lights, radar | A Google Cloud project registered at https://code.earthengine.google.com/register |
-| `ANTHROPIC_API_KEY` | Optional: the AI agent (`python -m kilnwatch ask`) | https://console.anthropic.com |
+| `GEMINI_API_KEY` | Optional: the AI agent (`python -m kilnwatch ask`, the daily `ask.json` refresh) | https://aistudio.google.com/apikey |
 | `EE_API_KEY`, `EOG_USER`, `EOG_PASSWORD` | Not needed by the current pipeline | Leave empty |
 
 Then sign in to Earth Engine once and run everything:

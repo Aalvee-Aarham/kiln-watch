@@ -45,8 +45,14 @@ def nokiln_nov(root: Path) -> Path:
     return dst
 
 
+SAMPLE_CONTENTS = [{"role": "user", "parts": [{"text": "When does Dhaka burn?"}]}]
+
+
 def spec() -> dict:
-    return {"model": ask.MODEL, "max_steps": ask.MAX_STEPS, "system": ask.SYSTEM, "tools": ask.TOOLS, "site": ask.SITE, "fire": ask.FIRE}
+    """What the worker needs to make exactly the requests ask.py makes: model, cap, refusal reasons, prompt, tools."""
+    return {"model": ask.MODEL, "max_steps": ask.MAX_STEPS, "gemini": ask.GEMINI, "refusals": sorted(ask.REFUSALS),
+            "system": ask.SYSTEM, "tools": ask.GEMINI_TOOLS, "site": ask.SITE, "fire": ask.FIRE,
+            "sample_request": {"contents": SAMPLE_CONTENTS, "body": ask.request(SAMPLE_CONTENTS)}}
 
 
 def build() -> dict[str, list]:

@@ -25,12 +25,12 @@ jobs:
           restore-keys: nrt-season-
       - run: python -m kilnwatch nrt
       - name: Refresh ask.json (optional; never blocks the data deploy)
-        env: { ANTHROPIC_API_KEY: '${{ secrets.ANTHROPIC_API_KEY }}' }  # this step only: pip and pytest never see the key
+        env: { GEMINI_API_KEY: '${{ secrets.GEMINI_API_KEY }}' }  # this step only: pip and pytest never see the key
         run: |
-          if [ -n "$ANTHROPIC_API_KEY" ]; then
+          if [ -n "$GEMINI_API_KEY" ]; then
             python -m kilnwatch ask --build-cache --src web/public/data || echo "::warning::ask cache refresh failed; the release copy stays"
           else
-            echo "::warning::ANTHROPIC_API_KEY not set; ask.json not refreshed"
+            echo "::warning::GEMINI_API_KEY not set; ask.json not refreshed"
           fi
       - run: pytest -q  # the full suite gates every deploy, not just the export checks
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2

@@ -47,7 +47,7 @@ def main(argv=None) -> int:
     s.add_argument("--check-public", dest="check_public")
     s.add_argument("--publish", action="store_true")
     s.add_argument("--research", nargs="?", const=str(C.WEB_DATA), metavar="PUBLIC_DIR", help="write the CSV + Parquet research release to research/ from a public export")
-    s = sub.add_parser("ask", help="ask Kiln Watch a question (Claude explains, the project's functions compute); needs ANTHROPIC_API_KEY")
+    s = sub.add_parser("ask", help="ask Kiln Watch a question (Gemini explains, the project's functions compute); needs GEMINI_API_KEY")
     s.add_argument("question", nargs="?")
     s.add_argument("--src", default=str(C.WEB_DATA), help="public export to read (web/fixtures/nokiln/data is the real offline copy)")
     s.add_argument("--build-cache", action="store_true", help="answer the demo questions and write ask.json into --src")

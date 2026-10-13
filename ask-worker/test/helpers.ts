@@ -32,16 +32,16 @@ export function fakeKV() {
 }
 
 type Block = string | ['tool', string, Record<string, unknown>]
-/** Scripted model, like tests/test_ask.py _client: each turn is a list of blocks, or [blocks, stop_reason]. */
+/** Scripted Gemini, like tests/test_ask.py _client: each turn is a list of blocks, or [blocks, 'refusal']. */
 export function scriptedClient(...turns: (Block[] | [Block[], string])[]) {
   const seen: Record<string, unknown>[] = []
-  const create = async (params: Record<string, unknown>) => {
-    seen.push(params)
+  const client = async (body: Record<string, unknown>) => {
+    seen.push(JSON.parse(JSON.stringify(body))) // a snapshot: the loop keeps appending to its contents array
     const turn = turns[Math.min(seen.length - 1, turns.length - 1)]
     const [blocks, stop] = turn.length === 2 && typeof turn[1] === 'string' && Array.isArray(turn[0]) ? (turn as [Block[], string]) : [turn as Block[], null]
-    const content = blocks.map((b, i) => (typeof b === 'string' ? { type: 'text', text: b } : { type: 'tool_use', id: `t${i}`, name: b[1], input: b[2] }))
-    return { content, stop_reason: stop ?? (content.some((c) => c.type === 'tool_use') ? 'tool_use' : 'end_turn') }
+    if (stop === 'refusal') return { candidates: [{ finishReason: 'SAFETY' }] }
+    const parts = blocks.map((b, i) => (typeof b === 'string' ? { text: b } : { functionCall: { id: `t${i}`, name: b[1], args: b[2] } }))
+    return { candidates: [{ content: { role: 'model', parts }, finishReason: 'STOP' }] }
   }
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return { client: { beta: { messages: { create } } } as any, seen }
+  return { client, seen }
 }
