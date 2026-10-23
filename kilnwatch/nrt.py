@@ -26,7 +26,6 @@ def above_p90(h, p90) -> np.ndarray:
     return h > np.asarray(p90, dtype=float)[np.arange(len(h)) % 366]
 
 
-def fetch(days: int) -> pd.DataFrame:
 def era_of(today: date) -> str:
     """S-NPP ('N') through its last data day; NOAA-20 ('J1') chained through S-NPP from the next day."""
     return "N" if today <= SNPP_END else "J1"
