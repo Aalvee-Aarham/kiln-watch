@@ -17,6 +17,7 @@ import pandas as pd
 from scipy.stats import wilcoxon
 
 from . import config as C
+from .ingest import _parquet, atomic_write
 
 log = logging.getLogger("kilnwatch.activity")
 CACHE = C.RAW / "gee" / "activity"
@@ -124,10 +125,7 @@ def extract(kind: str, s: pd.DataFrame, last_year: int | None = None, workers=in
         for attempt in range(4):
             try:
                 df = _extract_chunk(kind, y, s.iloc[i:i + n], part)
-                p.parent.mkdir(parents=True, exist_ok=True)
-                tmp = p.with_suffix(".tmp")
-                df.to_parquet(tmp, index=False)
-                tmp.replace(p)
+                _parquet(df, p)
                 log.info("activity %s %d chunk %d %s: %d sites", kind, y, i // n, part, len(df))
                 return p
             except Exception as e:  # GEE quota/timeouts: bounded retry, then leave for the next resumable run
@@ -370,7 +368,7 @@ def run(extract_kind: str | None = None, kinds=("ntl", "s1")) -> dict | None:
         periods = pd.DatetimeIndex(sorted(e.period.unique()))
         u = unit_summary(e, clusters.cluster_id, periods, rng, n_boot=200, metrics=False)
         res["national_check"] = {"channel": "s1", "periods": [d.strftime("%Y-%m-%d") for d in periods], "e": u["e"], "lo": u["lo"], "hi": u["hi"]}
-    (C.INTERIM / "activity.json").write_text(json.dumps(res, default=_num, indent=0), encoding="utf-8")
+    atomic_write(C.INTERIM / "activity.json", json.dumps(res, default=_num, indent=0))
     _write_public(res)
     _write_report(res)
     return res
@@ -387,7 +385,7 @@ def _num(o):
 
 
 def _write_public(res: dict) -> None:
-    from .export import _dump, nan_to_none
+    from .export import dump_json, nan_to_none
 
     pub = {"pilots": res["pilots"], "layer": res["layer"],
            "tests": [{"test": t, **r} for t, v in res["tests"].items() for r in v["rows"]],
@@ -396,7 +394,7 @@ def _write_public(res: dict) -> None:
     for k in ("contamination", "national", "areas", "periods", "cadence", "national_check"):
         if k in res:
             pub[k] = res[k]
-    _dump(nan_to_none(json.loads(json.dumps(pub, default=_num))), C.INTERIM / "public" / "kiln_activity.json")
+    dump_json(nan_to_none(json.loads(json.dumps(pub, default=_num))), C.INTERIM / "public" / "kiln_activity.json")
 
 
 def _write_report(res: dict) -> None:
@@ -422,4 +420,4 @@ def _write_report(res: dict) -> None:
         f = lambda s, c: "–" if not c else f"{day(s, c['p50'])} [{day(s, c['lo'])} – {day(s, c['hi'])}]"
         g = lambda c: "–" if not c else f"{c['p50']:.0f} [{c['lo']:.0f}–{c['hi']:.0f}]"
         L += [f"| {s['season']} | {f(s['season'], s['onset'])} | {f(s['season'], s['end'])} | {g(s['duration'])} | {f(s['season'], s['peak'])} |" for s in res["national"]["seasons"]]
-    (C.REPORTS / "kiln_activity_report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    atomic_write(C.REPORTS / "kiln_activity_report.md", "\n".join(L) + "\n")

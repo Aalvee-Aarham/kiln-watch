@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from .ingest import _parquet
 
 log = logging.getLogger("kilnwatch.gee")
 COLL = {"T": "MODIS/061/MOD14A1", "A": "MODIS/061/MYD14A1", "N": "NASA/VIIRS/002/VNP14A1"}
@@ -64,6 +65,11 @@ def _months(sensor, first=None, last=None):
     return [str(p) for p in pd.period_range(lo, hi, freq="M")]
 
 
+class MissingMonths(RuntimeError):
+    """Some (sensor, month) jobs failed after their retries. Cached months survive, so a rerun resumes; until then
+    the clear table would have holes that read as permanently cloudy days, so the stage stops instead of building on it."""
+
+
 def run_clear(unit_set: str, units, sensors=("A", "N", "T"), first=None, last=None, id_col="unit_id", reducer="mean", workers=int(os.environ.get("GEE_WORKERS", 4))) -> pd.DataFrame:
     """Cached, resumable: one parquet per (unit_set, sensor, month)."""
     fc = _fc(units, id_col) if reducer == "mean" else ee().FeatureCollection(units.__geo_interface__)
@@ -77,10 +83,7 @@ def run_clear(unit_set: str, units, sensors=("A", "N", "T"), first=None, last=No
         for attempt in range(3):
             try:
                 df = daily_clear_fraction(s, fc, m, id_col, reducer).assign(sensor=s)
-                p.parent.mkdir(parents=True, exist_ok=True)
-                tmp = p.with_suffix(".tmp")
-                df.to_parquet(tmp, index=False)
-                tmp.replace(p)
+                _parquet(df, p)
                 return p
             except Exception as e:  # GEE timeouts: bounded retry, then leave for the next resumable run
                 log.warning("GEE %s %s %s attempt %d: %s", unit_set, s, m, attempt, str(e)[:200])
@@ -90,7 +93,7 @@ def run_clear(unit_set: str, units, sensors=("A", "N", "T"), first=None, last=No
         done = list(ex.map(job, jobs))
     missing = [j for j, d in zip(jobs, done) if d is None]
     if missing:
-        log.error("GEE %s: %d months missing; rerun to resume", unit_set, len(missing))
+        raise MissingMonths(f"GEE {unit_set}: {len(missing)} of {len(jobs)} months missing (first {missing[0][0]} {missing[0][1]}); rerun to resume")
     return load_clear(unit_set)
 
 
@@ -136,8 +139,7 @@ def s5p_monthly(polys, gas="NO2", first="2019-01", last=None) -> pd.DataFrame:
             img = E.ImageCollection(band[0]).select(band[1]).filterDate(s.strftime("%Y-%m-%d"), (s + pd.offsets.MonthBegin(1)).strftime("%Y-%m-%d")).mean()
             r = img.reduceRegions(collection=fc, reducer=E.Reducer.mean(), scale=1113, tileScale=4)
             df = E.data.computeFeatures({"expression": r.select(["unit_id", "mean"], retainGeometry=False), "fileFormat": "PANDAS_DATAFRAME"})
-            p.parent.mkdir(parents=True, exist_ok=True)
-            df.assign(month=m).to_parquet(p, index=False)
+            _parquet(df.assign(month=m), p)  # atomic: the cache is trusted whenever the file exists
         rows.append(pd.read_parquet(p))
     return pd.concat(rows, ignore_index=True)
 
@@ -158,8 +160,7 @@ def era5_daily(lat: float, lon: float, start: str, end: str) -> pd.DataFrame:
     df = pd.concat(parts, ignore_index=True)
     df["date"] = pd.to_datetime(df["time"], unit="ms").dt.normalize()
     df = df.drop(columns=["id", "longitude", "latitude", "time"])
-    p.parent.mkdir(parents=True, exist_ok=True)
-    df.to_parquet(p, index=False)
+    _parquet(df, p)
     return df
 
 

@@ -1,0 +1,95 @@
+[
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "error": "no tested outlook for this district"
+  }
+ },
+ {
+  "data": "nokiln",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "backtest_brier_skill": {
+    "hi": 0.0971,
+    "lo": 0.0562,
+    "p50": 0.0753
+   },
+   "data_to": "2026-10-06",
+   "district": "BD3026",
+   "provenance": {
+    "data_build": "f2bf67d",
+    "dataset_id": "Kiln Watch outlook, backtested on NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/outlook.json"
+   },
+   "state": "outside the outlook window (1 November to mid-May)",
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
+   "window_opens": "2026-11-01"
+  }
+ },
+ {
+  "data": "nokiln_nov",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "backtest_brier_skill": {
+    "hi": 0.0971,
+    "lo": 0.0562,
+    "p50": 0.0753
+   },
+   "chance_of_unusual_day_next_14_days_pct": 20,
+   "data_to": "2026-10-31",
+   "district": "BD3026",
+   "provenance": {
+    "data_build": "f2bf67d",
+    "dataset_id": "Kiln Watch outlook, backtested on NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/outlook.json"
+   },
+   "state": "on",
+   "unusual_day_in_last_14_days": false,
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
+   "usual_chance_for_time_of_year_pct": 22,
+   "window_days": 14
+  }
+ },
+ {
+  "data": "nokiln_nov",
+  "input": {
+   "unit_id": "BD5081"
+  },
+  "output": {
+   "backtest_brier_skill": {
+    "hi": 0.0971,
+    "lo": 0.0562,
+    "p50": 0.0753
+   },
+   "chance_of_unusual_day_next_14_days_pct": 6,
+   "data_to": "2026-10-31",
+   "district": "BD5081",
+   "provenance": {
+    "data_build": "f2bf67d",
+    "dataset_id": "Kiln Watch outlook, backtested on NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/outlook.json"
+   },
+   "state": "on",
+   "unusual_day_in_last_14_days": false,
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
+   "usual_chance_for_time_of_year_pct": 9,
+   "window_days": 14
+  }
+ },
+ {
+  "data": "nokiln",
+  "input": {
+   "unit_id": "BD9999"
+  },
+  "output": {
+   "error": "no tested outlook for this district"
+  }
+ }
+]

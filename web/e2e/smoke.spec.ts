@@ -307,10 +307,107 @@ test('map: NASA image layers switch on and the season slider steps by week', asy
   await expect(page.getByText(/^Season so far/)).toBeVisible()
 })
 
-test('ask: without a generated cache the page says how to make one', async ({ page }) => {
+test('ask: with nothing saved yet the page says how to start', async ({ page }) => {
   await page.goto('#/ask')
   await expect(page.getByRole('heading', { level: 1, name: 'Ask Kiln Watch' })).toBeVisible()
-  await expect(page.getByText(/No answers have been generated for this data build yet/)).toBeVisible()
+  await expect(page.getByRole('heading', { level: 2, name: 'Your saved answers' })).toBeVisible()
+  await expect(page.getByText(/Nothing saved yet/)).toBeVisible()
+  await expect(page.locator('article')).toHaveCount(0) // no fixed demo answers: only questions you asked
+})
+
+test('ask: your saved answers show their status, trace each figure, and can be cleared', async ({ page }) => {
+  const saved = [
+    { id: 'b', asked_at: '2026-10-13T05:00:00Z', via: 'your-gemini-key', question: 'How many unusual days in Dhaka?', answer: null, blocked: true, unsupported: [42],
+      tools: [{ name: 'district_facts', input: { district: 'Dhaka' }, result: { district: 'Dhaka', unusual_days_this_season: 2, current_season: '2026-27' } }] },
+    { id: 'a', asked_at: '2026-10-13T04:00:00Z', via: 'your-gemini-key', question: 'Is Dhaka unusual this season?', answer: 'Dhaka has had 2 unusual days in 2026-27.', blocked: false, unsupported: [],
+      tools: [{ name: 'district_facts', input: { district: 'Dhaka' }, result: { district: 'Dhaka', unusual_days_this_season: 2, current_season: '2026-27' } }] },
+  ]
+  await page.addInitScript((v) => { if (!sessionStorage.getItem('seeded')) { localStorage.setItem('kw-ask-history', v); sessionStorage.setItem('seeded', '1') } }, JSON.stringify(saved))
+  await page.goto('#/ask')
+  const cards = page.locator('article')
+  await expect(cards).toHaveCount(2)
+  await expect(cards.nth(0)).toContainText('Not shown: the model stated 42')
+  await expect(cards.nth(0).locator('.ours')).toHaveCount(0) // a held-back answer shows no unchecked figure
+  await expect(cards.nth(1)).toContainText('Every number in this answer comes from our data.')
+  await expect(cards.nth(1)).toContainText(/Asked .*with your key/)
+  const fig = cards.nth(1).locator('.trace-num').first()
+  await expect(fig).toHaveText('2')
+  await fig.click()
+  await expect(cards.nth(1).locator('.trace-row[data-on]')).toContainText('Unusual days this season')
+  await page.getByRole('button', { name: 'Clear saved answers' }).click()
+  await expect(cards).toHaveCount(0)
+  await page.reload()
+  await expect(page.getByText(/Nothing saved yet/)).toBeVisible() // cleared in storage too, not just on screen
+})
+
+test('ask: a question asked with your Gemini key is answered, saved, and still there after a reload', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kw-gemini-key', 'test-key'))
+  let sent = ''
+  await page.route('https://generativelanguage.googleapis.com/**', async (r) => {
+    sent = r.request().headers()['x-goog-api-key'] ?? ''
+    await r.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Provisional data for 2026-27 show the current season so far.' }] } }] }) })
+  })
+  await page.goto('#/ask')
+  await page.getByLabel('Your question').fill('How is this season going?')
+  await page.getByRole('button', { name: 'Ask', exact: true }).click()
+  const card = page.locator('article').first()
+  await expect(card).toContainText('How is this season going?')
+  await expect(card).toContainText('Every number in this answer comes from our data.')
+  expect(sent).toBe('test-key') // the key goes to Google in a header, nowhere else
+  await page.reload()
+  await expect(page.locator('article').first()).toContainText('How is this season going?')
+})
+
+test('ask: a Bangladesh place asked on the agent stage gets a checked answer from our data, saved with its facts', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kw-gemini-key', 'test-key'))
+  let prompt = ''
+  await page.route('https://generativelanguage.googleapis.com/**', async (r) => {
+    prompt = JSON.stringify(r.request().postDataJSON())
+    await r.fulfill({ status: 200, contentType: 'application/json',
+      body: JSON.stringify({ candidates: [{ content: { parts: [{ text: 'Rajshahi burns most in its usual season, based on provisional data.' }] } }] }) })
+  })
+  await page.goto('#/ask')
+  await page.getByRole('button', { name: 'When is burning season in Rajshahi, Bangladesh?' }).click()
+  const card = page.locator('article').first()
+  await expect(card).toContainText('When is burning season in Rajshahi, Bangladesh?')
+  await expect(card).toContainText('Every number in this answer comes from our data.')
+  await card.getByText(/Where each figure comes from/).click()
+  await expect(card.locator('.trace-row').filter({ hasText: 'District' }).first()).toContainText('Rajshahi') // the real district, by its coordinates
+  expect(prompt).toContain('Answer ONLY using the context') // the strict prompt, not "enrich with your knowledge"
+  expect(prompt).not.toMatch(/multiplier|1\.7×/) // no typed-in registry figures reach the model
+})
+
+test('ask: a place outside Bangladesh shows no figures yet and never calls Gemini', async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem('kw-gemini-key', 'test-key'))
+  let calls = 0
+  await page.route('https://generativelanguage.googleapis.com/**', (r) => { calls++; return r.abort() })
+  await page.goto('#/ask')
+  await page.getByRole('button', { name: 'Is this fire season in Punjab, India unusual?' }).click()
+  await expect(page.getByText(/measured data only for Bangladesh districts/)).toBeVisible()
+  await expect(page.getByText('Not measured yet')).toBeVisible() // the stage badge: no figures outside Bangladesh
+  await expect(page.getByText(/Illustrative/)).toHaveCount(0)
+  await page.waitForTimeout(500)
+  expect(calls).toBe(0)
+  await expect(page.locator('article')).toHaveCount(0) // nothing saved: no checked answer exists
+})
+
+test('ask: the stage shows the same figures as the Area page', async ({ page }) => {
+  await page.goto('#/ask')
+  await page.getByRole('button', { name: 'Is fire in Dhaka above normal right now?' }).click()
+  await page.getByText(/About the stage above: Dhaka/).click()
+  const details = page.locator('details', { hasText: 'About the stage above' })
+  await expect(details).toContainText(/unusual days? so far in/) // the data files have loaded
+  const m = (await details.textContent())?.match(/(\d+) unusual days? so far in/)
+  expect(m).not.toBeNull()
+  await page.goto('#/area/BD3026')
+  await expect(page.getByText(new RegExp(`\\b${m![1]}\\b.*(unusual|above)`)).first()).toBeVisible()
+})
+
+test('crops: the page names its sources', async ({ page }) => {
+  await page.goto('#/crops')
+  await expect(page.getByText(/Illustrative/)).toHaveCount(0)
+  await expect(page.locator('a[href*="fao.org"]').first()).toBeVisible()
 })
 
 test('world map: search finds a city anywhere and says what is covered there', async ({ page }) => {

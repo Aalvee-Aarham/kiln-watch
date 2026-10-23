@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { aggregateBox, dense, resolveSplit, seasonMean, seriesFor } from './calendar'
+import { aggregateBox, completeSeasons, dense, hillShare, monthsShare, resolveSplit, seasonMean, seasonToDateRatio, seriesFor, splitShares } from './calendar'
+import { dateToDay, seasonDay } from './days'
+import { cellId } from './box'
 import type { Calendar, GridTile, Meta } from './types'
 import cases from '../../../tests/fixtures/grid_cases.json'
 
@@ -33,12 +35,70 @@ describe('calendar', () => {
     let expected = 0
     for (let k = 0; k < 400; k++) {
       const lat = 23.5 + 0.005 + 0.01 * (k % 50), lon = 90.0 + 0.005 + 0.01 * Math.floor(k / 8)
-      const cid = Math.floor((lat - 20) / 0.01 + 1e-9) * 3000 + Math.floor((lon - 68) / 0.01 + 1e-9)
-      rows.push([cid, 100, 2 * 2]) // sensor N, day pass
+      rows.push([cellId(meta, lat, lon), 100, 2 * 2]) // sensor N, day pass — id from meta.grid, never a literal
       expected += 0.25
     }
     const out = aggregateBox([{ tile: '90_23', day0: '2003-01-01', rows }], meta, box, undefined, total, 0.25)
     const districtRate = (1000 * expected) / total
     expect(Math.abs(out.get(100)! - districtRate) / districtRate).toBeLessThan(0.05)
+  })
+})
+
+// Real-data helpers (docs/real_data_plan.md, Phase A). Inline synthetic calendars: every expected value follows
+// from the input by arithmetic.
+describe('real-data helpers', () => {
+  // A calendar whose only burning is on one November day per season, 2003-04 … 2005-06, plus one live-season day.
+  const nov = (y: number) => dateToDay(`${y}-11-15`)
+  const mk = (days: number[], h: number[], split: { key: string; values: number[] }[] = []) =>
+    ({ ...cal, days, h, split, nodata: [] } as unknown as Calendar)
+  const yearly = mk([nov(2003), nov(2004), nov(2005), nov(2006)], [2, 2, 2, 8])
+
+  it('splitShares gives each window its share of the total, in split order', () => {
+    const c = mk([1, 2], [4, 0], [{ key: 'a', values: [1, 0] }, { key: 'b', values: [3, 0] }, { key: 'c', values: [0, 0] }])
+    expect(splitShares(c)).toEqual([{ key: 'a', share_frac: 0.25 }, { key: 'b', share_frac: 0.75 }, { key: 'c', share_frac: 0 }])
+    expect(splitShares(mk([1], [0], [{ key: 'a', values: [0] }]))).toEqual([])
+  })
+  it('monthsShare: all burning in November is 1 for [11] and 0 for [4, 5]; a zero year is null', () => {
+    expect(monthsShare(yearly, [11])).toBe(1)
+    expect(monthsShare(yearly, [4, 5])).toBe(0)
+    expect(monthsShare(mk([1], [0]), [11])).toBeNull()
+  })
+  it('seasonMean can stop before a season, so the live season is not compared with itself', () => {
+    const x = seasonDay(new Date(Date.UTC(2003, 10, 15)))
+    expect(seasonMean(yearly, yearly.h, '2006-07')[x]).toBe(2)  // 2003-04 … 2005-06 only
+    expect(seasonMean(yearly, yearly.h)[x]).toBeGreaterThan(2)   // the 8 of 2006-07 pulls the mean up
+  })
+  it('seasonToDateRatio compares this season so far with the same days before it', () => {
+    const n = seasonDay(new Date(Date.UTC(2006, 10, 15))) + 1
+    const live = Array.from({ length: n }, (_, i) => (i === n - 1 ? 2 : 0))
+    expect(seasonToDateRatio(yearly, live, '2006-07')).toBe(1)
+    expect(seasonToDateRatio(yearly, live.map((v) => v * 2), '2006-07')).toBe(2)
+    expect(seasonToDateRatio(yearly, [0, 0, 0], '2006-07')).toBeNull() // nothing typical in the first 3 days of July
+  })
+  it('completeSeasons runs from the first full season to the one before the live season', () => {
+    const c = mk([0, dateToDay('2007-03-01')], [0, 0])
+    expect(completeSeasons(c, '2006-07')).toEqual(['2003-04', '2004-05', '2005-06'])
+  })
+  it('hillShare counts distinct Aqua cell-days inside the hill polygon out of all inside Bangladesh', () => {
+    const grid = { origin_lat: 0, origin_lon: 0, step: 1, rows: 10, cols: 10 }
+    const sq = (w: number, s: number, e: number, n: number): GeoJSON.Polygon => ({ type: 'Polygon', coordinates: [[[w, s], [e, s], [e, n], [w, n], [w, s]]] })
+    const hill = sq(0, 0, 5, 10), bd = sq(0, 0, 8, 10)  // cells with col < 5 are hill; col 8–9 are outside Bangladesh
+    const c = (row: number, col: number) => row * 10 + col
+    const tile = { tile: 't', day0: '2003-01-01', rows: [
+      [c(1, 1), 10, 2], [c(1, 1), 10, 3],   // Aqua day + night, same cell-day: counted once
+      [c(2, 2), 11, 2], [c(3, 3), 12, 2],   // two more hill cell-days
+      [c(4, 6), 12, 2],                     // Bangladesh, not hill
+      [c(5, 9), 12, 2],                     // outside Bangladesh: ignored
+      [c(6, 1), 12, 4],                     // Suomi NPP: ignored
+      [c(7, 1), 99, 2],                     // after lastDay: ignored
+    ] as [number, number, number][] }
+    expect(hillShare([tile], { grid } as unknown as Meta, [hill], [bd], 50)).toBe(0.75)
+  })
+})
+
+describe('monthsShare month boundaries', () => {
+  it('the last slot of a leap season (30 June 2004) belongs to June, as in monthlyMeans', () => {
+    const c = { ...cal, days: [dateToDay('2004-06-30')], h: [5], split: [], nodata: [] } as unknown as Calendar
+    expect(monthsShare(c, [6])).toBe(1)
   })
 })

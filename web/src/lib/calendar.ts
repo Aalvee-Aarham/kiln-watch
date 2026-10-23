@@ -1,7 +1,9 @@
 import type { Calendar, GridTile, Meta, Sensor } from './types'
 import { dayIso, dayToDate, seasonOf, seasonStart } from './days'
 import { rituOf, type Ritu } from './ritu'
-import { cellId } from './box'
+import { AQUA, cellCenter, cellId, sensorOf } from './box'
+import { inGeometry } from './geo'
+import { MONTH_STARTS } from './plain'
 
 export type Mode = 'raw' | 'harm'
 
@@ -26,11 +28,13 @@ export function seriesFor(cal: Calendar, mode: Mode, split: string): number[] {
   return cal.h
 }
 
-/** Mean activity per day of season (0 = 1 July, 366 slots) over all seasons; not-observed days are skipped. */
-export function seasonMean(cal: Calendar, values: number[] = cal.h): number[] {
+/** Mean activity per day of season (0 = 1 July, 366 slots) over all seasons; not-observed days are skipped.
+ * `before` (a season label) stops the mean before that season, e.g. to leave the live season out. */
+export function seasonMean(cal: Calendar, values: number[] = cal.h, before?: string): number[] {
   const dz = dense(cal, values)
   const sum = new Float64Array(366), n = new Float64Array(366)
-  for (let d = 0; d < dz.length; d++) {
+  const end = before ? Math.min(dz.length, seasonStart(before)) : dz.length
+  for (let d = 0; d < end; d++) {
     if (Number.isNaN(dz[d])) continue
     const date = dayToDate(d)
     const y = Number(seasonOf(date).slice(0, 4))
@@ -38,6 +42,64 @@ export function seasonMean(cal: Calendar, values: number[] = cal.h): number[] {
     sum[x] += dz[d]; n[x] += 1
   }
   return Array.from(sum, (s, i) => (n[i] ? s / n[i] : 0))
+}
+
+/** Share (0–1) of harmonized burning in each split window over the whole record, in split order. Empty if the total is 0. */
+export function splitShares(cal: Calendar): { key: string; share_frac: number }[] {
+  const tot = cal.split.map((x) => ({ key: x.key, v: x.values.reduce((a, b) => a + (b ?? 0), 0) }))
+  const all = tot.reduce((a, b) => a + b.v, 0)
+  return all ? tot.map((x) => ({ key: x.key, share_frac: x.v / all })) : []
+}
+
+/** Share (0–1) of the typical year's harmonized burning that falls in these calendar months (1–12); null if the year is empty. */
+export function monthsShare(cal: Calendar, months: number[]): number | null {
+  const m = seasonMean(cal)
+  let inside = 0, all = 0
+  m.forEach((v, i) => {
+    all += v
+    const k = MONTH_STARTS.findIndex((a, j) => i >= a && i < MONTH_STARTS[j + 1]) // season month, July = 0 (as monthlyMeans)
+    if (months.includes(((k + 6) % 12) + 1)) inside += v
+  })
+  return all ? inside / all : null
+}
+
+/** This season so far against the same days of season averaged over the seasons before it: sum(live) / sum(typical).
+ * null when the typical sum is 0. Descriptive only, not a pre-registered test. */
+export function seasonToDateRatio(cal: Calendar, live: number[], season: string): number | null {
+  const typical = seasonMean(cal, cal.h, season).slice(0, live.length).reduce((a, b) => a + b, 0)
+  return typical ? live.reduce((a, b) => a + b, 0) / typical : null
+}
+
+/** Seasons fully inside the calendar's record and before the live season, oldest first. */
+export function completeSeasons(cal: Calendar, liveSeason: string): string[] {
+  const last = lastDay(cal), out: string[] = []
+  for (let y = Number(seasonOf(dayToDate(0)).slice(0, 4)); y < Number(liveSeason.slice(0, 4)); y++) {
+    const s = `${y}-${String((y + 1) % 100).padStart(2, '0')}`
+    if (seasonStart(s) >= 0 && seasonStart(s) + 365 <= last) out.push(s)
+  }
+  return out
+}
+
+/** Share (0–1) of Aqua MODIS fire detections, as distinct cell-days up to `lastDay`, inside `hill` out of all inside
+ * `bd`. Aqua only, so sensors are not mixed. Each cell is tested against the polygons once. */
+export function hillShare(tiles: GridTile[], meta: Meta, hill: GeoJSON.Geometry[], bd: GeoJSON.Geometry[], lastDay: number): number | null {
+  const where = new Map<number, 0 | 1 | 2>() // 0 outside Bangladesh, 1 Bangladesh, 2 hill
+  const seen = new Set<string>()
+  let nHill = 0, nAll = 0
+  for (const t of tiles) for (const [cell, day, sp] of t.rows) {
+    if (day > lastDay || sensorOf(sp) !== AQUA) continue
+    let w = where.get(cell)
+    if (w === undefined) {
+      const { lat, lon } = cellCenter(meta, cell)
+      w = hill.some((g) => inGeometry(g, lat, lon)) ? 2 : bd.some((g) => inGeometry(g, lat, lon)) ? 1 : 0
+      where.set(cell, w)
+    }
+    if (!w || seen.has(`${cell}:${day}`)) continue
+    seen.add(`${cell}:${day}`)
+    nAll++
+    if (w === 2) nHill++
+  }
+  return nAll ? nHill / nAll : null
 }
 
 /** Unknown split key → 'all' (links survive a rebuild under another branch). */
@@ -81,8 +143,8 @@ export function aggregateBox(tiles: GridTile[], meta: Meta, box: [number, number
   for (const t of tiles) for (const [cell, day, sp] of t.rows) {
     const r = Math.floor(cell / cols), c = cell % cols
     if (r < r0 || r > r1 || c < c0 || c > c1) continue
-    const k = Math.floor(sp / 2) // sensor index: 0 T, 1 A, 2 N …
-    const w8 = k === 2 ? beta : k === 1 ? 1 : 0
+    const k = sensorOf(sp)
+    const w8 = k === 2 ? beta : k === AQUA ? 1 : 0
     if (w8) perDay.set(day, (perDay.get(day) ?? 0) + w8)
   }
   const out = new Map<number, number>()

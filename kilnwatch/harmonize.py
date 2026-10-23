@@ -9,6 +9,7 @@ import pandas as pd
 from sklearn.linear_model import PoissonRegressor
 
 from . import config as C
+from .ingest import atomic_write
 from .stats import chow_test
 
 log = logging.getLogger("kilnwatch.harmonize")
@@ -289,6 +290,6 @@ def run() -> dict:
     summary = {"selected_model": selected, "loso_by_season": pd.concat([by0.assign(model="M0"), by1.assign(model="M1")]).to_dict("records"),
                "loso_pooled": {"model": selected, "n": pooled["n"], "covered": pooled["covered"]},
                "loso_pooled_m0": pool0, "loso_pooled_m1": pool1, "coverage_pass": bool(cov_pass)}
-    (C.INTERIM / "harm_summary.json").write_text(json.dumps(summary, default=float, indent=1), encoding="utf-8")
+    atomic_write(C.INTERIM / "harm_summary.json", json.dumps(summary, default=float, indent=1))
     log.info("LOSO pooled coverage %.3f (%s), MAE M0 %.3f M1 %.3f -> %s", cov, cov_pass, pool0["mae"], pool1["mae"], selected)
     return summary

@@ -535,7 +535,7 @@ def run(src: Path = C.WEB_DATA, store_path: Path | None = None, *, store: dict |
     and nothing is written: the news page and its nav item stay hidden. The set is built in `src/.news-build/news/`,
     checked (stage checks, size budgets) and only then moved into `news/` file by file (atomic replaces), with files of
     an earlier run that this one no longer writes removed; a failed check leaves the previous set untouched."""
-    from .export import _dump, check_budgets
+    from .export import check_budgets, dump_json
 
     src = Path(src)
     store = store if store is not None else S.load(store_path)
@@ -552,12 +552,12 @@ def run(src: Path = C.WEB_DATA, store_path: Path | None = None, *, store: dict |
         shutil.rmtree(build_dir)
     try:
         new = build_dir / "news"
-        _dump(index, new / "index.json")
-        _dump(places, new / "places.json")
+        dump_json(index, new / "index.json")
+        dump_json(places, new / "places.json")
         for s, f in seasons.items():
-            _dump(f, new / f"{s}.json")
+            dump_json(f, new / f"{s}.json")
         for u, pf in place_files.items():
-            _dump(pf, new / "place" / f"{u}.json")
+            dump_json(pf, new / "place" / f"{u}.json")
         errs = check_budgets(build_dir, only="news/")
         if errs:
             raise AssertionError("news budgets: " + "; ".join(errs))

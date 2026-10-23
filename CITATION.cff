@@ -1,0 +1,23 @@
+cff-version: 1.2.0
+message: "If you use Kiln Watch's code or data, please cite it as below."
+title: "Kiln Watch: a harmonized MODIS–VIIRS burning calendar for Bangladesh"
+type: software
+authors:
+  - name: "Team Off The Binary"
+version: "1.0.0"
+license: MIT
+repository-code: "https://github.com/Aalvee-Aarham/kiln-watch"
+url: "https://aalvee-aarham.github.io/kiln-watch/"
+abstract: >-
+  Harmonizes 20+ years of NASA MODIS and VIIRS active-fire detections over
+  Bangladesh into one Aqua-MODIS-equivalent scale and publishes per-area
+  burning calendars with uncertainty, built for NASA Space Apps 2026. The
+  public data release is licensed CC BY 4.0 and contains area-level data only.
+keywords:
+  - NASA FIRMS
+  - MODIS
+  - VIIRS
+  - active fire
+  - harmonization
+  - Bangladesh
+  - brick kilns

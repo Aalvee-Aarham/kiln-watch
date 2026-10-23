@@ -8,6 +8,7 @@ import numpy as np
 import pandas as pd
 
 from . import config as C
+from .ingest import atomic_write
 from .research import calendar_len
 from .stats import bootstrap_ci, wilson
 
@@ -20,10 +21,12 @@ def _ci(t):
 
 def ccc(x, y) -> float:
     """Lin's concordance correlation coefficient: 1 only when y equals x, so unlike Pearson's r it drops when one
-    sensor reads on a different scale (Lin 1989, Biometrics 45:255)."""
+    sensor reads on a different scale (Lin 1989, Biometrics 45:255). A zero denominator (both series constant,
+    e.g. an all-zero monsoon month) means concordance is undefined: NaN, never a crashed export."""
     x, y = np.asarray(x, float), np.asarray(y, float)
     mx, my = x.mean(), y.mean()
-    return float(2 * np.mean((x - mx) * (y - my)) / (x.var() + y.var() + (mx - my) ** 2))
+    den = x.var() + y.var() + (mx - my) ** 2
+    return float(2 * np.mean((x - mx) * (y - my)) / den) if den > 0 else float("nan")
 
 
 def _overlap_months(cal: dict) -> pd.DataFrame | None:
@@ -304,7 +307,7 @@ def pm25_lags() -> list[dict] | None:
 
 
 def run() -> dict:
-    from .export import _dump, nan_to_none
+    from .export import dump_json, nan_to_none
 
     gates = json.loads((C.INTERIM / "gates.json").read_text(encoding="utf-8"))
     clf = json.loads((C.INTERIM / "classifier.json").read_text(encoding="utf-8"))
@@ -319,7 +322,7 @@ def run() -> dict:
     skipped = v["skipped"]
     layer1 = shape_all_seasons()
     if layer1:
-        (C.INTERIM / "shape_all_seasons.json").write_text(json.dumps(layer1), encoding="utf-8")
+        atomic_write(C.INTERIM / "shape_all_seasons.json", json.dumps(layer1))
     else:
         skipped.append({"stage": "shape", "reason": "footprint clear fractions cached for the gate season only"})
     skipped.append({"stage": "skdb", "reason": "SentinelKilnDB not downloaded (CC BY-NC, validation-only; Should tier)"})
@@ -348,7 +351,7 @@ def run() -> dict:
     else:
         skipped.append({"stage": "transfer", "reason": "transfer test not run"})
     skipped.append({"stage": "closure", "reason": "no DoE demolition records available"})
-    _dump(nan_to_none(v), C.INTERIM / "public" / "validation.json")
+    dump_json(nan_to_none(v), C.INTERIM / "public" / "validation.json")
     L = ["# Validation report (A9)", "", "Layers ranked by evidential strength.", ""]
     if layer1:
         L += ["## Layer 1 — shape across seasons", pd.DataFrame(layer1).round(3).to_markdown(index=False), ""]

@@ -110,6 +110,7 @@ REGULATOR_DIR = ROOT / "regulator"
 
 FIRMS_MAP_KEY = os.environ.get("FIRMS_MAP_KEY", "")
 OPENAQ_API_KEY = os.environ.get("OPENAQ_API_KEY", "")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # optional: the Ask agent (ask / ask --build-cache)
 EE_PROJECT = os.environ.get("EE_PROJECT", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "")  # news stage only; never a VITE_ variable
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")  # news fallbacks (NEWS_PROVIDERS); all optional

@@ -1,4 +1,4 @@
-"""Ask Kiln Watch (docs/roadmap.md F7): Claude answers questions by calling the project's own functions.
+"""Ask Kiln Watch (docs/roadmap.md F7): Gemini answers questions by calling the project's own functions.
 
 The model retrieves, orchestrates and explains; it never computes. Every number in an answer must appear in a tool
 result (`guard`), or the answer is blocked. Tools read only the public export, so an answer can hold nothing the
@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import json
 import logging
+import math
 import re
 from pathlib import Path
 
@@ -17,7 +18,10 @@ import pandas as pd
 from . import config as C
 
 log = logging.getLogger("kilnwatch.ask")
-MODEL = "claude-opus-5-5"
+MODEL = "gemini-3.5-flash-lite"  # GA, supports function calling (ai.google.dev/gemini-api/docs/models)
+GEMINI = "https://generativelanguage.googleapis.com/v1beta/models"
+# a declined request: the prompt was blocked, or the answer stopped for one of these reasons
+REFUSALS = {"SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION", "IMAGE_SAFETY"}
 MAX_STEPS = 6  # hard cap on model calls per question (no unbounded loops)
 SITE = "https://aalvee-aarham.github.io/kiln-watch"
 MONTHS = ["July", "August", "September", "October", "November", "December", "January", "February", "March", "April", "May", "June"]
@@ -26,6 +30,8 @@ DEMO_QUESTIONS = [
     ("Is burning in Dhaka district above normal right now, and what about the next two weeks?", "en"),
     ("Did the correction really remove the 2012 jump in fire counts?", "en"),
     ("নওগাঁ জেলায় কখন আগুন বেশি জ্বলে?", "bn"),
+    ("When do brick kilns operate around Dhaka, and how long is their season?", "en"),
+    ("How many kiln clusters does Bangladesh have, and when does their season run?", "en"),
 ]
 SYSTEM = """You answer questions about fire activity in Bangladesh for Kiln Watch, a NASA Space Apps project that harmonizes \
 MODIS and VIIRS fire detections into one burning calendar per district and upazila.
@@ -57,6 +63,13 @@ class Data:
 
 
 FIRE = "NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)"
+# in the tool results, so a model that explains "unusual" states a number our data returned
+UNUSUAL_MEANS = "a day above that day's 90th-percentile normal for the district"
+
+
+def _p_value(p: float) -> float | str:
+    """A p-value as it is reported and can be quoted exactly: 3 decimals, or "below 0.001"."""
+    return "below 0.001" if p < 0.001 else round(p, 3)
 
 
 def find_area(d: Data, name: str) -> dict:
@@ -94,6 +107,24 @@ def _busy_months(per_day: np.ndarray, share=0.25) -> dict | None:
     return {"usual_first_month": MONTHS[first], "busiest_month": MONTHS[peak], "usual_last_month": MONTHS[last]}
 
 
+def _when_text(day_of_season: float) -> str:
+    """Same rule as web/src/lib/plain.ts whenText: day 0 = 1 July, non-leap season year."""
+    d = pd.Timestamp("2001-07-01") + pd.Timedelta(days=math.floor(day_of_season + 0.5))  # JS Math.round, not banker's rounding
+    return f"early {d.month_name()}" if d.day <= 10 else f"mid-{d.month_name()}" if d.day <= 20 else f"late {d.month_name()}"
+
+
+def _typical_season(rows: list[dict], n: int = 3) -> dict | None:
+    """Same rule as web/src/lib/plain.ts typicalSeason: medians over the last n seasons with a measured start and end."""
+    ok = [r for r in rows if r.get("onset") and r.get("end")][-n:]
+    if not ok:
+        return None
+    peaks = [r["peak"]["p50"] for r in ok if r.get("peak")]
+    return {"onset": float(np.median([r["onset"]["p50"] for r in ok])), "end": float(np.median([r["end"]["p50"] for r in ok])),
+            "peak": float(np.median(peaks)) if peaks else None,
+            "duration": float(np.median([r["duration"]["p50"] if r.get("duration") else r["end"]["p50"] - r["onset"]["p50"] for r in ok])),
+            "seasons": [r["season"] for r in ok]}
+
+
 def area_fire_calendar(d: Data, unit_id: str) -> dict:
     rel = f"calendar/{unit_id}.json"
     cal = d.json(rel)
@@ -117,7 +148,7 @@ def this_season(d: Data, unit_id: str) -> dict:
         return {"error": "no live data for this district"}
     h = nrt["districts"][dist]["h"]
     as_of = pd.Timestamp(nrt["day0"]) + pd.Timedelta(days=len(h) - 1)
-    return {"district": dist, "season": nrt["season"], "data_to": as_of.strftime("%Y-%m-%d"), "unusual_days_so_far": nrt["districts"][dist]["above_p90_days"],
+    return {"district": dist, "season": nrt["season"], "data_to": as_of.strftime("%Y-%m-%d"), "unusual_days_so_far": nrt["districts"][dist]["above_p90_days"], "unusual_day_means": UNUSUAL_MEANS,
             "provisional": True, "provenance": d.prov("nrt/current_season.json", "NASA FIRMS near-real-time VIIRS (NOAA-20, Suomi NPP), harmonized")}
 
 
@@ -134,7 +165,7 @@ def two_week_outlook(d: Data, unit_id: str) -> dict:
     mm, dd = (int(x) for x in o["start"].split("-"))
     opens = pd.Timestamp(int(nrt["season"][:4]), mm, dd)
     k = (as_of + pd.Timedelta(days=1) - opens).days // o["step_days"]  # row k forecasts from day (opens + 7k), as in the backtest
-    base = {"district": dist, "data_to": as_of.strftime("%Y-%m-%d"), "provenance": d.prov("outlook.json", "Kiln Watch outlook, backtested on " + FIRE),
+    base = {"district": dist, "data_to": as_of.strftime("%Y-%m-%d"), "unusual_day_means": UNUSUAL_MEANS, "provenance": d.prov("outlook.json", "Kiln Watch outlook, backtested on " + FIRE),
             "backtest_brier_skill": o["backtest"]["brier_skill"]}
     if k < 0 or k >= o["weeks"]:
         return {**base, "state": "outside the outlook window (1 November to mid-May)", "window_opens": opens.strftime("%Y-%m-%d")}
@@ -150,12 +181,44 @@ def two_week_outlook(d: Data, unit_id: str) -> dict:
 
 def harmonization_evidence(d: Data) -> dict:
     h = d.json("harmonization.json")
-    out = {"sensor_change_season": "2012-13", "share_of_2012_jump_removed_pct": round(100 * (1 - h["seam"]["ratio"])), "chow_p_raw": h["seam"]["chow_p_raw"], "chow_p_harmonized": h["seam"]["chow_p_harm"],
+    out = {"sensor_change_season": "2012-13", "share_of_2012_jump_removed_pct": round(100 * (1 - h["seam"]["ratio"])), "chow_p_raw": _p_value(h["seam"]["chow_p_raw"]), "chow_p_harmonized": _p_value(h["seam"]["chow_p_harm"]),
            "loso_95pct_interval_coverage": round(h["loso_pooled"]["covered"]["p50"], 3), "loso_target": "0.90 to 0.97 (failed on the conservative side)",
            "provenance": d.prov("harmonization.json", FIRE)}
     for r in h.get("overlap", []):
         out[f"viirs_to_aqua_ratio_{r['period']}"] = {"raw": round(r["ratio_raw"]["p50"], 2), "harmonized": round(r["ratio_harm"]["p50"], 2), "seasons": r["seasons"]}
     return out
+
+
+
+def kiln_seasons(d: Data, unit_id: str | None = None) -> dict:
+    """Kiln working season from night lights for one area (unit_id) or the whole country (no unit_id)."""
+    ka = d.json("kiln_activity.json")
+    if ka is None:
+        return {"error": "no kiln analysis in this data build"}
+    block = ka.get("national") if unit_id is None else ka.get("areas", {}).get(unit_id)
+    if block is None:
+        return {"error": f"no kiln season for {unit_id}"}
+    t = _typical_season(block.get("seasons", []))
+    if t is None:
+        return {"error": "no measured kiln season"}
+    return {"area": unit_id or "Bangladesh (national)", "kiln_clusters": block["n_clusters"],
+            "typical_season": {"starts": _when_text(t["onset"]), "busiest": _when_text(t["peak"]) if t["peak"] is not None else None,
+                               "ends": _when_text(t["end"]), "length_days": math.floor(t["duration"] + 0.5), "seasons_used": t["seasons"]},
+            "provenance": d.prov("kiln_activity.json", "Kiln Watch kiln activity from NASA Black Marble night lights, area-level")}
+
+
+def national_trend(d: Data) -> dict:
+    """The harmonized national fire series (Aqua-MODIS-equivalent units), from harmonization.json yearly."""
+    h = d.json("harmonization.json")
+    y = (h or {}).get("yearly") or []
+    if not y:
+        return {"error": "no national series in this data build"}
+    p = max(y, key=lambda r: r["h"]["p50"])  # first wins ties
+    return {"n_seasons": len(y), "first_season": {"season": y[0]["season"], "harmonized": y[0]["h"]["p50"]},
+            "latest_season": {"season": y[-1]["season"], "harmonized": y[-1]["h"]["p50"], "range_95": [y[-1]["h"]["lo"], y[-1]["h"]["hi"]]},
+            "peak_season": {"season": p["season"], "harmonized": p["h"]["p50"]},
+            "units": "Aqua-MODIS-equivalent fire detections per season (harmonized)",
+            "provenance": d.prov("harmonization.json", FIRE)}
 
 
 TOOLS = [
@@ -169,9 +232,14 @@ TOOLS = [
      "input_schema": {"type": "object", "properties": {"unit_id": {"type": "string"}}, "required": ["unit_id"], "additionalProperties": False}},
     {"name": "harmonization_evidence", "description": "Evidence that the MODIS-to-VIIRS correction works: share of the false 2012 jump removed, structural-break p-values, VIIRS/Aqua ratios before and after correction, and the interval coverage test.",
      "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
+    {"name": "kiln_seasons", "description": "When brick kilns usually operate, from NASA Black Marble night lights: the typical start, busiest time and end of the kiln season (early/mid/late month) and its length in days, as medians over the last 3 measured seasons, plus the number of kiln clusters. Give unit_id (from find_area) for a district; omit it for the whole country.",
+     "input_schema": {"type": "object", "properties": {"unit_id": {"type": "string"}}, "additionalProperties": False}},
+    {"name": "national_trend", "description": "The national harmonized fire series (Aqua-MODIS-equivalent detections per season): number of seasons, the first, latest (with its 95% range) and busiest season. Takes no arguments.",
+     "input_schema": {"type": "object", "properties": {}, "additionalProperties": False}},
 ]
 FUNCS = {"find_area": find_area, "area_fire_calendar": area_fire_calendar, "this_season": this_season,
-         "two_week_outlook": two_week_outlook, "harmonization_evidence": harmonization_evidence}
+         "two_week_outlook": two_week_outlook, "harmonization_evidence": harmonization_evidence,
+         "kiln_seasons": kiln_seasons, "national_trend": national_trend}
 
 _UNIT = re.compile(r"BD\d{2,10}")  # HDX COD-AB p-codes: anything else never reaches a file path
 
@@ -201,43 +269,102 @@ def guard(answer: str, results: list[dict]) -> list[float]:
     return sorted(n for n in numbers(answer) if n not in allowed)
 
 
-def ask(question: str, client=None, data: Data | None = None) -> dict:
-    """Bounded tool-use loop. Returns {question, answer|None, blocked, unsupported, tools: [{name, input, result}]}."""
-    if client is None:
-        import anthropic
+def _declarations(tools: list[dict]) -> list[dict]:
+    """TOOLS as Gemini function declarations (`parameters` is an OpenAPI-style schema: no additionalProperties)."""
+    def schema(sc: dict) -> dict:
+        out = {k: v for k, v in sc.items() if k != "additionalProperties"}
+        if "properties" in out:
+            out["properties"] = {k: schema(v) for k, v in out["properties"].items()}
+        return out
+    return [{"functionDeclarations": [{"name": t["name"], "description": t["description"], "parameters": schema(t["input_schema"])}
+                                      for t in tools]}]
 
-        client = anthropic.Anthropic()
+
+GEMINI_TOOLS = _declarations(TOOLS)
+
+
+def request(contents: list[dict]) -> dict:
+    """One generateContent body: instructions as systemInstruction, the model free to answer or call a tool."""
+    return {"systemInstruction": {"parts": [{"text": SYSTEM}]}, "contents": contents, "tools": GEMINI_TOOLS,
+            "toolConfig": {"functionCallingConfig": {"mode": "AUTO"}}, "generationConfig": {"maxOutputTokens": 4000}}
+
+
+def _retry_delay(r, default: float, cap: float = 60.0) -> float:
+    """Seconds to wait before retrying: Gemini's RetryInfo.retryDelay (e.g. "36s") on a rate limit, else `default`."""
+    try:
+        for d in r.json().get("error", {}).get("details", []):
+            if d.get("@type", "").endswith("RetryInfo") and str(d.get("retryDelay", "")).endswith("s"):
+                return min(float(d["retryDelay"][:-1]) + 1, cap)
+    except ValueError:
+        pass
+    return min(default, cap)
+
+
+def gemini_client(api_key: str | None = None, timeout: int = 60):
+    """POST one request body to Gemini; the key travels in a header, never in a URL or a log line."""
+    import requests
+
+    key = api_key or C.GEMINI_API_KEY
+    if not key:
+        raise RuntimeError("GEMINI_API_KEY is empty. Put it in .env (see .env.example).")
+    s = requests.Session()
+
+    def generate(body: dict) -> dict:
+        import time
+
+        for attempt in range(5):  # bounded: rate limits and brief outages get four more tries, nothing else does
+            r = s.post(f"{GEMINI}/{MODEL}:generateContent", headers={"x-goog-api-key": key}, json=body, timeout=timeout)
+            if r.status_code not in (429, 500, 503) or attempt == 4:
+                break
+            time.sleep(_retry_delay(r, default=2 * 2**attempt))
+        if not r.ok:
+            raise RuntimeError(f"Gemini HTTP {r.status_code}: {r.text[:200]}")
+        return r.json()
+
+    return generate
+
+
+def ask(question: str, client=None, data: Data | None = None) -> dict:
+    """Bounded tool-use loop. Returns {question, answer|None, blocked, unsupported, tools: [{name, input, result}]}.
+
+    `client` takes a request body and returns Gemini's JSON reply (gemini_client(); tests pass a scripted one)."""
+    client = client or gemini_client()
     data = data or Data()
-    messages, calls = [{"role": "user", "content": question}], []
+    contents, calls = [{"role": "user", "parts": [{"text": question}]}], []
     for _ in range(MAX_STEPS):
-        r = client.beta.messages.create(model=MODEL, max_tokens=4000, system=SYSTEM, tools=TOOLS, messages=messages,
-                                        output_config={"effort": "low"}, betas=["server-side-fallback-2026-07-01"], fallbacks="default")
-        if r.stop_reason == "refusal":
+        r = client(request(contents))
+        cand = (r.get("candidates") or [{}])[0]
+        if (r.get("promptFeedback") or {}).get("blockReason") or cand.get("finishReason") in REFUSALS:
             return {"question": question, "answer": None, "blocked": True, "reason": "refusal", "tools": calls}
-        uses = [b for b in r.content if b.type == "tool_use"]
+        parts = (cand.get("content") or {}).get("parts") or []
+        uses = [p["functionCall"] for p in parts if "functionCall" in p]
         if not uses:
-            text = "".join(b.text for b in r.content if b.type == "text").strip()
+            text = "".join(p.get("text", "") for p in parts if not p.get("thought")).strip()
+            if not text:
+                return {"question": question, "answer": None, "blocked": True, "reason": f"no answer ({cand.get('finishReason')})", "tools": calls}
             bad = guard(text, [c["result"] for c in calls])
             return {"question": question, "answer": None if bad else text, "blocked": bool(bad), "unsupported": bad, "tools": calls}
-        messages.append({"role": "assistant", "content": r.content})
+        contents.append(cand["content"])  # the whole model turn: Gemini 3 needs its thought signatures back
         results = []
         for u in uses:
-            fn = FUNCS.get(u.name)
-            res = _run(fn, data, u.input) if fn else {"error": f"unknown tool {u.name}"}
-            calls.append({"name": u.name, "input": u.input, "result": res})
-            results.append({"type": "tool_result", "tool_use_id": u.id, "content": json.dumps(res, ensure_ascii=False), **({"is_error": True} if "error" in res else {})})
-        messages.append({"role": "user", "content": results})
+            args = u.get("args") or {}
+            fn = FUNCS.get(u.get("name"))
+            res = _run(fn, data, args) if fn else {"error": f"unknown tool {u.get('name')}"}
+            calls.append({"name": u.get("name"), "input": args, "result": res})
+            results.append({"functionResponse": {**({"id": u["id"]} if u.get("id") else {}), "name": u.get("name"), "response": res}})
+        contents.append({"role": "user", "parts": results})
     return {"question": question, "answer": None, "blocked": True, "reason": f"step limit {MAX_STEPS}", "tools": calls}
 
 
 def build_cache(src: Path = C.WEB_DATA, client=None, out: Path | None = None) -> dict:
     """Answer the demo questions once and write them to `ask.json` in the export, for the offline site."""
-    from .export import _dump
+    from .export import dump_json
 
     data = Data(src)
+    client = client or gemini_client()
     items = [{**ask(q, client, data), "lang": lang} for q, lang in DEMO_QUESTIONS]
     payload = {"model": MODEL, "generated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"),
                "data_build": (data.json("meta.json") or {}).get("git_sha"), "answers": items}
-    _dump(payload, Path(out or Path(src) / "ask.json"))
+    dump_json(payload, Path(out or Path(src) / "ask.json"))
     log.info("ask cache: %d answers, %d blocked", len(items), sum(i["blocked"] for i in items))
     return payload

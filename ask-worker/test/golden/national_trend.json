@@ -1,0 +1,60 @@
+[
+ {
+  "data": "full",
+  "input": {},
+  "output": {
+   "first_season": {
+    "harmonized": 99.7,
+    "season": "2003-04"
+   },
+   "latest_season": {
+    "harmonized": 152.4,
+    "range_95": [
+     137.1,
+     167.6
+    ],
+    "season": "2024-25"
+   },
+   "n_seasons": 22,
+   "peak_season": {
+    "harmonized": 160.5,
+    "season": "2022-23"
+   },
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/harmonization.json"
+   },
+   "units": "Aqua-MODIS-equivalent fire detections per season (harmonized)"
+  }
+ },
+ {
+  "data": "nokiln",
+  "input": {},
+  "output": {
+   "first_season": {
+    "harmonized": 25.614449945251867,
+    "season": "2003-04"
+   },
+   "latest_season": {
+    "harmonized": 14.635217865160952,
+    "range_95": [
+     13.68845205186056,
+     15.582488445422396
+    ],
+    "season": "2025-26"
+   },
+   "n_seasons": 23,
+   "peak_season": {
+    "harmonized": 32.50495821854294,
+    "season": "2006-07"
+   },
+   "provenance": {
+    "data_build": "f2bf67d",
+    "dataset_id": "NASA FIRMS MODIS C6.1 + VIIRS 375 m, harmonized to Aqua-MODIS equivalent (Kiln Watch)",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/harmonization.json"
+   },
+   "units": "Aqua-MODIS-equivalent fire detections per season (harmonized)"
+  }
+ }
+]

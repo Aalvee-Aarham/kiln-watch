@@ -28,6 +28,7 @@ const S = {
   ask: ['AI agent', 'এআই এজেন্ট'], askShort: ['Ask', 'এআই'],
   sensors: ['Sensor switch', 'সেন্সর বদল'], sensorsShort: ['Sensors', 'সেন্সর'], timeline: ['Timeline', 'সময়রেখা'], timelineShort: ['Events', 'ঘটনা'],
   impact: ['Who benefits', 'কারা উপকৃত'], impactShort: ['Uses', 'ব্যবহার'], experts: ['For experts', 'বিশেষজ্ঞদের জন্য'], expertsShort: ['Experts', 'বিশেষজ্ঞ'],
+  crops: ['Crops & harvest', 'ফসল ও ফলন'], cropsShort: ['Crops', 'ফসল'],
   how: ['How it works', 'কীভাবে কাজ করে'], howShort: ['How', 'কীভাবে'], trust: ['Can you trust it?', 'বিশ্বাস করা যায়?'], trustShort: ['Trust', 'আস্থা'],
   ctrlScroll: ['Hold Ctrl and scroll to zoom.', 'জুম করতে Ctrl চেপে স্ক্রল করুন।'],
   bangladesh: ['Bangladesh', 'বাংলাদেশ'], division: ['division', 'বিভাগ'], yourArea: ['Your area', 'আপনার এলাকা'],

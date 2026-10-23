@@ -26,3 +26,5 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | NEWS | The Bangla claims, verdicts and news page text read correctly to a native speaker | | | |
 | NEWS | `#/news` works on a phone in day and night themes; the Area page link opens the filtered list; "Earlier news" opens | | | |
 | NEWS | The Gemini terms question (`docs/news_plan.md` §10 item 1) is settled before the `GEMINI_API_KEY` secret is added | | | |
+| RD-1 | News records in `web/src/lib/newsRecords.ts`: 5 random items open and say what their card says (none yet: the list starts empty) | | | |
+| RD-2 | Every quote in `web/src/lib/cropSources.ts` appears at its URL (check 5 at random) | | | |

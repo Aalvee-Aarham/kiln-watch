@@ -1,0 +1,49 @@
+[
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD3026"
+  },
+  "output": {
+   "data_to": "2026-10-05",
+   "district": "BD3026",
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "NASA FIRMS near-real-time VIIRS (NOAA-20, Suomi NPP), harmonized",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/nrt/current_season.json"
+   },
+   "provisional": true,
+   "season": "2026-27",
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
+   "unusual_days_so_far": 1
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD302614"
+  },
+  "output": {
+   "data_to": "2026-10-05",
+   "district": "BD3026",
+   "provenance": {
+    "data_build": "fixture",
+    "dataset_id": "NASA FIRMS near-real-time VIIRS (NOAA-20, Suomi NPP), harmonized",
+    "source_url": "https://aalvee-aarham.github.io/kiln-watch/data/nrt/current_season.json"
+   },
+   "provisional": true,
+   "season": "2026-27",
+   "unusual_day_means": "a day above that day's 90th-percentile normal for the district",
+   "unusual_days_so_far": 1
+  }
+ },
+ {
+  "data": "full",
+  "input": {
+   "unit_id": "BD9999"
+  },
+  "output": {
+   "error": "no live data for this district"
+  }
+ }
+]

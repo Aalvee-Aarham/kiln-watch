@@ -1,0 +1,2 @@
+# Copy to .dev.vars for `npx wrangler dev` (gitignored). Never commit a real key.
+GEMINI_API_KEY=

@@ -15,6 +15,7 @@ from .grid import season_of
 log = logging.getLogger("kilnwatch.nrt")
 NRT_SOURCES = ["VIIRS_NOAA20_NRT", "VIIRS_NOAA21_NRT", "MODIS_NRT", "VIIRS_SNPP_NRT"]
 SNPP_END = date(2026, 11, 2)
+SENSOR_NAME = {"N": "Suomi NPP", "J1": "NOAA-20"}
 SEASON_CSV = C.NRT_DIR / "season.csv"
 
 
@@ -26,18 +27,59 @@ def above_p90(h, p90) -> np.ndarray:
 
 
 def fetch(days: int) -> pd.DataFrame:
+def era_of(today: date) -> str:
+    """S-NPP ('N') through its last data day; NOAA-20 ('J1') chained through S-NPP from the next day."""
+    return "N" if today <= SNPP_END else "J1"
+
+
+def sources_for(today: date) -> list[str]:
+    """NRT sources still delivering: S-NPP stops on its end date and NOAA-20 carries the record alone."""
+    return [s for s in NRT_SOURCES if not (s == "VIIRS_SNPP_NRT" and today > SNPP_END)]
+
+
+def era_beta_weights(b1, b2, key, era: str) -> np.ndarray:
+    """β weights for the era's sensor: the A<-N step alone for S-NPP, chained A<-N<-J1 (w = b1 * b2) after."""
+    return b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
+
+
+def alerts_atom(season: str, updated_at: str, rows: list[dict], site: str) -> str:
+    """Atom feed: one entry per district with unusual days. An entry's id includes the day count, so each new
+    unusual day appears in readers as a new item; ordering and timestamps come from the data, not the clock."""
+    import xml.etree.ElementTree as ET
+
+    A = "http://www.w3.org/2005/Atom"
+    feed = ET.Element("feed", xmlns=A)  # a plain xmlns attribute: no process-wide register_namespace
+    ET.SubElement(feed, "title").text = "Kiln Watch: districts with unusual fire activity (provisional)"
+    ET.SubElement(feed, "id").text = f"{site}/data/nrt/alerts.xml"
+    ET.SubElement(feed, "updated").text = updated_at
+    ET.SubElement(feed, "link", rel="self", href=f"{site}/data/nrt/alerts.xml")
+    ET.SubElement(feed, "link", rel="alternate", href=f"{site}/#/season")
+    ET.SubElement(ET.SubElement(feed, "author"), "name").text = "Kiln Watch"
+    for r in sorted(rows, key=lambda r: (r["last_day"], r["unit_id"]), reverse=True):
+        e = ET.SubElement(feed, "entry")
+        days = "day" if r["days"] == 1 else "days"
+        ET.SubElement(e, "title").text = f"{r['name']}: {r['days']} unusual fire {days} so far in {season}"
+        ET.SubElement(e, "id").text = f"{site}/#/area/{r['unit_id']}?season={season}&days={r['days']}"
+        ET.SubElement(e, "updated").text = f"{r['last_day']}T00:00:00Z"
+        ET.SubElement(e, "link", rel="alternate", href=f"{site}/#/area/{r['unit_id']}")
+        ET.SubElement(e, "summary").text = (
+            f"Fire activity in {r['name']} district was above its 90th-percentile normal on {r['days']} {days} "
+            f"this season, most recently {r['last_day']}. Provisional near-real-time data from NASA FIRMS.")
+    return ET.tostring(feed, encoding="unicode", xml_declaration=True)
+
+
+def fetch(days: int, today: date | None = None) -> pd.DataFrame:
     """Last `days` days for each NRT source; an empty or 404 response is not an error."""
     import io
 
     from .ingest import FIRMS, normalise, session
 
+    today = today or date.today()
     s = session()
     frames = []
-    for src in NRT_SOURCES:
-        if src == "VIIRS_SNPP_NRT" and date.today() > SNPP_END:
-            continue
+    for src in sources_for(today):
         for start in range(0, days, 5):
-            d0 = date.today() - timedelta(days=start + min(5, days - start) - 1)
+            d0 = today - timedelta(days=start + min(5, days - start) - 1)
             w, so, e, n = C.BBOX_W, C.BBOX_S, C.BBOX_E, C.BBOX_N
             r = s.get(f"{FIRMS}/api/area/csv/{C.FIRMS_MAP_KEY}/{src}/{w},{so},{e},{n}/{min(5, days - start)}/{d0}", timeout=120)
             if r.status_code == 404 or (r.ok and not r.text.strip()):
@@ -53,9 +95,10 @@ def fetch(days: int) -> pd.DataFrame:
     return pd.concat(frames, ignore_index=True) if frames else pd.DataFrame()
 
 
-def update_season_csv(days: int) -> pd.DataFrame:
+def update_season_csv(days: int, today: date | None = None) -> pd.DataFrame:
+    today = today or date.today()
     C.NRT_DIR.mkdir(parents=True, exist_ok=True)
-    season = season_of(date.today())
+    season = season_of(today)
     old = pd.DataFrame()
     if SEASON_CSV.exists():
         old = pd.read_csv(SEASON_CSV, parse_dates=["t_utc", "t_local", "date_local"])
@@ -65,7 +108,7 @@ def update_season_csv(days: int) -> pd.DataFrame:
     if old.empty:
         log.warning("season.csv missing or archived: rebuilding the last 30 days from the API")
         days = max(days, 30)
-    new = fetch(days)
+    new = fetch(days, today)
     df = pd.concat([old, new], ignore_index=True)
     if df.empty:
         return df
@@ -73,20 +116,22 @@ def update_season_csv(days: int) -> pd.DataFrame:
     df = df.drop_duplicates(["sensor", "lat", "lon", "t_utc"]).sort_values("t_utc")
     df = df[pd.to_datetime(df.date_local) >= pd.Timestamp(f"{season[:4]}-07-01")]
     df["season"] = season
-    tmp = SEASON_CSV.with_suffix(".tmp")
-    df.to_csv(tmp, index=False)
-    tmp.replace(SEASON_CSV)
+    from .ingest import atomic_write
+
+    atomic_write(SEASON_CSV, df.to_csv(index=False))
     return df
 
 
-def run(days=5) -> dict:
+def run(days=5, today: date | None = None) -> dict:
     from .classify import build_features
-    from .export import _dump, split_labels
+    from .export import dump_json, split_labels
 
-    df = update_season_csv(days)
-    season = season_of(date.today())
+    today = today or date.today()
+    df = update_season_csv(days, today)
+    season = season_of(today)
     day0 = pd.Timestamp(f"{season[:4]}-07-01")
-    n_days = (pd.Timestamp.today().normalize() - day0).days + 1
+    n_days = (pd.Timestamp(today) - day0).days + 1
+    era = era_of(today)  # S-NPP until it ends, then NOAA-20 chained through S-NPP
     branch = C.load_derived()["GATE_BRANCH"]["value"]
     keys = [s["key"] for s in split_labels(branch)]
     cells = pd.read_parquet(C.MODELS / "cells.parquet")  # cell_id, district, division, loc
@@ -118,11 +163,9 @@ def run(days=5) -> dict:
 
             df["cat"] = harvest_key(df.date_local)
         df["cat"] = df["cat"].fillna("unknown") if "cat" in df else "unknown"
-        # era sensor: S-NPP until it ends, then NOAA-20 chained through S-NPP
-        era = "N" if date.today() <= SNPP_END else "J1"
         e = df[df.sensor == era].drop_duplicates(["cell_id", "date_local", "pass"])
         key = pd.MultiIndex.from_arrays([e.division, pd.to_datetime(e.date_local).dt.month, e["pass"], e["loc"]])
-        w = b1.reindex(key).to_numpy() * (b2.reindex(key).to_numpy() if era == "J1" else 1.0)
+        w = era_beta_weights(b1, b2, key, era)
         imputed = float(np.mean(~np.isfinite(w)))  # fraction of detections whose β weight fell back to the median
         e = e.assign(w=np.nan_to_num(w, nan=np.nanmedian(b1)), d=(pd.to_datetime(e.date_local) - day0).dt.days)
         doy = (day0 + pd.to_timedelta(np.arange(n_days), "D")).dayofyear
@@ -138,37 +181,50 @@ def run(days=5) -> dict:
             m = (e.cat == k).to_numpy()
             nat[k] = 1000 * np.bincount(e.d[m], weights=e.w[m], minlength=n_days)[:n_days] / den
     districts = {}
+    alert_rows = []  # (district, unusual days, latest unusual day) for the Atom feed
     cal_dir = C.WEB_DATA / "calendar"
     for dist_id in cells.district.unique():
         h = dist_h.get(dist_id, np.zeros(n_days))
-        above = 0
+        above, last_day = 0, None
         f = cal_dir / f"{dist_id}.json"
         if f.exists():
             p90 = np.asarray(json.loads(f.read_text(encoding="utf-8"))["normal"]["p90"])
-            above = int(np.sum(above_p90(h, p90)))
+            over = np.flatnonzero(above_p90(h, p90))
+            above = int(len(over))
+            last_day = (day0 + pd.Timedelta(days=int(over[-1]))).strftime("%Y-%m-%d") if len(over) else None
         districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above}
+        alert_rows.append((dist_id, above, last_day))
     out = {"updated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "provisional": True, "season": season, "day0": day0.strftime("%Y-%m-%d"),
-           "beta_imputed_frac": round(imputed, 4),
+           "beta_imputed_frac": round(imputed, 4), "era": era, "sensor": SENSOR_NAME[era],
            "national": {"h": np.round(nat["h"], 3).tolist(), "split": [{"key": k, "values": np.round(nat[k], 3).tolist()} for k in keys]},
            "districts": districts}
-    _dump(out, C.WEB_DATA / "nrt" / "current_season.json")
+    dump_json(out, C.WEB_DATA / "nrt" / "current_season.json")
+    from .ask import SITE
+    from .ingest import atomic_write
+
+    aoi_path = C.WEB_DATA / "aoi" / "districts.geojson"
+    names = {}
+    if aoi_path.exists():
+        names = {f["properties"]["unit_id"]: f["properties"]["name_en"] for f in json.loads(aoi_path.read_text(encoding="utf-8"))["features"]}
+    rows = [{"unit_id": d, "name": names.get(d, d), "days": n, "last_day": last} for d, n, last in alert_rows if n > 0]
+    atomic_write(C.WEB_DATA / "nrt" / "alerts.xml", alerts_atom(season, out["updated_at"], rows, SITE))
     log.info("NRT: %d detections this season; written current_season.json", len(df))
     return out
 
 
 def write_models_for_nrt() -> None:
     """Committed artifacts the CI NRT job needs: cell → district/division/loc and the clear-fraction climatology."""
-    from .ingest import read_units
+    from .ingest import _parquet, read_units
+    from .kilns import kiln_cells
     from .metrics import clear_climatology
-    from .pipeline import _kiln_cells
 
     uc = pd.read_parquet(C.INTERIM / "unit_cells.parquet")
     units = read_units()
     dist = uc[uc.level == "district"].drop_duplicates("cell_id")[["cell_id", "unit_id"]].rename(columns={"unit_id": "district"})
     div = uc[uc.level == "division"].drop_duplicates("cell_id").merge(units[["unit_id", "name_en"]], on="unit_id")[["cell_id", "name_en"]].rename(columns={"name_en": "division"})
     cells = dist.merge(div, on="cell_id")
-    cells["loc"] = np.where(cells.cell_id.isin(_kiln_cells()), "kiln", "other")
-    cells.to_parquet(C.MODELS / "cells.parquet", index=False)
+    cells["loc"] = np.where(cells.cell_id.isin(kiln_cells()), "kiln", "other")
+    _parquet(cells, C.MODELS / "cells.parquet")
     clear = pd.read_parquet(C.INTERIM / "clear.parquet")
     cn = clear[(clear.sensor == "N") & clear.unit_id.isin(dist.district.unique())]
     cc = clear_climatology(cn)[["unit_id", "doy", "clear_frac"]]
@@ -176,4 +232,4 @@ def write_models_for_nrt() -> None:
     cn = cn.assign(w=cn.unit_id.map(tot) * cn.clear_frac)
     nat = cn.groupby("date_local").w.sum() / tot.sum()
     natc = nat.groupby(nat.index.dayofyear).median().rename("clear_frac").reset_index().rename(columns={"date_local": "doy"}).assign(unit_id="national")
-    pd.concat([cc, natc], ignore_index=True).astype({"clear_frac": "float32"}).to_parquet(C.MODELS / "clear_clim.parquet", index=False)
+    _parquet(pd.concat([cc, natc], ignore_index=True).astype({"clear_frac": "float32"}), C.MODELS / "clear_clim.parquet")

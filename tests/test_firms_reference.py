@@ -13,14 +13,10 @@ import numpy as np
 import pandas as pd
 
 from kilnwatch import config as CFG
+from kilnwatch.stats import spearman
 
 REAL = CFG.WEB_FIXT / "nokiln" / "data"
 REF = Path(__file__).with_name("fixtures") / "firms_bd_reference.csv"
-
-
-def _spearman(a, b) -> float:
-    ra, rb = pd.Series(a).rank().to_numpy(), pd.Series(b).rank().to_numpy()
-    return float(np.corrcoef(ra, rb)[0, 1])
 
 
 def _yearly() -> dict:
@@ -66,7 +62,7 @@ def test_two_sensors_agree_on_the_same_fires():
     y = _yearly()
     both = [(r["raw_by_sensor"]["A"], r["raw_by_sensor"]["N"])
             for r in y.values() if r["raw_by_sensor"].get("A") and r["raw_by_sensor"].get("N")]
-    assert _spearman([a for a, _ in both], [n for _, n in both]) > 0.4
+    assert spearman([a for a, _ in both], [n for _, n in both]) > 0.4
 
 
 def test_project_series_tracks_the_independent_reference():
@@ -78,4 +74,4 @@ def test_project_series_tracks_the_independent_reference():
             proj.append(y[s]["raw_by_sensor"]["N"])
             days.append(r.fire_days)
     assert len(proj) >= 13
-    assert _spearman(proj, days) >= 0.7
+    assert spearman(proj, days) >= 0.7

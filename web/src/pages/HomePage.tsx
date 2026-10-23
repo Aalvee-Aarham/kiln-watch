@@ -28,7 +28,7 @@ import {
   whenText,
   monthOfSeasonDay,
 } from "../lib/plain";
-import { seasonMean } from "../lib/calendar";
+import { seasonMean, splitShares } from "../lib/calendar";
 import type {
   Calendar,
   Events,
@@ -72,21 +72,17 @@ export default function HomePage() {
   const meta = useMeta().data;
   const harvest = useMemo(() => {
     if (!cal.data || !meta) return null;
-    const tot = cal.data.split.map((x) => ({
-      key: x.key,
-      v: x.values.reduce((a, b) => a + (b ?? 0), 0),
-    }));
-    const all = tot.reduce((a, b) => a + b.v, 0);
-    if (!all) return null;
+    const shares = splitShares(cal.data);
+    if (!shares.length) return null;
     const label = (k: string) =>
       meta.split_labels.find((l) => l.key === k)?.label_en ?? k;
     return (
-      tot
-        .sort((a, b) => b.v - a.v)
+      [...shares]
+        .sort((a, b) => b.share_frac - a.share_frac)
         .slice(0, 2)
         .map(
           (x) =>
-            `${Math.round((x.v / all) * 100)}% ${label(x.key).toLowerCase()}`,
+            `${Math.round(x.share_frac * 100)}% ${label(x.key).toLowerCase()}`,
         )
         .join(", ") + " (share of harmonized burning since 2003)."
     );
@@ -173,12 +169,8 @@ export default function HomePage() {
                   the same scale.
                 </p>
                 <div className="rounded-[4px] border border-warn/40 bg-warn-soft/50 px-2 py-1.5 text-xs font-medium text-warn">
-                  MODIS retires in ~
-                  {Math.ceil(
-                    (Date.parse("2027-01-20T00:00:00Z") - Date.now()) /
-                      86_400_000,
-                  )}{" "}
-                  days — this bridge keeps 23 years of records alive.
+                  NASA plans to end MODIS data collection in 2027: this bridge
+                  keeps 23 years of records alive.
                 </div>
                 <div className="flex items-end gap-4 text-xs text-muted">
                   <span>

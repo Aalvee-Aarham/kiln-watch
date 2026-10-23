@@ -14,6 +14,7 @@ import sys
 from pathlib import Path
 
 from . import config as C
+from .ingest import atomic_write
 
 SOUTH_ASIA = ("AFG", "BGD", "BTN", "IND", "LKA", "MDV", "NPL", "PAK")
 SOURCE = "Natural Earth v5 (public domain), simplified for display; de facto boundaries, not an endorsement of any claim"
@@ -69,10 +70,8 @@ def build(ne: Path, out: Path = C.STATIC) -> dict:
                               "fields": ["name_en", "name_bn", "lat", "lon", "rank", "pop", "adm0", "adm1", "capital"], "rows": cities},
     }
     for name, obj in files.items():
-        s = json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
-        tmp = out / (name + ".tmp")
-        tmp.write_text(re.sub(r"\bNaN\b", "null", s), encoding="utf-8")
-        tmp.replace(out / name)
+        s = re.sub(r"\bNaN\b", "null", json.dumps(obj, ensure_ascii=False, separators=(",", ":")))
+        atomic_write(out / name, s)
     return {k: len(v.get("features", v.get("rows", []))) for k, v in files.items()}
 
 

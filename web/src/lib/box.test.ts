@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import cases from '../../../tests/fixtures/grid_cases.json'
-import { cellId, parseBox } from './box'
+import { AQUA, cellCenter, cellId, parseBox, sensorOf } from './box'
 
 const meta = { grid: cases.grid }
 
@@ -21,5 +21,18 @@ describe('box', () => {
     expect(typeof parseBox('90.6000,23.6000,90.2500,23.9000')).toBe('string')       // E < W
     expect(typeof parseBox('99.2500,23.6000,99.6000,23.9000')).toBe('string')       // lon out of range
     expect(typeof parseBox('90.25,23.6,90.6,23.9')).toBe('string')                  // not 4 decimals
+  })
+})
+
+describe('grid cell centres and sensor codes', () => {
+  it('cellCenter is the inverse of cellId: first, last and a middle cell', () => {
+    const g = cases.grid
+    for (const c of [0, g.rows * g.cols - 1, Math.floor(g.rows / 2) * g.cols + Math.floor(g.cols / 3)]) {
+      const { lat, lon } = cellCenter(meta, c)
+      expect(cellId(meta, lat, lon)).toBe(c)
+    }
+  })
+  it('sensorOf drops the pass bit: 2 and 3 are Aqua, 4 is Suomi NPP', () => {
+    expect(sensorOf(2)).toBe(AQUA); expect(sensorOf(3)).toBe(AQUA); expect(sensorOf(4)).toBe(2)
   })
 })

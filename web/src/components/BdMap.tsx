@@ -9,7 +9,6 @@ import { IMAGERY, LAYERS, readLayer, saveLayer, type Layer } from '../lib/basema
 import { Icon } from './ui'
 
 const MIN_KM2 = 100 // same floor as parseBox: reject at draw time, not after navigation
-const REDUCED = typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches
 
 type View = { x: number; y: number; w: number; h: number }
 type Feat = { id: string; nameEn: string; nameBn: string; d: string; cx: number; cy: number; x0: number; y0: number; x1: number; y1: number }
@@ -176,7 +175,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   const animateTo = (target: View, from?: View) => {
     cancelAnimationFrame(raf.current)
     glideTarget.current = null
-    if (REDUCED || !from) { setView(target); return }
+    if (!from || matchMedia('(prefers-reduced-motion: reduce)').matches) { setView(target); return }
     const t0 = performance.now()
     const step = (now: number) => {
       const t = easeOutQuart(Math.min(1, (now - t0) / 420))
@@ -228,7 +227,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
   /** Ease the view toward `target` every frame (exponential smoothing), so wheel ticks and button presses blend. */
   const glide = (target: View) => {
     cancelAnimationFrame(raf.current)
-    if (REDUCED) { glideTarget.current = null; show(target); return }
+    if (matchMedia('(prefers-reduced-motion: reduce)').matches) { glideTarget.current = null; show(target); return }
     glideTarget.current = target
     let last = performance.now()
     const step = (now: number) => {
@@ -276,7 +275,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       samples = [{ t: performance.now(), x, y }]
     }
     const coast = (vx: number, vy: number) => { // px/ms → glide with friction, stopping at the map's edges
-      if (REDUCED) return
+      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return
       const r = svgRef.current!.getBoundingClientRect()
       const upp = fit.w / (fit.w * Math.min(r.width / fit.w, r.height / fit.h)) // viewBox units per px at fit
       let last = performance.now()
@@ -388,7 +387,7 @@ export default function BdMap({ fc, selected, onSelect, drawing, box, onBox, val
       el.removeEventListener('wheel', wheel)
       el.removeEventListener('pointerdown', down); el.removeEventListener('pointermove', move)
       el.removeEventListener('pointerup', up); el.removeEventListener('pointercancel', up)
-      el.removeEventListener('dblclick', dbl)
+      el.removeEventListener('dblclick', dbl) // a named handler: toggling draw mode must not stack zooms
       clearTimeout(hintT)
       cancelAnimationFrame(raf.current)
       document.documentElement.classList.remove('is-panning')

@@ -27,6 +27,7 @@ const AskPage = lazy(() => import('./pages/AskPage'))
 const NewsPage = lazy(() => import('./pages/NewsPage'))
 const NewsMapPage = lazy(() => import('./pages/NewsMapPage'))
 const NewsStoryPage = lazy(() => import('./pages/NewsStoryPage'))
+const CropsPage = lazy(() => import('./pages/CropsPage'))
 const RegionPage = lazy(() => import('./pages/RegionPage'))
 
 function App() {
@@ -43,6 +44,7 @@ function App() {
             <Route path="/sensors" element={<SensorsPage />} />
             <Route path="/timeline" element={<TimelinePage />} />
             <Route path="/how" element={<HowPage />} />
+            <Route path="/crops" element={<CropsPage />} />
             <Route path="/impact/:who?/:unitId?" element={<ImpactPage />} />
             <Route path="/trust" element={<TrustPage />} />
             <Route path="/experts" element={<ExpertsPage />} />

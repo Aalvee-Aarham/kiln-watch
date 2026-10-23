@@ -1,0 +1,62 @@
+name: verify
+on:
+  schedule: [{ cron: '30 6 * * 0,3' }]   # Sundays and Wednesdays 06:30 UTC: GitHub evicts caches unused for 7 days
+  workflow_dispatch:
+permissions: { contents: read }
+jobs:
+  firms:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300  # the first, uncached run pulls the full history; later runs fetch one week
+    env:
+      FIRMS_MAP_KEY: ${{ secrets.FIRMS_MAP_KEY }}
+    steps:
+      - uses: actions/checkout@08eba0b27e820071cde6df949e0beb9ba4906955  # v4.3.0
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065  # v5.6.0
+        with: { python-version: '3.11', cache: pip }
+      - run: pip install -r requirements.txt -c constraints.txt
+      # restore and save separately: the combined actions/cache only saves when the whole job succeeds,
+      # so one drift or failed fetch would throw away hours of downloaded windows
+      - uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+        with:
+          path: data/raw/verify/firms
+          key: firms-verify-${{ github.run_id }}
+          restore-keys: firms-verify-
+      - name: Independent FIRMS re-fetch and cross-check (sensors N and A only)
+        run: python -m kilnwatch verify-firms --sources MODIS_SP MODIS_NRT VIIRS_SNPP_SP VIIRS_SNPP_NRT
+      - uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830  # v4.3.0
+        if: always()
+        with:
+          path: data/raw/verify/firms
+          key: firms-verify-${{ github.run_id }}
+      - name: Upload the verification report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with: { name: firms-verification, path: 'reports/firms_verification.*' }
+      - name: Drift gate (rule recorded in docs/operations.md; PROPOSED, not yet approved by the team)
+        run: |
+          python - <<'EOF'
+          import json, sys
+          r = json.load(open("reports/firms_verification.json"))
+          vals = {"reference": r["reference"]["spearman"],
+                  "S-NPP vs committed": r["shape_vs_committed"]["N"]["spearman_vs_committed"],
+                  "Aqua vs committed": r["shape_vs_committed"]["A"]["spearman_vs_committed"]}
+          bad = {k: v for k, v in vals.items() if v is None or not v >= 0.75}  # PROPOSED threshold, not yet approved; NaN fails too
+          print(vals)
+          sys.exit(f"drift: {bad}" if bad else 0)
+          EOF
+  drift-issue:
+    needs: firms
+    if: failure()
+    runs-on: ubuntu-latest
+    permissions: { issues: write }  # only this job can write issues; it never sees the FIRMS key
+    env: { GH_TOKEN: '${{ github.token }}', GH_REPO: '${{ github.repository }}' }
+    steps:
+      - run: |
+          run_url="${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          num=$(gh issue list --state open --search 'in:title "FIRMS cross-check drift"' --json number --jq '.[0].number // empty')
+          if [ -z "$num" ]; then
+            gh issue create --title "FIRMS cross-check drift ($(date -u +%F))" \
+              --body "The scheduled independent FIRMS cross-check failed (drift or a failed fetch). Report artifact and log: $run_url. Follow docs/BLOCKERS.md."
+          else
+            gh issue comment "$num" --body "Failed again: $run_url"
+          fi

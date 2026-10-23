@@ -124,6 +124,7 @@ const ICONS = {
   plus: 'M8 3v10M3 8h10',
   minus: 'M3 8h10',
   external: 'M9.5 2.5h4v4M13.5 2.5 7.5 8.5M11.5 9.5v4h-9v-9h4',
+  spinner: 'M8 1.5a6.5 6.5 0 1 1-6.5 6.5',
 } as const
 export type IconName = keyof typeof ICONS
 export const Icon = ({ name, className = 'h-4 w-4' }: { name: IconName; className?: string }) => (
@@ -146,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/crops', 'crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   // News opens on the map (#/news/map); the story list (#/news) and single stories keep the tab lit
@@ -324,6 +325,15 @@ export function Verdict({ pass, label }: { pass?: boolean; label?: string }) {
     </span>
   )
 }
+
+/** For anything shown that is not measured data (a drawing, an example): said plainly, every time. Unused while every
+ * figure on the site is measured or cited (docs/real_data_plan.md); kept for future drawings. */
+export const IllustrativeNote = ({ children }: { children?: ReactNode }) => (
+  <p className="flex items-start gap-1.5 rounded-[4px] border border-warn/40 bg-warn-soft px-2 py-1 text-xs text-ink">
+    <span className="text-warn"><Icon name="info" className="mt-0.5 h-3.5 w-3.5" /></span>
+    <span>{children ?? 'Drawing, not measured data.'}</span>
+  </p>
+)
 
 export const ProvisionalBadge = () => {
   const t = useT()

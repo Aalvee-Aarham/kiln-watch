@@ -60,3 +60,17 @@ export function busyMonths(perDay: number[], share = 0.25): { first: number; las
   while (last < 11 && m[last + 1] >= share * max) last++
   return { first, last, peak }
 }
+
+export const MONTH_STARTS = [0, 31, 62, 92, 123, 153, 184, 215, 243, 274, 304, 335, 366] // day of season, July first
+
+/** Mean per month of a per-day-of-season series, July first; a month with no days yet is null, not 0. */
+export function monthlyMeans(perDay: number[]): (number | null)[] {
+  return MONTH_STARTS.slice(0, 12).map((a, i) => {
+    const s = perDay.slice(a, MONTH_STARTS[i + 1])
+    return s.length ? Number((s.reduce((t, v) => t + v, 0) / s.length).toPrecision(3)) : null
+  })
+}
+
+/** Calendar-month windows (1–12) in words, each on its own: [[11, 12], [4, 5]] → "November to December and April to May". */
+export const windowsText = (windows: number[][]) => windows.filter((w) => w.length)
+  .map((w) => (w.length === 1 ? MONTHS[w[0] - 1] : `${MONTHS[w[0] - 1]} to ${MONTHS[w[w.length - 1] - 1]}`)).join(' and ')

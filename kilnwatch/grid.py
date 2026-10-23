@@ -66,20 +66,3 @@ def unit_cells(units) -> pd.DataFrame:
         j = gpd.sjoin(pts, grp[["unit_id", "geometry"]], predicate="within", how="inner")
         out.append(j[["unit_id", "cell_id"]].assign(level=level))
     return pd.concat(out, ignore_index=True).drop_duplicates(["unit_id", "cell_id"])
-
-
-def unit_rates(celldays, unit_cells, clear_frac, total_cells_local, min_clear=0.2) -> pd.DataFrame:
-    """Rate per 1000 clear cells. clear_cells = clear_frac * total_cells_local; NaN when clear_frac < min_clear.
-
-    celldays: cell_id,date_local,sensor,pass,n_det. clear_frac: unit_id,date_local,sensor,clear_frac.
-    total_cells_local: Series indexed by unit_id.
-    """
-    f = celldays.merge(unit_cells[["unit_id", "cell_id"]], on="cell_id")
-    num = f.groupby(["unit_id", "date_local", "sensor", "pass"], observed=True).size().rename("fire_cells").reset_index()
-    cl = clear_frac.copy()
-    cl["clear_cells"] = cl["clear_frac"] * cl["unit_id"].map(total_cells_local)
-    passes = pd.DataFrame({"pass": ["D", "N"]})
-    cl = cl.merge(passes, how="cross")
-    r = cl.merge(num, on=["unit_id", "date_local", "sensor", "pass"], how="left").fillna({"fire_cells": 0})
-    r["rate"] = np.where(r["clear_frac"] >= min_clear, 1000.0 * r["fire_cells"] / r["clear_cells"].clip(lower=1), np.nan)
-    return r

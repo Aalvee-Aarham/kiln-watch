@@ -9,6 +9,7 @@ import pandas as pd
 from scipy.stats import mannwhitneyu
 
 from . import config as C
+from .ingest import atomic_write
 from .kilns import link, link_points
 from .stats import perm_test
 
@@ -83,6 +84,19 @@ def unit_stats(ud: pd.DataFrame, season: str) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
+def _ratio(num: float, den: float) -> float:
+    """num/den on measured values: NaN when a side is unmeasured; +inf only for a measured-zero denominator.
+
+    Without this, an all-NaN side (e.g. controls missing from a partial cache) makes `NaN > 0` False and the
+    ratio inf, passing a `>= 3` criterion with no data behind it. A criterion on unmeasured values must be False.
+    """
+    if not (np.isfinite(num) and np.isfinite(den)):
+        return float("nan")
+    if den == 0:
+        return float("inf") if num > 0 else float("nan")
+    return float(num / den)
+
+
 def evaluate(st: pd.DataFrame, is_kiln: np.ndarray, strata: np.ndarray, rng) -> dict:
     """The three pre-registered G1 criteria; returns values, thresholds, p and pass flags."""
     k, c = st[is_kiln], st[~is_kiln]
@@ -90,17 +104,17 @@ def evaluate(st: pd.DataFrame, is_kiln: np.ndarray, strata: np.ndarray, rng) -> 
     pk, pc = k.P.dropna(), c.P.dropna()
     p_s = mannwhitneyu(sk, sc, alternative="greater").pvalue if len(sk) and len(sc) else 1.0
     p_p = mannwhitneyu(pk, pc, alternative="less").pvalue if len(pk) and len(pc) else 1.0
-    s_ratio = (sk.median() / sc.median()) if len(sc) and sc.median() > 0 else (np.inf if len(sk) and sk.median() > 0 else np.nan)
+    s_ratio = _ratio(sk.median(), sc.median())
     shape = bool(s_ratio >= 2 and len(pk) and len(pc) and pk.median() < pc.median() and p_s < 0.01 and p_p < 0.01)
     ok = st.DR.notna().to_numpy()
-    dr_ratio = k.DR.mean() / c.DR.mean() if c.DR.mean() > 0 else np.inf
-    p_c = perm_test(st.DR.to_numpy()[ok], is_kiln[ok], strata[ok], n=10_000, rng=rng)
+    dr_ratio = _ratio(k.DR.mean(), c.DR.mean())
+    lab_ok = is_kiln[ok]
+    # with an empty side the perm statistic is NaN, every comparison False, and p would land near 0: guard to 1.0
+    p_c = perm_test(st.DR.to_numpy()[ok], lab_ok, strata[ok], n=10_000, rng=rng) if lab_ok.any() and (~lab_ok).any() else 1.0
     contrast = bool(dr_ratio >= 3 and p_c < 0.01)
-    fire_dr = k.DR.mean()
-    mon_dr = k.M.mean()
-    seas_ratio = fire_dr / mon_dr if mon_dr > 0 else np.inf
+    seas_ratio = _ratio(k.DR.mean(), k.M.mean())
     seasonality = bool(seas_ratio >= 3)
-    night_ratio = k.DR_night.mean() / c.DR_night.mean() if c.DR_night.mean() > 0 else np.inf
+    night_ratio = _ratio(k.DR_night.mean(), c.DR_night.mean())
     return {
         "rows": [
             {"criterion": "Shape: median S(kiln) / median S(control)", "value": float(s_ratio), "threshold": "≥ 2, MW p < 0.01", "p": float(p_s)},
@@ -194,7 +208,7 @@ def run() -> dict:
            "eligible_clusters": int(len(elig)), "night_ratio_G1": results["G1"]["night_ratio"],
            "dr_distribution": g1st[is_kiln].DR.describe().round(4).to_dict()}
     C.MODELS.mkdir(parents=True, exist_ok=True)
-    (C.INTERIM / "gates.json").write_text(json.dumps(out, default=float, indent=1), encoding="utf-8")
+    atomic_write(C.INTERIM / "gates.json", json.dumps(out, default=float, indent=1))
     _write_report(out, results, season)
     return out
 
@@ -216,4 +230,4 @@ def _write_report(out, results, season):
           "## Radius sweep", "| radius m | kiln DR | control DR |", "|---|---|---|"]
     L += [f"| {s['radius_m']} | {s['kiln']:.4f} | {s['ctrl']:.4f} |" for s in out["radius_sweep"]]
     L += ["", f"## Decision (§13): `GATE_BRANCH = {out['branch']}`"]
-    (C.REPORTS / "gate_report.md").write_text("\n".join(L) + "\n", encoding="utf-8")
+    atomic_write(C.REPORTS / "gate_report.md", "\n".join(L) + "\n")

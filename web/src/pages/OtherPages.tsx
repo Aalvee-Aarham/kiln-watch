@@ -1,7 +1,7 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import { Icon, Loading, ProvisionalBadge, Section, Skeleton, SkeletonCard, Sparkline, fmt, useKilnActivity, useMeta, useTitle } from '../components/ui'
-import { useJson } from '../lib/data'
+import { dataUrl, useJson } from '../lib/data'
 import { useLang, useT } from '../lib/i18n'
 import type { FC, NrtSeason } from '../lib/types'
 
@@ -11,6 +11,12 @@ export function ThisSeasonPage() {
   useTitle('This season')
   const nrt = useJson<NrtSeason>('nrt/current_season.json')
   const meta = useMeta()
+  // the Atom feed exists only on the live site (written by the daily run): offer it only when it is really there
+  const feed = dataUrl('nrt/alerts.xml')
+  const [hasFeed, setHasFeed] = useState(false)
+  useEffect(() => {
+    fetch(feed, { method: 'HEAD' }).then((r) => setHasFeed(r.ok && (r.headers.get('content-type') ?? '').includes('xml'))).catch(() => setHasFeed(false))
+  }, [feed])
   const lang = useLang()
   const t = useT()
   const [sp] = useSearchParams()
@@ -30,14 +36,18 @@ export function ThisSeasonPage() {
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted">
               <ProvisionalBadge />
               <span>Updated {updated.toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }).replace('Sept', 'Sep')} UTC, refreshed daily from FIRMS near-real-time data.</span>
+              {n.sensor && <span>Live data from {n.era === 'J1' ? <>NOAA-20, on the Aqua-MODIS scale through Suomi NPP</> : n.sensor}.</span>}
               <details className="w-full sm:w-auto"><summary className="text-ink underline decoration-dotted underline-offset-4">Why provisional?</summary>
-                <p className="mt-1 prose-measure">Until archive-quality data arrive, the cloud-free share of each area uses its typical (median) value for that day of the year, and the source labels come from the frozen classifier.</p></details>
+                <p className="mt-1 prose-measure">Until archive-quality data arrive, the cloud-free share of each area uses its typical (median) value for that day of the year, and the source labels come from the frozen classifier.{n.beta_imputed_frac != null && n.beta_imputed_frac > 0 && <> {Math.round(100 * n.beta_imputed_frac)}% of this season's detections used the median correction because their area and month had none of their own.</>}</p></details>
             </div>
             <p className="mt-5 prose-measure text-lg">{above > 0
               ? above === rows.length
                 ? <>{rows.length === 1 ? 'One district has' : <><b>{rows.length}</b> districts have</>} had days above their 90th-percentile normal this season. They are ranked below.</>
                 : <><b>{above}</b> of the {rows.length} most active districts have had days above their 90th-percentile normal this season. They are ranked below.</>
               : <>No district has gone above its 90th-percentile normal yet this season.</>}</p>
+            {hasFeed && <p className="mt-3 flex flex-wrap items-center gap-2 text-sm text-muted">
+              <a className="btn" href={feed}>Get alerts (Atom feed)</a>
+              Add this link to a feed reader, Outlook or a Slack/Teams RSS app to hear when a district runs above normal.</p>}
           </header>
           {meta.data && <Section title="National activity by week, by source" download={{ name: 'kilnwatch_nrt', png: true, json: n.national }}
             summary="Harmonized MYD-eq cell-days per 1,000 clear cells, summed by week. Each bar is the total; its segments are the source split.">

@@ -5,13 +5,16 @@ from pathlib import Path
 import pytest
 
 from kilnwatch import config as C
-from kilnwatch.export import BRANCHES, write_fixtures
+from kilnwatch.export import BRANCHES
+from kilnwatch.fixtures import write_fixtures
 
-FIXT = C.ROOT / "web" / "fixtures"
+FIXT = C.WEB_FIXT  # replaced below by a fresh set: the tests check the generator, never rewrite the committed fixtures
 
 
 @pytest.fixture(scope="module", autouse=True)
-def fixtures():
+def fixtures(tmp_path_factory):
+    global FIXT
+    FIXT = tmp_path_factory.mktemp("fixtures")
     write_fixtures(FIXT)
 
 
@@ -269,4 +272,4 @@ def test_news(branch):
 
 
 def test_fixture_dir_is_not_public_dir():
-    assert Path(FIXT).resolve() != C.WEB_DATA.resolve()
+    assert Path(C.WEB_FIXT).resolve() != C.WEB_DATA.resolve()

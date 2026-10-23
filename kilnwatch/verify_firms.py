@@ -18,6 +18,8 @@ import pandas as pd
 
 from . import config as C
 from . import ingest as I
+from .ingest import atomic_write
+from .stats import spearman
 
 log = logging.getLogger("kilnwatch.verify_firms")
 
@@ -25,15 +27,6 @@ VERIFY_ROOT = C.RAW / "verify" / "firms"  # gitignored (under data/raw)
 REAL_EXPORT = C.WEB_FIXT / "nokiln" / "data"
 REFERENCE = C.ROOT / "tests" / "fixtures" / "firms_bd_reference.csv"
 KEEP_CONF = ("nominal", "high")
-
-
-def _spearman(a, b) -> float | None:
-    if len(a) < 3:
-        return None
-    ra, rb = pd.Series(list(a)).rank().to_numpy(), pd.Series(list(b)).rank().to_numpy()
-    if np.std(ra) == 0 or np.std(rb) == 0:
-        return None
-    return round(float(np.corrcoef(ra, rb)[0, 1]), 3)
 
 
 def _download(sources: list[str], start: date | None, end: date | None) -> None:
@@ -85,7 +78,7 @@ def analyze(det: pd.DataFrame) -> dict:
     for sens in ("N", "A"):
         xs = [comm_val(sens, s) for s in common]
         ys = [float(pivot.loc[s, sens]) if sens in pivot.columns else 0.0 for s in common]
-        shape[sens] = {"n": len(common), "spearman_vs_committed": _spearman(xs, ys),
+        shape[sens] = {"n": len(common), "spearman_vs_committed": spearman(xs, ys),
                        "fresh_total": int(sum(ys)), "committed_total": (round(float(sum(v for v in xs if v is not None)), 1)
                                                                         if any(v is not None for v in xs) else None)}
 
@@ -101,7 +94,7 @@ def analyze(det: pd.DataFrame) -> dict:
     ref = pd.read_csv(REFERENCE, comment="#")
     pairs = [(int(r.year), int(r.fire_days)) for _, r in ref.iterrows() if int(r.year) in got]
     reference = {"n": len(pairs),
-                 "spearman": _spearman([v for _, v in pairs], [got[y] for y, _ in pairs]),
+                 "spearman": spearman([v for _, v in pairs], [got[y] for y, _ in pairs]),
                  "fresh_fire_days_total": int(sum(got[y] for y, _ in pairs)),
                  "reference_fire_days_total": int(sum(v for _, v in pairs))}
     return {"season_by_sensor": season.to_dict("records"),
@@ -111,7 +104,7 @@ def analyze(det: pd.DataFrame) -> dict:
 
 def _write_reports(payload: dict) -> None:
     C.REPORTS.mkdir(exist_ok=True)
-    (C.REPORTS / "firms_verification.json").write_text(json.dumps(payload, indent=1, default=str), encoding="utf-8")
+    atomic_write(C.REPORTS / "firms_verification.json", json.dumps(payload, indent=1, default=str))
     r = payload
     fresh: dict[str, int] = {}
     for row in r["season_by_sensor"]:

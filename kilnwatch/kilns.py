@@ -10,10 +10,18 @@ from sklearn.cluster import DBSCAN
 from sklearn.neighbors import BallTree
 
 from . import config as C
-from .grid import pixel_radius_m
+from .grid import cell_id, pixel_radius_m
+from .ingest import atomic_write
 
 log = logging.getLogger("kilnwatch.kilns")
 R_EARTH = 6_371_000.0
+
+
+def kiln_cells() -> set:
+    """Cell ids holding a Bangladesh kiln; lives here (leaf module) so pipeline and nrt share one definition."""
+    inv = pd.read_parquet(C.INTERIM / "inventory.parquet")
+    bd = inv[inv.country == "BD"]
+    return set(cell_id(bd.lat.to_numpy(), bd.lon.to_numpy()).tolist())
 
 
 def _rad(lat, lon):
@@ -264,7 +272,7 @@ def run() -> None:
              "~11,000 controls it would require disjoint 5 km discs covering more than Bangladesh's land area."]
     (C.REPORTS / "inventory_report.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
     log.info("controls: %s", rep)
-    (C.INTERIM / "controls_report.json").write_text(__import__("json").dumps(rep), encoding="utf-8")
+    atomic_write(C.INTERIM / "controls_report.json", __import__("json").dumps(rep))
     assert rep["dropped_frac"] <= C.CONTROL_DROP_MAX, f"A4c: national control drop {rep['dropped_frac']:.2f} > {C.CONTROL_DROP_MAX}"
     worst = max(rep["by_division"].values())
     assert worst <= C.CONTROL_DROP_MAX_DIV, f"A4c: division drop {worst:.2f} > {C.CONTROL_DROP_MAX_DIV}"

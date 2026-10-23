@@ -1,0 +1,16 @@
+{
+  "name": "kiln-watch-ask",
+  "private": true,
+  "type": "module",
+  "description": "Hosted live Ask Kiln Watch: the project's agent (tools, numeric guard, step cap) on a Cloudflare Worker",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "5.20261012.1",
+    "typescript": "7.0.2",
+    "vitest": "5.0.3",
+    "wrangler": "4.149.0"
+  }
+}
