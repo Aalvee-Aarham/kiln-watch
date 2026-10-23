@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/crops', 'crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/space', 'space', 'spaceShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ['/warnings', 'warnings', 'warningsShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/crops', 'crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/space', 'space', 'spaceShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   // News opens on the map (#/news/map); the story list (#/news) and single stories keep the tab lit

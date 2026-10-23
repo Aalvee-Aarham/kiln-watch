@@ -184,14 +184,15 @@ def run(days=5, today: date | None = None) -> dict:
     cal_dir = C.WEB_DATA / "calendar"
     for dist_id in cells.district.unique():
         h = dist_h.get(dist_id, np.zeros(n_days))
-        above, last_day = 0, None
+        above, last_day, critical = 0, None, None
         f = cal_dir / f"{dist_id}.json"
         if f.exists():
-            p90 = np.asarray(json.loads(f.read_text(encoding="utf-8"))["normal"]["p90"])
-            over = np.flatnonzero(above_p90(h, p90))
+            cal = json.loads(f.read_text(encoding="utf-8"))
+            over = np.flatnonzero(above_p90(h, np.asarray(cal["normal"]["p90"])))
             above = int(len(over))
             last_day = (day0 + pd.Timedelta(days=int(over[-1]))).strftime("%Y-%m-%d") if len(over) else None
-        districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above}
+            critical = cal["critical"]  # the calendar's day-of-season windows, so #/warnings needs no calendar downloads
+        districts[dist_id] = {"h": np.round(h, 3).tolist(), "above_p90_days": above, "last_unusual": last_day, "critical": critical}
         alert_rows.append((dist_id, above, last_day))
     out = {"updated_at": pd.Timestamp.now(tz="UTC").isoformat(timespec="seconds"), "provisional": True, "season": season, "day0": day0.strftime("%Y-%m-%d"),
            "beta_imputed_frac": round(imputed, 4), "era": era, "sensor": SENSOR_NAME[era],

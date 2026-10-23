@@ -10,6 +10,17 @@ const DAY = 86_400_000
  * "Today" is the last day in the live file, not the clock, so the answer matches the data shown. A day is unusual
  * when it is above that day-of-season's 90th-percentile normal and above zero, as in the pipeline. */
 export function outlookFor(o: Outlook, distId: string, nrt: NrtSeason, p90: number[]): OutlookNow | null {
+  const h = nrt.districts[distId]?.h
+  if (!h?.length) return null
+  const last = h.length - 1
+  let recent = false
+  for (let i = Math.max(0, last - o.window_days + 1); i <= last; i++) if (h[i] > 0 && h[i] > p90[i % p90.length]) recent = true
+  return outlookWith(o, distId, nrt, recent)
+}
+
+/** outlookFor when the caller already knows whether the last `window_days` had an unusual day (#/warnings reads it
+ * from the live file's `last_unusual` instead of downloading every district's calendar). */
+export function outlookWith(o: Outlook, distId: string, nrt: NrtSeason, recent: boolean): OutlookNow | null {
   const t = o.districts[distId]
   const h = nrt.districts[distId]?.h
   if (!t || !h?.length) return null
@@ -23,7 +34,5 @@ export function outlookFor(o: Outlook, distId: string, nrt: NrtSeason, p90: numb
   if (k < 0) return { state: 'before', opens: opensText }
   if (k >= o.weeks) return { state: 'after', opens: opensText }
   if (t.if_recent[k] == null || t.if_quiet[k] == null || t.clim[k] == null) return null // no estimate for this week
-  let recent = false
-  for (let i = Math.max(0, last - o.window_days + 1); i <= last; i++) if (h[i] > 0 && h[i] > p90[i % p90.length]) recent = true
   return { state: 'on', p: recent ? t.if_recent[k] : t.if_quiet[k], clim: t.clim[k], recent, asOf: new Date(asOfMs).toISOString().slice(0, 10) }
 }

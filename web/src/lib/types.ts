@@ -88,7 +88,8 @@ export interface NrtSeason {
   updated_at: string; provisional: true; season: string; day0: string
   era?: 'N' | 'J1'; sensor?: string; beta_imputed_frac?: number  // optional: absent in files from before the NOAA-20 switch
   national: { h: number[]; split: { key: string; values: number[] }[] }
-  districts: Record<string, { h: number[]; above_p90_days: number }>
+  // last_unusual, critical: written by the daily run for #/warnings; absent in older files
+  districts: Record<string, { h: number[]; above_p90_days: number; last_unusual?: string | null; critical?: [number, number][] | null }>
 }
 
 export interface GridTile { tile: string; day0: string; rows: [cell: number, day: number, sensorPass: number][] }
