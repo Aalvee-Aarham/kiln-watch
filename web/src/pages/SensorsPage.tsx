@@ -130,7 +130,7 @@ function Guide({ h }: { h: Harmonization }) {
         <h2 className="h-section">Why this matters now</h2>
         <p className="prose-measure">NASA plans to stop collecting data from the Terra and Aqua MODIS cameras in 2027. After that, only VIIRS will be left. Without a bridge like this one,
           every 20-year fire record would break in two. Our method, code and data are open for anyone to reuse.</p>
-        <div className="flex flex-wrap gap-2"><TryLink to="/impact">Who benefits</TryLink><TryLink to="/evidence">The full tests (for experts)</TryLink></div>
+        <div className="flex flex-wrap gap-2"><TryLink to="/space">See the satellites pass over</TryLink><TryLink to="/impact">Who benefits</TryLink><TryLink to="/evidence">The full tests (for experts)</TryLink></div>
       </section>}
     </>
   )

@@ -28,3 +28,6 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | NEWS | The Gemini terms question (`docs/news_plan.md` §10 item 1) is settled before the `GEMINI_API_KEY` secret is added | | | |
 | RD-1 | News records in `web/src/lib/newsRecords.ts`: 5 random items open and say what their card says (none yet: the list starts empty) | | | |
 | RD-2 | Every quote in `web/src/lib/cropSources.ts` appears at its URL (check 5 at random) | | | |
+| SPACE | `#/space` runs smoothly on a real phone and a laptop in both globes (Detailed online, Light offline); with the network off the Light globe loads and all three chapters work | | | |
+| SPACE | The modelled Aqua and Suomi NPP day-pass times over Bangladesh on one date are within ~30 min of a real overpass predictor's (e.g. the SSEC/NASA overpass tools) | | | |
+| SPACE | The Bangla nav label “মহাকাশ থেকে দেখা” / “মহাকাশ” reads correctly to a native speaker | | | |

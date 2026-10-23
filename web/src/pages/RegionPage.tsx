@@ -85,6 +85,7 @@ export default function RegionPage() {
       </div>
       <p className="text-xs text-muted">Outlines and place names: Natural Earth (public domain), simplified; boundaries are shown as drawn there and imply no position on any claim.
         Populations are Natural Earth estimates. Backgrounds: NASA Blue Marble Next Generation and Black Marble 2016, via NASA GIBS.</p>
+      <div className="flex flex-wrap gap-2"><TryLink to="/space">See Bangladesh’s fires from orbit, on a 3D globe</TryLink></div>
     </div>
   )
 }
@@ -140,6 +141,7 @@ function Details({ sel, feature, geometry, city, cities, countryName, onCity, on
 /** What Kiln Watch has for the picked place: Bangladesh's own numbers, the kiln tests abroad, or nothing yet. */
 function Coverage({ adm0, kind, city, geometry }: { adm0: string; kind: Pick['kind']; city?: City; geometry?: GeoJSON.Geometry }) {
   if (adm0 === 'BGD') return <div className="space-y-3 border-t border-line pt-3"><BangladeshFacts kind={kind} city={city} geometry={geometry} /></div>
+  // The kiln-test box speaks only where the method was tested (Pakistan, India, Afghanistan), from the published results.
   if (SOUTH_ASIA.includes(adm0)) return <div className="space-y-3 border-t border-line pt-3">
     <p>Not analysed yet. South Asia’s harmonized fire calendar is being built, with its own calibration, tested before it is shown.</p>
     <KilnAbroad adm0={adm0} /></div>

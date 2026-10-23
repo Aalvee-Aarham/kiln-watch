@@ -161,6 +161,7 @@ export default function TrustPage() {
       <div className="flex flex-wrap gap-2">
         <a className="btn btn-primary min-h-11 px-4" href={`${REPO}/blob/main/docs/PREREGISTRATION.md`} target="_blank" rel="noreferrer">Read the pre-registration<Icon name="chevron" className="h-3.5 w-3.5" /></a>
         <TryLink to="/evidence">Full evidence (for experts)</TryLink>
+        <TryLink to="/space">What one fire pixel covers</TryLink>
       </div>
     </div>
   )

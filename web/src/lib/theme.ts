@@ -24,8 +24,9 @@ const FALLBACK: Record<string, string> = {
   '--color-fire-5': '#79191b',
 }
 
-export function cssVar(name: string): string {
-  const v = typeof window === 'undefined' ? '' : getComputedStyle(document.documentElement).getPropertyValue(name).trim()
+/** A colour token as hex, read on `el` (default: the page root) so a subtree can override tokens. */
+export function cssVar(name: string, el?: Element): string {
+  const v = typeof window === 'undefined' ? '' : getComputedStyle(el ?? document.documentElement).getPropertyValue(name).trim()
   return v ? toHex(v) : FALLBACK[name] || '#888888'
 }
 

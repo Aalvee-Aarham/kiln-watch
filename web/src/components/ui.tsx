@@ -147,7 +147,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/crops', 'crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
+  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/crops', 'crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/space', 'space', 'spaceShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   // News opens on the map (#/news/map); the story list (#/news) and single stories keep the tab lit
@@ -155,6 +155,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const lit = (to: string) => (to === '/experts' && expertPage) || (to === '/news/map' && newsPage)
   // Full-screen app pages (USGS-style map + sidebar): fill the viewport under the header, no footer, no page scroll.
   const appPage = loc.pathname === '/news/map'
+  // Full-window pages (the 3D globe) take the whole area under the header: no page padding, no footer.
+  const immersive = loc.pathname === '/space'
   useEffect(() => { document.documentElement.lang = lang }, [lang])
   // Publish the header's real height: the Explore compact bar, the sticky sidebar and section jump offsets sit below it.
   useLayoutEffect(() => {
@@ -198,8 +200,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           </div>
         </div>
       </header>
-      <main id="main" key={loc.pathname} className={appPage ? 'route-in min-h-0 flex-1' : 'route-in mx-auto max-w-[1200px] px-4 pt-6 pb-16'}>{children}</main>
-      {!appPage && <footer className="border-t border-line">
+      <main id="main" key={loc.pathname} className={appPage ? 'route-in min-h-0 flex-1' : immersive ? 'route-in' : 'route-in mx-auto max-w-[1200px] px-4 pt-6 pb-16'}>{children}</main>
+      {!appPage && !immersive && <footer className="border-t border-line">
         <div className="mx-auto flex max-w-[1200px] flex-wrap items-end gap-x-6 gap-y-2 px-4 py-6 text-sm text-muted">
           <div className="space-y-0.5">
             <p>NASA Space Apps 2026: one fire record from MODIS and VIIRS. Bangladesh is the first region.</p>
