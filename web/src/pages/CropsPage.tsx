@@ -1,337 +1,232 @@
-import { useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router'
-import { CIText, useMeta, useTitle } from '../components/ui'
-import { PageHead } from '../components/plain'
-import { TypicalYear } from '../components/TypicalYear'
-import { completeSeasons, hillShare, monthsShare, seasonMean, splitShares } from '../lib/calendar'
-import { BBOX, tilesForBox } from '../lib/box'
-import { CROP_SOURCES, source, type CropSource } from '../lib/cropSources'
-import { fetchJson, useJson } from '../lib/data'
-import { dayIso, seasonStart } from '../lib/days'
-import { busyMonths, SEASON_MONTHS, windowsText } from '../lib/plain'
-import type { Calendar, Events, FC, GridTile, NrtSeason, Validation } from '../lib/types'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link, useNavigate, useParams } from 'react-router'
+import { Icon, StatusMessage, useTitle } from '../components/ui'
+import { PageHead, Step, useQ } from '../components/plain'
+import { useJson } from '../lib/data'
+import { seasonMean } from '../lib/calendar'
+import { unitAt } from '../lib/geo'
+import { busyMonths, MONTHS } from '../lib/plain'
+import { outlookFor } from '../lib/outlook'
+import { farmYear, fromMonth, windowMonths, type FarmMonth } from '../lib/farm'
+import { source } from '../lib/cropSources'
+import type { Calendar, Events, FC, NrtSeason, Outlook, UnitProps } from '../lib/types'
 
 /**
- * Crops & harvest: burning around the harvests, from Kiln Watch's harmonized NASA FIRMS record (computed here from the
- * public export), and what the satellites cannot see (soil, smoke, health), each statement linked to its source
+ * For farmers: one district, then what is happening now, the coming months (harvests, when fields are usually burned,
+ * when to get ready), what to do with straw, what burning costs, and who to call. Plain words, big targets, one
+ * column. Fire months come from the district's calendar in the public export; every outside fact is cited
  * (lib/cropSources.ts). No typed-in figures.
  */
 const HILL = ['Bandarban', 'Rangamati', 'Khagrachhari']
-const pct = (x: number | null | undefined) => (x === null || x === undefined ? '–' : `${Math.round(x * 100)}%`)
-/** Calendar months a day-of-year window covers, in order (a window may run past 31 December). */
-function windowMonths(startDoy: number, endDoy: number): number[] {
-  const m = (doy: number) => new Date(Date.UTC(2001, 0, doy)).getUTCMonth() + 1
-  const out: number[] = []
-  for (let k = m(startDoy), i = 0; i < 12; i++, k = (k % 12) + 1) { out.push(k); if (k === m(endDoy)) break }
-  return out
+const KEY = 'kilnwatch.farmDistrict'
+const remembered = () => { try { return localStorage.getItem(KEY) } catch { return null } }
+const remember = (id: string) => { try { localStorage.setItem(KEY, id) } catch { /* private window: the link still holds it */ } }
+// The plant food a farmer buys for each nutrient in soil-nutrients.
+const FERTILISER: Record<string, string> = { nitrogen: 'urea', phosphorus: 'TSP', potassium: 'MoP (potash)', sulphur: 'gypsum' }
+
+/** "Source: Banglapedia", linked: every outside fact on this page carries one. */
+function Src({ id }: { id: string }) {
+  const s = source(id)
+  return <a className="text-sm text-muted underline" href={s.url} target="_blank" rel="noreferrer" title={s.title}>Source: {s.publisher.split(',')[0]}</a>
 }
 
-/** One outside statement with its source link. */
-function Cited({ id, className = '' }: { id: string; className?: string }) {
-  const s = source(id)
+const CHIP = { harvest: 'var(--color-paddy)', fire: 'var(--color-heat)', ready: 'var(--color-orbit)' }
+function Chip({ kind, strong, children }: { kind: keyof typeof CHIP; strong?: boolean; children: ReactNode }) {
+  return <span className="inline-flex items-center gap-1.5 rounded-full border px-3 py-1 text-base"
+    style={{ borderColor: `color-mix(in srgb, ${CHIP[kind]} 55%, transparent)`, background: `color-mix(in srgb, ${CHIP[kind]} ${strong ? 30 : 14}%, var(--color-surface))` }}>{children}</span>
+}
+
+/** A traffic-light answer: the colour is never the only signal, the words say it too. */
+function Light({ tone, title, children }: { tone: 'ok' | 'warn' | 'none'; title: ReactNode; children?: ReactNode }) {
+  const c = tone === 'ok' ? 'var(--color-ok)' : tone === 'warn' ? 'var(--color-heat)' : 'var(--color-line)'
   return (
-    <span className={className}>
-      {s.text} <a className="text-orbit underline" href={s.url} target="_blank" rel="noreferrer" title={s.title}>[{s.publisher.split(',')[0]}]</a>
-    </span>
+    <div className="panel space-y-1 border-l-[6px]" style={{ borderLeftColor: c }}>
+      <p className="text-xl font-semibold">{title}</p>
+      {children && <p className="text-base text-muted">{children}</p>}
+    </div>
   )
 }
 
-type Crop = 'rice' | 'wheat' | 'jhum' | 'sugarcane'
-
 export default function CropsPage() {
-  useTitle('Crops & Harvest · Earth Observation')
-  const [selectedCrop, setSelectedCrop] = useState<Crop>('rice')
-  const [unitId, setUnitId] = useState('BD3026') // Dhaka
-  const meta = useMeta().data
-  const events = useJson<Events>('events.json').data
-  const nrt = useJson<NrtSeason>('nrt/current_season.json').data
+  const { unitId } = useParams()
+  const nav = useNavigate()
+  const q = useQ()
   const dists = useJson<FC>('aoi/districts.geojson').data
-  const validation = useJson<Validation>('validation.json').data
-  const cal = useJson<Calendar>(`calendar/${unitId}.json`).data
-  const sorted = useMemo(() => (dists?.features ?? []).map((f) => f.properties).sort((a, b) => a.name_en.localeCompare(b.name_en)), [dists])
-  const name = sorted.find((u) => u.unit_id === unitId)?.name_en ?? unitId
-  const hillIds = useMemo(() => HILL.map((n) => dists?.features.find((f) => f.properties.name_en === n)?.properties.unit_id), [dists])
-  const hill0 = useJson<Calendar>(hillIds[0] ? `calendar/${hillIds[0]}.json` : null).data
-  const hill1 = useJson<Calendar>(hillIds[1] ? `calendar/${hillIds[1]}.json` : null).data
-  const hill2 = useJson<Calendar>(hillIds[2] ? `calendar/${hillIds[2]}.json` : null).data
-  const hills = [hill0, hill1, hill2]
+  const events = useJson<Events>('events.json').data
+  const districts = useMemo(() => (dists?.features ?? []).map((f) => f.properties).sort((a, b) => a.name_en.localeCompare(b.name_en)), [dists])
+  const unit = districts.find((u) => u.unit_id === unitId)
+  useTitle(unit ? `${unit.name_en} · For farmers` : 'For farmers')
+  const pick = (id: string) => { remember(id); nav(`/crops/${id}${q}`) }
+  // Back on this device: open the district chosen last time.
+  useEffect(() => { const r = remembered(); if (!unitId && r) nav(`/crops/${r}${q}`, { replace: true }) }, [unitId]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const label = (k: string) => meta?.split_labels.find((l) => l.key === k)?.label_en ?? k
-  const shares = cal ? splitShares(cal) : []
-  const seasons = cal && nrt ? completeSeasons(cal, nrt.season) : []
-  const harvest = events?.harvest ?? []
-  const rice = harvest.map((h) => ({ crop: h.crop, months: windowMonths(h.start_doy, h.end_doy), url: h.url }))
-  const busy = (c?: Calendar) => (c ? busyMonths(seasonMean(c)) : null)
-
-  // The hill-district share of Bangladesh's Aqua MODIS detections needs every grid tile (about 2.5 MB): on request only.
-  const [tiles, setTiles] = useState<GridTile[] | null>(null)
-  const [wantShare, setWantShare] = useState(false)
-  useEffect(() => {
-    if (!wantShare || tiles) return
-    let live = true
-    Promise.all(tilesForBox(BBOX).map((t) => fetchJson<GridTile>(`grid/${t}.json`).catch(() => null)))
-      .then((x) => { if (live) setTiles(x.filter(Boolean) as GridTile[]) })
-    return () => { live = false }
-  }, [wantShare, tiles])
-  const shareEnd = nrt ? seasonStart(nrt.season) - 1 : null
-  const hillPct = useMemo(() => {
-    if (!tiles || !meta || !dists || shareEnd === null) return null
-    const hillGeoms = dists.features.filter((f) => HILL.includes(f.properties.name_en)).map((f) => f.geometry)
-    return hillShare(tiles, meta, hillGeoms, dists.features.map((f) => f.geometry), shareEnd)
-  }, [tiles, meta, dists, shareEnd])
-
-  // Same-day row (lag 0), not the strongest: no picking. Series names as Pm25LagChart labels them per gate outcome.
-  const pm = validation?.pm25?.find((x) => x.lag === 0) ?? null
-  const [pmA, pmB] = meta?.gate_branch === 'nokiln' ? ['non-harvest burning', 'harvest-window burning'] : ['the kiln index', 'the vegetation index']
-
-  // `windows`: calendar-month windows, each named on its own (rice has two: Aman and Boro).
-  const crops: Record<Crop, { name: string; season: React.ReactNode; timing: string; windows: number[][]; soil: string; risk: string }> = {
-    rice: { name: 'Aman & Boro rice', season: rice.map((r) => `${r.crop === 'aman' ? 'Aman' : r.crop === 'boro' ? 'Boro' : r.crop} harvest: ${windowsText([r.months])}`).join(' · ') || 'Harvest windows loading…',
-      timing: 'burning-season', windows: rice.map((r) => r.months), soil: 'soil-nutrients', risk: 'smoke-pollutants' },
-    wheat: { name: 'Rabi wheat', season: source('wheat-window').text, timing: 'wheat-window', windows: [source('wheat-window').months!], soil: 'soil-residue-content', risk: 'residue-shares' },
-    jhum: { name: 'Shifting cultivation (jhum)', season: <Cited id="jhum-sowing" />, timing: 'jhum-sowing', windows: [], soil: 'jhum-harm', risk: 'jhum-fallow' },
-    sugarcane: { name: 'Sugarcane', season: source('sugarcane-window').text, timing: 'sugarcane-window', windows: [source('sugarcane-window').months!], soil: 'soil-microflora', risk: 'residue-shares' },
-  }
-  const active = crops[selectedCrop]
-  const signature = selectedCrop === 'jhum'
-    ? hills.map((c, i) => { const b = busy(c); return b ? `${HILL[i]}: busiest ${SEASON_MONTHS[b.first]} to ${SEASON_MONTHS[b.last]}` : null }).filter(Boolean).join(' · ') || 'Loading the hill districts…'
-    : cal ? `${pct(monthsShare(cal, active.windows.flat()))} of ${name}'s typical-year harmonized burning falls in ${windowsText(active.windows) || 'these months'}.` : 'Loading…'
-  // Sources cited on this page (the FIRMS detection limit is cited on the Sensors page).
-  const nSources = new Set(CROP_SOURCES.filter((s: CropSource) => s.id !== 'firms-min-fire').map((s) => s.url)).size
+  const cal = useJson<Calendar>(unit ? `calendar/${unit.unit_id}.json` : null).data
+  const busy = cal ? busyMonths(seasonMean(cal)) : null
+  const harvests = [
+    ...(events?.harvest ?? []).map((h) => ({ name: h.crop === 'aman' ? 'Aman rice' : h.crop === 'boro' ? 'Boro rice' : h.crop, months: windowMonths(h.start_doy, h.end_doy) })),
+    { name: 'Wheat', months: source('wheat-window').months! },
+    { name: 'Sugarcane', months: source('sugarcane-window').months! },
+  ]
+  const thisMonth = new Date().getMonth() + 1
+  const coming = fromMonth(farmYear(harvests, busy), thisMonth)
+  const lost = [...source('soil-nutrients').text.matchAll(/([\d.]+) kg of (\w+)/g)].map((m) => ({ kg: m[1], what: m[2] }))
+  const hill = unit && HILL.includes(unit.name_en)
+  let n = 0
 
   return (
-    <div className="space-y-8 max-w-none">
-      <PageHead title="Crops, Harvest Timing & Soil Health">
-        When fields burn around the harvests, measured from Kiln Watch&rsquo;s harmonized NASA fire record for every district of Bangladesh
-        {seasons.length ? <> ({seasons.length} complete seasons for {name})</> : null}, and what the satellites cannot see, from cited studies.
+    <div className="space-y-10 text-lg">
+      <PageHead title="For farmers">
+        Choose your district. See what is coming on your farm month by month, what to do with your straw instead of burning it,
+        and who to call for help.
       </PageHead>
-      <p className="text-xs text-muted">Sources: calendar/{unitId}.json, events.json, nrt/current_season.json and grid/ tiles from the Kiln Watch public export
-        {meta ? <>, build <span className="code">{meta.git_sha}</span></> : null}; {nSources} published sources, linked beside each statement.</p>
 
-      <label className="flex flex-wrap items-center gap-2 text-sm text-muted">District:
-        <select className="field py-1 px-2" value={unitId} onChange={(e) => setUnitId(e.target.value)}>
-          {sorted.map((u) => <option key={u.unit_id} value={u.unit_id}>{u.name_en}</option>)}
-        </select>
-      </label>
+      {/* Phone: one column. Laptop: your district and "right now" stay in view on the left while the rest scrolls on the right. */}
+      <div className="space-y-12 lg:grid lg:grid-cols-[minmax(0,380px)_minmax(0,1fr)] lg:items-start lg:gap-x-14 lg:space-y-0">
+      <div className="space-y-12 lg:sticky lg:top-[calc(var(--header-h,4rem)+1.5rem)]">
+      <Step n={++n} title="Where is your farm?">
+        <DistrictPicker districts={districts} dists={dists} value={unit?.unit_id ?? ''} onPick={pick} />
+        {unitId && districts.length > 0 && !unit && <StatusMessage kind="info">Please choose your district from the list.</StatusMessage>}
+      </Step>
 
-      {/* Hero Overview Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="rounded-[10px] border border-line bg-surface p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs uppercase tracking-wider text-orbit font-bold">1. Harvest Timing</span>
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
-          </div>
-          <h3 className="font-semibold text-sm text-ink">Derived From Thermal Waves</h3>
-          <p className="text-xs text-muted leading-relaxed">
-            {shares.length ? <>In {name}, {shares.map((s) => `${pct(s.share_frac)} ${label(s.key).toLowerCase()}`).join(', ')} (share of harmonized burning since 2003). A window is a date range: fire inside it counts whatever is burning.</> : 'Loading…'}
-            {' '}Upazila calendars are on <Link className="underline" to="/area">My area</Link>.
-          </p>
-        </div>
-
-        <div className="rounded-[10px] border border-line bg-surface p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs uppercase tracking-wider text-orange-400 font-bold">2. Soil & Carbon Damage</span>
-            <span className="h-2 w-2 rounded-full bg-orange-400" />
-          </div>
-          <h3 className="font-semibold text-sm text-ink">Nutrients Lost to Burning</h3>
-          <p className="text-xs text-muted leading-relaxed"><Cited id="soil-nutrients" /></p>
-        </div>
-
-        <div className="rounded-[10px] border border-line bg-surface p-5 space-y-2">
-          <div className="flex items-center justify-between">
-            <span className="font-mono text-xs uppercase tracking-wider text-rose-400 font-bold">3. Worker Health & Smoke</span>
-            <span className="h-2 w-2 rounded-full bg-rose-400" />
-          </div>
-          <h3 className="font-semibold text-sm text-ink">PM2.5 & Health</h3>
-          <p className="text-xs text-muted leading-relaxed"><Cited id="pm25-body" /> <Cited id="haryana-survey" /></p>
-        </div>
+      {unit && <Step n={++n} title={`Right now in ${unit.name_en}`}>
+        <RightNow distId={unit.unit_id} cal={cal} now={coming[0]} />
+      </Step>}
       </div>
 
-      {/* SECTION 1: Crop Selection & Deep Analysis */}
-      <div className="rounded-[12px] border border-line bg-surface p-6 space-y-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-          <div>
-            <h2 className="text-lg font-bold text-ink">Agricultural Systems & Crop Cycles</h2>
-            <p className="text-xs text-muted">Select a crop: its season, how much of {name}&rsquo;s burning falls in it, and what studies report about soil and smoke</p>
-          </div>
+      <div className="mt-12 space-y-12 lg:mt-0">
+      <Step n={++n} title={unit ? `Your coming months in ${unit.name_en}` : 'Harvest months in Bangladesh'}>
+        <p className="flex flex-wrap gap-2 text-base" aria-label="What the signs mean">
+          <Chip kind="harvest"><span aria-hidden>🌾</span>Harvest</Chip>
+          {unit && <><Chip kind="fire"><span aria-hidden>🔥</span>Fields often burned</Chip><Chip kind="ready"><span aria-hidden>📋</span>Get ready</Chip></>}
+        </p>
+        {!unit && <p className="text-muted">Choose your district above to add when fields near you are usually burned.</p>}
+        <ol aria-label="Your coming months" className="m-0 list-none divide-y divide-line overflow-hidden rounded-[10px] border border-line bg-surface p-0 sm:grid sm:grid-cols-2 sm:gap-3 sm:divide-y-0 sm:overflow-visible sm:border-0 sm:bg-transparent lg:grid-cols-3">
+          {coming.map((m, i) => <MonthRow key={m.month} m={m} now={i === 0} withFire={!!unit} />)}
+        </ol>
+        <p className="text-sm text-muted">
+          Rice harvest months: {events?.harvest[0] ? <a className="underline" href={events.harvest[0].url} target="_blank" rel="noreferrer">Source: FAO</a> : '…'}.
+          Wheat: <Src id="wheat-window" />. Sugarcane: <Src id="sugarcane-window" />.
+          {unit && <> Fire months: NASA satellites, the average of every season since 2003 in {unit.name_en}.</>}
+        </p>
+      </Step>
 
-          <div className="flex flex-wrap gap-1.5 bg-surface-2 p-1 rounded-[8px] border border-line">
-            {(['rice', 'wheat', 'jhum', 'sugarcane'] as const).map((k) => (
-              <button
-                key={k}
-                type="button"
-                onClick={() => setSelectedCrop(k)}
-                className={`px-3 py-1 text-xs font-mono rounded-[6px] transition-all cursor-pointer ${
-                  selectedCrop === k
-                    ? 'bg-orbit text-black font-semibold shadow-sm'
-                    : 'text-muted hover:text-ink'
-                }`}
-              >
-                {k === 'jhum' ? 'Jhum (Hill Tracts)' : k.charAt(0).toUpperCase() + k.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
+      {hill && <Step n={++n} title="Jhum farming in the hills">
+        <ul className="m-0 grid list-none gap-4 p-0 lg:grid-cols-3">
+          {['jhum-sowing', 'jhum-fallow', 'jhum-harm'].map((id) => <li key={id} className="panel space-y-1"><p>{source(id).text}</p><Src id={id} /></li>)}
+        </ul>
+      </Step>}
 
-        {/* Detailed Breakdown Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-          <div className="space-y-4">
-            <div className="rounded-[8px] border border-line bg-surface-2 p-4 space-y-1.5">
-              <span className="font-mono text-[11px] uppercase tracking-wider text-orbit font-semibold">
-                Active Cycle & Windows
-              </span>
-              <h3 className="text-base font-bold text-ink">{active.name}</h3>
-              <p className="text-xs font-mono text-muted">{active.season}</p>
-              {selectedCrop === 'rice' && rice[0] && <a className="text-xs text-orbit underline" href={rice[0].url} target="_blank" rel="noreferrer">[FAO GIEWS]</a>}
-            </div>
+      <Step n={++n} title="Don’t burn your straw. Use it.">
+        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+          {([['🐄', 'Feed your animals', 'straw-feed'], ['🌱', 'Spread it on the field', 'straw-mulch'], ['🪱', 'Let it rot into the soil', 'straw-soil-life'],
+            ['🚜', 'Sow straight into the stubble', 'happy-seeder']] as const).map(([icon, title, id]) => (
+            <li key={id} className="panel space-y-2">
+              <p className="flex items-center gap-3 text-xl font-semibold"><span aria-hidden className="text-3xl">{icon}</span>{title}</p>
+              <p>{source(id).text}</p>
+              <Src id={id} />
+            </li>))}
+        </ul>
+      </Step>
 
-            <div className="rounded-[8px] border border-line bg-surface-2 p-4 space-y-2">
-              <h4 className="text-xs font-bold font-mono text-ink uppercase tracking-wider">
-                Harvest Timing from Fire Timing
-              </h4>
-              <p className="text-xs text-muted leading-relaxed"><Cited id={active.timing} /></p>
-              <div className="mt-2 text-[11px] font-mono text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 p-2 rounded">
-                Satellite Signature (Kiln Watch): {signature}
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            <div className="rounded-[8px] border border-line bg-surface-2 p-4 space-y-2">
-              <h4 className="text-xs font-bold font-mono text-orange-400 uppercase tracking-wider">
-                Soil Degradation & Repeat-Burn Impact
-              </h4>
-              <p className="text-xs text-muted leading-relaxed"><Cited id={active.soil} /></p>
-              <ul className="text-xs space-y-1 text-muted list-disc pl-4">
-                <li><Cited id="soil-heat" /></li>
-                <li><Cited id="soil-microflora" /></li>
-                <li><Cited id="soil-residue-content" /></li>
-              </ul>
-            </div>
-
-            <div className="rounded-[8px] border border-line bg-surface-2 p-4 space-y-2">
-              <h4 className="text-xs font-bold font-mono text-rose-400 uppercase tracking-wider">
-                Wider Risks
-              </h4>
-              <p className="text-xs text-muted leading-relaxed"><Cited id={active.risk} /></p>
-            </div>
-          </div>
-        </div>
-
-        {cal && <TypicalYear perDay={seasonMean(cal)} nrt={nrt} distId={unitId} kiln={null} events={events} name={name} />}
-      </div>
-
-      {/* SECTION 2: Shifting Cultivation (Jhum) in the Chittagong Hill Tracts */}
-      <div className="rounded-[12px] border border-line bg-surface p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-orange-500" />
-            <h3 className="text-base font-bold text-ink uppercase tracking-wider font-mono">
-              Deep Dive: Shifting Cultivation (Jhum) in the Chittagong Hill Tracts
-            </h3>
-          </div>
-          <span className="font-mono text-xs text-muted">Kiln Watch, from NASA FIRMS</span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
-          <div className="p-4 rounded-[8px] bg-surface-2 border border-line space-y-1.5">
-            <span className="font-mono text-[11px] text-orange-400 font-semibold">
-              {hillPct !== null ? `${pct(hillPct)} of Bangladesh's Aqua MODIS fire detections` : 'Share of Bangladesh’s fire detections'}
-            </span>
-            <p className="text-muted leading-relaxed">
-              {hillPct !== null
-                ? <>The three hill districts ({HILL.join(', ')}) held this share of Aqua MODIS fire detections in Bangladesh from 2003 to {shareEnd !== null ? dayIso(shareEnd) : ''}, counted as 1 km grid cell-days, all fire types, from the grid/ tiles.</>
-                : <>Computed from every grid tile of the Kiln Watch export (about 2.5 MB). <button type="button" className="underline text-orbit" onClick={() => setWantShare(true)}>{wantShare ? 'Computing…' : 'Compute it'}</button></>}
-            </p>
-          </div>
-
-          <div className="p-4 rounded-[8px] bg-surface-2 border border-line space-y-1.5">
-            <span className="font-mono text-[11px] text-orange-400 font-semibold">Busiest fire months (Kiln Watch)</span>
-            <ul className="text-muted leading-relaxed">
-              {HILL.map((n, i) => { const b = busy(hills[i]); return <li key={n}>{n}: {b ? `${SEASON_MONTHS[b.first]} to ${SEASON_MONTHS[b.last]}, peak ${SEASON_MONTHS[b.peak]}` : 'loading…'}</li> })}
-            </ul>
-            <p className="text-muted"><Cited id="jhum-sowing" /></p>
-          </div>
-
-          <div className="p-4 rounded-[8px] bg-surface-2 border border-line space-y-1.5">
-            <span className="font-mono text-[11px] text-orange-400 font-semibold">Fallow Cycle Compression</span>
-            <p className="text-muted leading-relaxed"><Cited id="jhum-fallow" /> <Cited id="jhum-rotation" /></p>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 3: Farm Worker Smoke Exposure & Protection Protocols */}
-      <div className="rounded-[12px] border border-line bg-surface p-6 space-y-4">
-        <div className="flex items-center justify-between border-b border-line pb-3">
-          <div className="flex items-center gap-2">
-            <span className="h-3 w-3 rounded-full bg-rose-500" />
-            <h3 className="text-base font-bold text-ink uppercase tracking-wider font-mono">
-              Farm Worker Health & Smoke Exposure Protocols
-            </h3>
-          </div>
-          <span className="font-mono text-xs text-rose-400 border border-rose-500/20 bg-rose-500/10 px-2 py-0.5 rounded">
-            Occupational Health Hazard
-          </span>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 text-xs text-muted leading-relaxed">
-          <div className="space-y-2">
-            <h4 className="font-semibold text-ink text-sm">Particulate & Toxic Gas Exposure</h4>
-            <p><Cited id="smoke-pollutants" /></p>
-            <p><Cited id="smoke-hazard" /> <Cited id="pm25-body" /></p>
-            {pm && <p>Kiln Watch: partial correlation of Dhaka PM2.5 on the same day with {pmB}: <CIText ci={pm.r_veg} />; with {pmA}: <CIText ci={pm.r_kiln} /> (median, interval in brackets), from validation.json. A correlation only: weather drives both smoke and burning, and near zero means no clear link at this scale.</p>}
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-semibold text-ink text-sm">Recommended Interventions</h4>
-            <ul className="space-y-1.5 list-disc pl-4">
-              <li><b>No-burn sowing:</b> <Cited id="happy-seeder" /></li>
-              <li><b>Keep residue in the field:</b> <Cited id="in-situ" /></li>
-              <li><b>Monitor from space:</b> <Cited id="satellite-monitoring" /></li>
-            </ul>
-          </div>
-        </div>
-      </div>
-
-      {/* SECTION 4: The satellite record behind these numbers */}
-      <div className="rounded-[12px] border border-line bg-surface p-6 space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-3">
-          <div>
-            <h3 className="text-base font-bold text-ink font-mono uppercase tracking-wider">
-              NASA Fire Record Since 2003 & Satellite Harmonization
-            </h3>
-            <p className="text-xs text-muted">Kiln Watch puts Aqua MODIS, Suomi NPP VIIRS and NOAA-20 VIIRS on one Aqua-equivalent scale, so a camera change does not read as a change in burning</p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              to="/ask"
-              className="btn btn-sm bg-orbit text-black font-semibold font-mono text-xs hover:brightness-110 transition-all"
-            >
-              Ask AI Agent →
-            </Link>
-            <Link
-              to="/region"
-              className="btn btn-sm border border-line text-xs font-mono text-muted hover:text-ink"
-            >
-              World Map →
-            </Link>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs text-muted">
-          <ul className="space-y-1.5">
-            {(events?.satellite ?? []).map((e) => (
-              <li key={e.date + e.label_en}><b className="text-ink">{e.date}</b>: {e.label_en} <a className="text-orbit underline" href={e.url} target="_blank" rel="noreferrer">[source]</a></li>
-            ))}
+      <Step n={++n} title="What burning costs you">
+        <div className="panel space-y-4">
+          <p className="text-xl font-semibold">Burning one tonne of straw throws away the plant food you pay for as fertiliser:</p>
+          <ul className="m-0 grid list-none grid-cols-2 gap-3 p-0 sm:grid-cols-4">
+            {lost.map((x) => <li key={x.what} className="rounded-[8px] bg-surface-2 p-3 text-center">
+              <b className="block text-3xl">{x.kg} kg</b>
+              <span className="block capitalize">{x.what}</span>
+              {FERTILISER[x.what] && <span className="block text-sm text-muted">as in {FERTILISER[x.what]}</span>}
+            </li>)}
           </ul>
-          <ul className="space-y-1.5">
-            <li><Cited id="terra" /></li>
-            <li><Cited id="aqua" /></li>
-            <li>Kiln Watch&rsquo;s harmonized record uses Aqua as its anchor; Terra is not part of it. See <Link className="underline" to="/how">How it works</Link>.</li>
-          </ul>
+          <Src id="soil-nutrients" />
         </div>
+        <ul className="m-0 grid list-none gap-4 p-0 sm:grid-cols-2">
+          {([['🪲', 'soil-microflora'], ['🫁', 'pm25-body']] as const).map(([icon, id]) => (
+            <li key={id} className="panel space-y-2"><p className="flex items-start gap-3"><span aria-hidden className="text-3xl">{icon}</span>{source(id).text}</p><Src id={id} /></li>))}
+        </ul>
+      </Step>
+
+      <Step n={n + 1} title="Need help?">
+        <div className="panel space-y-3">
+          <p>{source('krishi-call').text}</p>
+          <a className="btn btn-primary min-h-14 px-6 text-xl" href="tel:16123"><span aria-hidden>📞</span>Call 16123</a>
+          <p><Src id="krishi-call" /></p>
+        </div>
+        <div className="flex flex-wrap gap-3 print:hidden">
+          <button className="btn min-h-12 px-4" onClick={() => window.print()}><Icon name="download" />Print this page</button>
+          {unit && <Link className="btn min-h-12 px-4" to={`/area/${unit.unit_id}${q}`}>Fire map for {unit.name_en}<Icon name="chevron" className="h-3.5 w-3.5" /></Link>}
+        </div>
+      </Step>
+      </div>
       </div>
     </div>
+  )
+}
+
+/** A big district list plus "Use my location" (matched on this device, never sent). */
+function DistrictPicker({ districts, dists, value, onPick }: { districts: UnitProps[]; dists?: FC; value: string; onPick: (id: string) => void }) {
+  const [state, setState] = useState<'idle' | 'busy' | 'no'>('idle')
+  const locate = () => {
+    if (!('geolocation' in navigator) || !dists) { setState('no'); return }
+    setState('busy')
+    navigator.geolocation.getCurrentPosition((pos) => {
+      const hit = unitAt(dists, pos.coords.latitude, pos.coords.longitude)
+      if (hit) { setState('idle'); onPick(hit.unit_id) } else setState('no')
+    }, () => setState('no'), { timeout: 10000, maximumAge: 600000 })
+  }
+  return (
+    <div className="panel space-y-4">
+      <button className="btn btn-primary min-h-14 w-full text-xl" onClick={locate} disabled={state === 'busy' || !dists}>
+        <Icon name="pin" />{state === 'busy' ? 'Finding your district…' : 'Use my location'}</button>
+      {state === 'no' && <StatusMessage kind="info">We could not find your district. Please choose it from the list below.</StatusMessage>}
+      <label className="block font-semibold">Your district
+        <select className="field mt-2 min-h-14 w-full text-xl font-normal" value={value} onChange={(e) => e.target.value && onPick(e.target.value)}>
+          <option value="">Choose your district…</option>
+          {districts.map((u) => <option key={u.unit_id} value={u.unit_id}>{u.name_en}</option>)}
+        </select>
+      </label>
+      <p className="text-sm text-muted">Your location stays on this phone. It is never sent anywhere.</p>
+    </div>
+  )
+}
+
+/** This season so far, the next two weeks, and what this month means for the farm. */
+function RightNow({ distId, cal, now }: { distId: string; cal?: Calendar; now: FarmMonth }) {
+  const nrt = useJson<NrtSeason>('nrt/current_season.json').data
+  const ol = useJson<Outlook>('outlook.json').data // optional: absent when its backtest is not estimable
+  const live = nrt?.districts[distId]
+  const next = ol?.ships && nrt && cal ? outlookFor(ol, distId, nrt, cal.normal.p90) : null
+  const month = MONTHS[now.month - 1]
+  const todo = now.prepare ? 'Fields near you are usually burned from next month. Decide now what you will do with your straw.'
+    : now.fire ? 'Fields near you are often burned this month. Use your straw instead (see below).'
+      : now.harvests.length ? 'Plan where your straw will go after the harvest.' : 'A quiet month for burning near you.'
+  return (
+    <div className="space-y-3">
+      <Light tone="none" title={<>{month}{now.harvests.length ? `: ${now.harvests.join(', ')} harvest` : ''}</>}>{todo}</Light>
+      {live ? live.above_p90_days
+        ? <Light tone="warn" title="More fire than usual this season">{live.above_p90_days} {live.above_p90_days === 1 ? 'day' : 'days'} with more fire than usual since 1 July. From NASA satellites, updated every day.</Light>
+        : <Light tone="ok" title="Normal so far this season">No days with more fire than usual since 1 July. From NASA satellites, updated every day.</Light>
+        : <Light tone="none" title="No satellite news for your district today" />}
+      {next && (next.state === 'on'
+        ? next.p > next.clim
+          ? <Light tone="warn" title="Next two weeks: more fire than usual is likely">Chance {Math.round(next.p * 100)} in 100. Usual for this time of year: {Math.round(next.clim * 100)} in 100.</Light>
+          : <Light tone="ok" title="Next two weeks: about usual">Chance of more fire than usual: {Math.round(next.p * 100)} in 100, the same as or less than most years.</Light>
+        : <Light tone="none" title={next.state === 'before' ? `The two-week forecast starts on ${next.opens}` : 'The two-week forecast returns next season'} />)}
+    </div>
+  )
+}
+
+function MonthRow({ m, now, withFire }: { m: FarmMonth; now: boolean; withFire: boolean }) {
+  const quiet = !m.harvests.length && !(withFire && (m.fire || m.prepare))
+  return (
+    <li className={`flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3 sm:flex-col sm:items-start sm:gap-y-3 sm:rounded-[10px] sm:border sm:bg-surface sm:p-4 ${now ? 'bg-surface-2 sm:border-2 sm:border-ink' : 'sm:border-line'}`} aria-current={now ? 'date' : undefined}>
+      <span className="w-32 shrink-0 text-xl font-semibold sm:w-auto">{MONTHS[m.month - 1]}{now && <span className="tag ml-2 align-middle">Now</span>}</span>
+      <span className="flex flex-wrap gap-2">
+        {m.harvests.map((h) => <Chip key={h} kind="harvest"><span aria-hidden>🌾</span>{h} harvest</Chip>)}
+        {withFire && m.fire > 0 && <Chip kind="fire" strong={m.fire === 2}><span aria-hidden>🔥</span>{m.fire === 2 ? 'Most burning of the year' : 'Fields often burned'}</Chip>}
+        {withFire && m.prepare && <Chip kind="ready"><span aria-hidden>📋</span>Get ready: plan for your straw</Chip>}
+        {quiet && <span className="text-muted">Nothing special</span>}
+      </span>
+    </li>
   )
 }

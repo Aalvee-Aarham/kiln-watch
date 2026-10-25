@@ -114,7 +114,7 @@ Every topic has three layers: *what it means* in one plain sentence, an app to *
 | **My area** | Impact | Search, tap the map or use their location → when burning season is there, whether this season is unusual so far, a tested two-week outlook (1 November to mid-May), a typical year month by month with the harvest windows (Extension 1) and kiln months (Extension 2); compare two areas. The map can show NASA satellite or night-lights imagery and step through this season week by week |
 | **News** | Impact, Relevance | Bangladeshi newspaper stories about crop, waste and kiln burning beside our own satellite data: a map of this season's fire with a pin per story, and each story with what the satellites saw around its date, how common fire is in that district and earlier news there. The tab appears only when a news build exists ([`docs/news_plan.md`](docs/news_plan.md)) |
 | **AI agent** (Ask Kiln Watch) | Creativity, Validity | Plain-language answers written by Gemini from the project's own functions, with every function call and result behind each figure |
-| **Crops** (Crops & harvest) | Impact | Burning around the Aman and Boro harvests, computed from the harmonized record (Extension 1), and what the satellites cannot see (soil, smoke, health), each statement linked to its source |
+| **For farmers** (`#/crops`) | Impact | Built for farmers who are not technical: choose a district (or use your location; the choice is remembered on that device) → what this month means for the farm, whether this season has had more fire than usual, the two-week forecast, the next twelve months with the Aman, Boro, wheat and sugarcane harvests, the months fields near you are usually burned and the month to get ready (Extension 1), what to do with straw instead of burning it, what burning costs in fertiliser, and a one-tap call to the government Krishi Call Centre (16123). One column on a phone; on a laptop the district and "right now" stay in view beside the months. Each outside fact is linked to its source |
 | **World map** | Relevance | Every country, state and city on Earth, opening on South Asia, with NASA satellite and night-light backgrounds: search any place or tap the map to see what Kiln Watch covers there. Bangladesh is live; South Asia's calendar is being built |
 | **Seen from space** | Creativity, Presentation | A guided tour on a full-window 3D globe that arrives from deep space (Back / Next, chapter tabs, a video-style time bar): the five fire satellites circling the Earth and passing over any place you click or search for (fire squares in Bangladesh) on a chosen day, a whole season of fire-days rising as 11 km columns, and how much ground one MODIS or VIIRS pixel covers (and how small a kiln is next to it). Detailed globe online (CesiumJS, NASA GIBS, Sentinel-2 close up); light globe offline (globe.gl, bundled NASA images) |
 | **Who benefits** | Impact | Picks a person (farm officer, family, scientist, journalist, inspector, policy maker) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
@@ -123,7 +123,7 @@ Every topic has three layers: *what it means* in one plain sentence, an app to *
 | **Sensors** (Sensor switch), **Timeline** | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 by season with laws and satellite milestones |
 | **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, the research data (CSV + Parquet) and the pre-registration |
 
-The crop burning windows (Extension 1) have their own Crops page, and also appear on My area, the Explorer and the farm-officer plan.
+The crop burning windows (Extension 1) have their own page for farmers, and also appear on My area, the Explorer and the farm-officer plan.
 
 Every page above has its own tab, under its short name. Below 1024 px the tabs sit on their own row and wrap instead of scrolling, so every tab stays in view.
 
@@ -213,7 +213,7 @@ Good first pages:
 | My area | http://localhost:5173/kiln-watch/#/area |
 | AI agent (Ask Kiln Watch) | http://localhost:5173/kiln-watch/#/ask |
 | News (map of stories beside this season's fire) | http://localhost:5173/kiln-watch/#/news/map |
-| Crops & harvest | http://localhost:5173/kiln-watch/#/crops |
+| For farmers | http://localhost:5173/kiln-watch/#/crops |
 | Seen from space (3D globe tour) | http://localhost:5173/kiln-watch/#/space |
 
 **Production build** (what GitHub Pages serves):
@@ -359,4 +359,4 @@ Use GitHub's "Cite this repository" button (from [`CITATION.cff`](CITATION.cff))
 
 ## Build dates
 
-The planning documents, pipeline, data processing and first results were built on 5–6 October 2026, after the challenge summary was published; the plain-language redesign and its apps followed on 7 October 2026. The fire-calendar-first pages, the two-week outlook, the research data release, the world map and the AI agent followed on 10 October 2026. The Seen from space globe and the News page followed on 11–12 October 2026, and the Crops page and real data on the Ask stage on 13 October 2026. The public git history records every date.
+The planning documents, pipeline, data processing and first results were built on 5–6 October 2026, after the challenge summary was published; the plain-language redesign and its apps followed on 7 October 2026. The fire-calendar-first pages, the two-week outlook, the research data release, the world map and the AI agent followed on 10 October 2026. The Seen from space globe and the News page followed on 11–12 October 2026, and the Crops page and real data on the Ask stage on 13 October 2026. The Crops page was rebuilt as the page for farmers on 25 October 2026. The public git history records every date.
