@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 
 const ROUTES = ['#/', '#/area', '#/area/BD3026', '#/kilns', '#/kilns/BD3026', '#/sensors', '#/timeline', '#/impact', '#/impact/families/BD1004', '#/how', '#/trust', '#/experts', '#/ask', '#/region',
-  '#/space', '#/news', '#/news?season=all', '#/news/map', '#/news/story/2025-26/000000000000', '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
+  '#/space', '#/warnings', '#/news', '#/news?season=all', '#/news/map', '#/news/story/2025-26/000000000000', '#/story', '#/explore', '#/explore/district/BD3026', '#/experts/kilns', '#/evidence', '#/season', '#/method', '#/explore/box/90.2500,23.6000,90.6000,23.9000']
 
 function watchErrors(page: Page) {
   const errors: string[] = []

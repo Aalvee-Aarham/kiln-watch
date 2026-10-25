@@ -30,6 +30,7 @@ const NewsStoryPage = lazy(() => import('./pages/NewsStoryPage'))
 const CropsPage = lazy(() => import('./pages/CropsPage'))
 const RegionPage = lazy(() => import('./pages/RegionPage'))
 const SpacePage = lazy(() => import('./pages/SpacePage'))
+const WarningsPage = lazy(() => import('./pages/WarningsPage'))
 
 function App() {
   const meta = useMeta().data
@@ -56,6 +57,7 @@ function App() {
             <Route path="/region" element={<RegionPage />} />
             <Route path="/world" element={<RegionPage />} />
             <Route path="/space" element={<SpacePage />} />
+            <Route path="/warnings" element={<WarningsPage />} />
             <Route path="/story" element={<StoryPage />} />
             <Route path="/explore" element={<ExplorerPage />} />
             <Route path="/explore/box/:box" element={<ExplorerPage />} />
