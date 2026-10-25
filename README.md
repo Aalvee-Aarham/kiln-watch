@@ -348,14 +348,14 @@ Use GitHub's "Cite this repository" button (from [`CITATION.cff`](CITATION.cff))
 
 ## Team
 
-**Team Off The Binary**
+**Team Off The Binary**  
+*From Bangladesh*
 
-- Arna · Frontend
-- Sajid · Backend
-- Aalvee · AI Agent
-- Ahnaf · Data
-- Nazifa · Research
-- Maruf · Design
+| Team member | Team member | Team member |
+|---|---|---|
+| **Israt Jahan Arna**<br>**FRONTEND ENGINEERING LEAD** | **Nazifa Jahan**<br>**RESEARCH & INNOVATION LEAD** | **Sajid Alam Chowdhury Omee**<br>**BACKEND SYSTEMS ENGINEER** |
+| **Aalvee Aarham**<br>**AI SYSTEMS ARCHITECT & PROJECT LEAD** | **Maruf Hasan Tawhid**<br>**ACQUISITION & GEOGRAPHY** | **Muhammad Ahnaf Sarker**<br>**LEAD AI/ML DEVELOPER** |
+
 
 ## Build dates
 
