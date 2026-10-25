@@ -1563,14 +1563,6 @@
       }
     }
   }
-
-  @supports not (animation-timeline: scroll()) {
-    @media (max-width: 639px) {
-      .nav-scroll {
-        mask-image: linear-gradient(to right, #000 82%, transparent);
-      }
-    }
-  }
 }
 
 @utility route-in {
