@@ -410,6 +410,19 @@ test('crops: the page names its sources', async ({ page }) => {
   await expect(page.locator('a[href*="fao.org"]').first()).toBeVisible()
 })
 
+test('farmers: a district opens its coming twelve months, is remembered, and the helpline is one tap', async ({ page }) => {
+  await page.goto('#/crops')
+  await page.getByLabel('Your district').selectOption({ label: 'Rangpur' })
+  await expect(page).toHaveURL(/#\/crops\/BD\d{4}$/)
+  await expect(page.getByRole('heading', { level: 2, name: /Right now in Rangpur/ })).toBeVisible()
+  const months = page.getByRole('list', { name: 'Your coming months' }).getByRole('listitem')
+  await expect(months).toHaveCount(12)
+  await expect(months.first()).toHaveAttribute('aria-current', 'date')
+  await expect(page.getByRole('link', { name: /Call 16123/ })).toHaveAttribute('href', 'tel:16123')
+  await page.goto('#/crops')
+  await expect(page).toHaveURL(/#\/crops\/BD\d{4}$/)
+})
+
 test('world map: search finds a city anywhere and says what is covered there', async ({ page }) => {
   await page.goto('#/region')
   await expect(page.getByRole('heading', { level: 1, name: 'South Asia and the world' })).toBeVisible()
