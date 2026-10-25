@@ -145,11 +145,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const showKilns = useKilnsVisible()
   const showNews = useNewsVisible()
   // Plain-language pages first; the original expert pages sit behind "For experts" (redesign_plan.md §3).
-  // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof. Sensor switch and Timeline are linked from the pages.
+  // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
-  // Crops and Space keep their short names at every width: with the long names the row overflows the 1200px header.
-  const tabs: [string, Key, Key?][] = [['/how', 'how', 'howShort'], ['/area', 'area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'ask', 'askShort'], ['/crops', 'cropsShort'], ['/region', 'region', 'regionShort'], ['/space', 'spaceShort'], ['/impact', 'impact', 'impactShort'], ['/trust', 'trust', 'trustShort'],
-  ...(showKilns ? [['/kilns', 'planner', 'kilnsShort'] as [string, Key, Key]] : []), ['/experts', 'experts', 'expertsShort']]
+  // Short names at every width: with 13 tabs the long names overflow the 1200px header.
+  const tabs: [string, Key][] = [['/how', 'howShort'], ['/area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'askShort'], ['/crops', 'cropsShort'], ['/region', 'regionShort'], ['/space', 'spaceShort'], ['/sensors', 'sensorsShort'], ['/timeline', 'timeline'], ['/impact', 'impactShort'], ['/trust', 'trustShort'],
+  ...(showKilns ? [['/kilns', 'kilnsShort'] as [string, Key]] : []), ['/experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   // News opens on the map (#/news/map); the story list (#/news) and single stories keep the tab lit
   const newsPage = /^\/news(\/|$)/.test(loc.pathname)
@@ -175,24 +175,24 @@ export function AppShell({ children }: { children: ReactNode }) {
       <DemoBanner />
       <SeasonBanner />
       <header ref={headerRef} className="sticky top-0 z-40 border-b border-line bg-bg/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 sm:flex-nowrap min-[900px]:gap-x-5">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center gap-x-3 gap-y-1 px-4 py-2 lg:flex-nowrap min-[900px]:gap-x-5">
           <NavLink to={'/' + q} className="flex shrink-0 items-center gap-2 py-1">
             <CalStrip className="h-3.5 w-7 rounded-[2px]" />
             <span className="h-display text-[19px]">Kiln Watch</span>
           </NavLink>
-          <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-0 overflow-x-auto px-4 max-sm:flex-wrap pb-1 sm:order-none sm:mx-0 sm:flex-1 sm:basis-auto sm:px-0 sm:pb-0">
-            {tabs.map(([to, k, short]) => {
+          <nav ref={navRef} aria-label="Main" className="nav-scroll order-3 -mx-4 flex min-w-0 basis-[calc(100%+2rem)] gap-0 overflow-x-auto px-4 max-lg:flex-wrap pb-1 lg:order-none lg:mx-0 lg:flex-1 lg:basis-auto lg:px-0 lg:pb-0">
+            {tabs.map(([to, k]) => {
               // NavLink's own matching (this path or below it), plus the sections a tab stands for. Computed here because
               // NavLink drops aria-current whenever its own URL doesn't match.
               const on = loc.pathname === to || loc.pathname.startsWith(`${to}/`) || lit(to)
               return (
                 <Link key={to} to={to + q} aria-current={on ? 'page' : undefined}
-                  className={`relative shrink-0 rounded-[4px] px-1 py-1.5 text-[14px] min-[900px]:px-2 min-[900px]:text-[15px] transition-colors duration-150 ${on ? 'font-semibold text-ink after:absolute after:inset-x-1 min-[900px]:after:inset-x-2 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-sm:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
-                  {short ? <><span className="min-[1200px]:hidden">{t(short)}</span><span className="max-[1200px]:hidden">{t(k)}</span></> : t(k)}
+                  className={`relative shrink-0 rounded-[4px] px-1 py-1.5 text-[14px] min-[900px]:px-2 min-[900px]:text-[15px] transition-colors duration-150 ${on ? 'font-semibold text-ink after:absolute after:inset-x-1 min-[900px]:after:inset-x-2 after:-bottom-[9px] after:h-[2px] after:bg-orbit max-lg:after:-bottom-[3px]' : 'text-muted hover:text-ink'}`}>
+                  {t(k)}
                 </Link>)
             })}
           </nav>
-          <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-1.5 lg:ml-0">
             <PatternsToggle />
             <button className="btn btn-icon" aria-label={theme === 'day' ? t('themeNight') : t('themeDay')} title={theme === 'day' ? t('themeNight') : t('themeDay')}
               onClick={(e) => { const r = e.currentTarget.getBoundingClientRect(); toggleTheme({ x: r.left + r.width / 2, y: r.top + r.height / 2 }) }}>

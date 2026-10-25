@@ -120,12 +120,12 @@ Every topic has three layers: *what it means* in one plain sentence, an app to *
 | **Who benefits** | Impact | Picks a person (farm officer, family, scientist, journalist, inspector, policy maker) and a district → their real question, what the data shows there, dated actions, the benefit and the limits. Printable, with its own link |
 | **Can you trust it?** | Validity | Every pre-registered test in plain words, marked passed, failed or no link found; whether the cameras agree after correction; how the outlook was tested; how we kept ourselves honest; what we never claim |
 | **Kiln planner** (extension) | Impact | Drag a slider 2012 → today and watch the kiln season lengthen on the map; per-area start, busiest month and end; longest and fastest-growing seasons |
-| **Sensor switch**, **Timeline** | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 by season with laws and satellite milestones (linked from the pages above) |
+| **Sensors** (Sensor switch), **Timeline** | Creativity, Impact | The 2012 "fire explosion" puzzle; 2002 → 2027 by season with laws and satellite milestones |
 | **For experts** | Validity | The original science story, Evidence, Method, the full Explorer (drawn boxes, raw vs harmonized, 95% intervals), kiln charts, code, the research data (CSV + Parquet) and the pre-registration |
 
 The crop burning windows (Extension 1) have their own Crops page, and also appear on My area, the Explorer and the farm-officer plan.
 
-On phones the nav wraps onto two rows instead of scrolling, so every tab stays in view.
+Every page above has its own tab, under its short name. Below 1024 px the tabs sit on their own row and wrap instead of scrolling, so every tab stays in view.
 
 Everything is computed in the browser from the public, area-level export. "Use my location" is matched to an area on the device and never sent anywhere.
 
