@@ -18,6 +18,7 @@ One fire record from MODIS and VIIRS: a burning-activity calendar for any area, 
 | [real_data_plan.md](real_data_plan.md) | **Plan, done 2026-10-13 (uncommitted):** every dummy value (Ask demo stage, Crops page, Sensors threshold) replaced with real data, removing nothing; places outside Bangladesh wait for Amendment 5; the offline-copy refresh waits for a re-published release |
 | [roadmap.md](roadmap.md) | The plan to the event: steps F0–F9, what each must show to be done |
 | [news_plan.md](news_plan.md) | The news page: newspaper stories beside our satellite data — decisions, sources, pipeline, contract, risks |
+| [early_warning.md](early_warning.md) | The `#/warnings` page: districts ranked by unusual fire now and by critical periods starting soon, from existing tested data; what changed and how it is checked |
 | [../CLAUDE.md](../CLAUDE.md) | Living rules for coding agents (invariants, conventions, when blocked) |
 
 ## Canonical records (never rewritten)

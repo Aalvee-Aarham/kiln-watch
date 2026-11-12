@@ -148,7 +148,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   // v2 (redesign_plan.md §9): approach → the two apps → benefits → proof.
   // The fire calendar leads, then the AI agent; the kiln extension sits after the proof (docs/roadmap.md F1). Order matches README "The website".
   // Short names at every width: with 13 tabs the long names overflow the 1200px header.
-  const tabs: [string, Key][] = [['/how', 'howShort'], ['/area', 'areaShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'askShort'], ['/crops', 'cropsShort'], ['/region', 'regionShort'], ['/space', 'spaceShort'], ['/sensors', 'sensorsShort'], ['/timeline', 'timeline'], ['/impact', 'impactShort'], ['/trust', 'trustShort'],
+  const tabs: [string, Key][] = [['/how', 'howShort'], ['/area', 'areaShort'], ['/warnings', 'warningsShort'], ...(showNews ? [['/news/map', 'news'] as [string, Key]] : []), ['/ask', 'askShort'], ['/crops', 'cropsShort'], ['/region', 'regionShort'], ['/space', 'spaceShort'], ['/sensors', 'sensorsShort'], ['/timeline', 'timeline'], ['/impact', 'impactShort'], ['/trust', 'trustShort'],
   ...(showKilns ? [['/kilns', 'kilnsShort'] as [string, Key]] : []), ['/experts', 'expertsShort']]
   const expertPage = /^\/(experts|story|explore|season|evidence|method)(\/|$)/.test(loc.pathname)
   // News opens on the map (#/news/map); the story list (#/news) and single stories keep the tab lit

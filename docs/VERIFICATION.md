@@ -31,3 +31,5 @@ Rows are appended by agents and **signed only by people**. Columns: step · chec
 | SPACE | `#/space` runs smoothly on a real phone and a laptop in both globes (Detailed online, Light offline); with the network off the Light globe loads and all three chapters work | | | |
 | SPACE | The modelled Aqua and Suomi NPP day-pass times over Bangladesh on one date are within ~30 min of a real overpass predictor's (e.g. the SSEC/NASA overpass tools) | | | |
 | SPACE | The Bangla nav label “মহাকাশ থেকে দেখা” / “মহাকাশ” reads correctly to a native speaker | | | |
+| WARN | `#/warnings` after a real daily run: 5 districts listed as unusual match their Area page and `#/season`; 3 districts' critical-period dates match the shaded critical period on their calendar chart | | | |
+| WARN | The Bangla page title, group headings and nav label (“আগুনের আগাম সতর্কতা”, “সতর্কতা”) read correctly to a native speaker | | | |

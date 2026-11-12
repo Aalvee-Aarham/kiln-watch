@@ -25,6 +25,7 @@ Plain-language pages, organised around the four judging questions (redesign v2):
 | `#/` | `HomePage` | Three findings, the satellite-to-decision Ledger hero, today's NASA data, judge guide |
 | `#/how` | `HowPage` | The whole approach in six walked steps, each on real data |
 | `#/area/:unitId?` | `AreaPage` | Search / tap map / geolocation → burning-season answers, kiln season, typical year, compare |
+| `#/warnings` | `WarningsPage` | Early warning: every district ranked by what needs attention now (`lib/warnings.ts`): an unusual day in the last two weeks, inside its critical period, or a critical period starting within two weeks (with the date), plus the two-week outlook when `outlook.json` ships. Reads only `nrt/current_season.json` (`last_unusual`, `critical`), `outlook.json` and the district names; rows open the Area page. No new forecast |
 | `#/kilns/:unitId?` | `KilnPlannerPage` | 2012 → today season slider; start/busiest/end per area; trends |
 | `#/impact/:who?/:unitId?` | `ImpactPage` | Person × district playbook — real question, data, dated actions; printable, own URL |
 | `#/trust` | `TrustPage` | Every pre-registered test in plain words, failures included; country switch for the transfer results |
@@ -55,7 +56,8 @@ The header nav (`AppShell`) shows How / Area / Ask / World / Space / Impact / Tr
 | `theme.ts` | Reads Tailwind `@theme` CSS vars for UI + charts, literal fallbacks, day/night toggle |
 | `world.ts` | World-map logic, pure and tested: fitting a box into the frame, zoom limits, which cities to name at a zoom, greedy label placement, ranked place search |
 | `basemap.ts` | The Map / Satellite / Night lights choice shared by both maps |
-| `outlook.ts` | Today's two-week outlook for a district from `outlook.json` and the live season (mirrors `kilnwatch/ask.py two_week_outlook`) |
+| `outlook.ts` | Today's two-week outlook for a district from `outlook.json` and the live season (mirrors `kilnwatch/ask.py two_week_outlook`); `outlookWith` takes the recent-unusual flag directly |
+| `warnings.ts` | `#/warnings` levels and ranking: `nextCritical` (current or next critical window, wrapping to next season) and `warningsFor` |
 | `news.ts` | News page logic, pure and tested: story grouping, filters, and the plain-language sentences for each satellite part and verdict (thresholds from `news/index.json` `rules`) |
 | `plain.ts` | Plain-language numbers and dates ("early December", typical season) — pure, tested |
 | `ritu.ts` | The six Bengali seasons (revised calendar) + aman/boro harvest spans |

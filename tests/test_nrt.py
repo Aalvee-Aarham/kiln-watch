@@ -95,6 +95,17 @@ def test_rehearsal_after_snpp_ends_uses_noaa20(monkeypatch, tmp_path):
     ET.fromstring((tmp_path / "data" / "nrt" / "alerts.xml").read_bytes())  # the daily run writes a parseable feed
 
 
+def test_rehearsal_publishes_warning_inputs(monkeypatch, tmp_path):
+    """#/warnings reads these instead of 64 calendars: critical is the calendar's own, last_unusual the latest unusual day."""
+    out, _, _ = _rehearse(monkeypatch, tmp_path, date(2026, 11, 10))
+    for dist_id, d in out["districts"].items():
+        f = tmp_path / "data" / "calendar" / f"{dist_id}.json"
+        assert d["critical"] == (json.loads(f.read_text(encoding="utf-8"))["critical"] if f.exists() else None)
+        assert (d["last_unusual"] is None) == (d["above_p90_days"] == 0)
+        if d["last_unusual"]:
+            assert "2026-07-01" <= d["last_unusual"] <= "2026-11-10"
+
+
 def test_rehearsal_on_snpp_last_day_still_uses_snpp(monkeypatch, tmp_path):
     out, d_j1, d_n = _rehearse(monkeypatch, tmp_path, nrt.SNPP_END)
     assert out["era"] == "N" and out["sensor"] == "Suomi NPP"

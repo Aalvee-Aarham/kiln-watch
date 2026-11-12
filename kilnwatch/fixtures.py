@@ -9,6 +9,7 @@ import json
 import logging
 import shutil
 import tarfile
+from datetime import date, timedelta
 from pathlib import Path
 
 import numpy as np
@@ -152,6 +153,12 @@ def _fixture_set(branch: str, d: Path) -> None:
         pid = f["properties"]["unit_id"]
         if pid not in nrt_d:
             nrt_d[pid] = {"h": [round(float(x), 2) for x in rng.gamma(2, 0.15, days)], "above_p90_days": int(rng.integers(0, 4))}
+    for pid, v in nrt_d.items():  # no random draws: the warning fields leave every other fixture byte-identical
+        cal = d / "calendar" / f"{pid}.json"
+        v["critical"] = json.loads(cal.read_text(encoding="utf-8"))["critical"] if cal.exists() else None
+        # the latest unusual day 0, 5, 10 ... days before the last day of data, so the demo has both recent and older ones
+        n_up = v["above_p90_days"]
+        v["last_unusual"] = (date(2026, 7, 1) + timedelta(days=days - 1 - 5 * (n_up - 1))).isoformat() if n_up else None
     dump_json({"updated_at": "2026-10-05T03:00:00Z", "provisional": True, "season": "2026-27", "day0": "2026-07-01",
            "national": {"h": [round(float(x), 3) for x in rng.gamma(2, 0.5, days)], "split": [{"key": k, "values": [round(float(x), 3) for x in rng.gamma(2, 0.2, days)]} for k in keys]},
            "districts": nrt_d},
