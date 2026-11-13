@@ -1,0 +1,302 @@
+{
+  "server/kw/__init__.py": {
+    "mtime": 1794346303.3879323,
+    "seen": 1794347363.2256954,
+    "ast_hash": "6e5bd413cc11752a36631bb92009e565",
+    "semantic_hash": ""
+  },
+  "server/kw/agent.py": {
+    "mtime": 1794386250.4070768,
+    "seen": 1794386684.5696788,
+    "ast_hash": "3d919bf0321517e2f3ce125b81d5625c",
+    "semantic_hash": ""
+  },
+  "server/kw/api.py": {
+    "mtime": 1794383300.8030732,
+    "seen": 1794383934.5492873,
+    "ast_hash": "03277157273fc65e4cb59943ce9b0735",
+    "semantic_hash": ""
+  },
+  "server/kw/build.py": {
+    "mtime": 1794386648.0363872,
+    "seen": 1794386684.5696878,
+    "ast_hash": "0421fff379b8b4f2548e082aa3f11128",
+    "semantic_hash": ""
+  },
+  "server/kw/firms.py": {
+    "mtime": 1794327902.8792405,
+    "seen": 1794340376.1619217,
+    "ast_hash": "a16b8a9d3292ba7355a01b151183c5d6",
+    "semantic_hash": ""
+  },
+  "server/kw/mcp_server.py": {
+    "mtime": 1794383304.245693,
+    "seen": 1794383934.5493097,
+    "ast_hash": "f6badca334da2d15d216ef6e256090c0",
+    "semantic_hash": ""
+  },
+  "server/kw/news.py": {
+    "mtime": 1794386324.8126898,
+    "seen": 1794386684.5696948,
+    "ast_hash": "6aba42956e66ff60bf48e04200c26dea",
+    "semantic_hash": ""
+  },
+  "server/kw/regions.py": {
+    "mtime": 1794327753.7113328,
+    "seen": 1794340376.161925,
+    "ast_hash": "84d82e5447bdc0b91ddd3688b1d2321e",
+    "semantic_hash": ""
+  },
+  "server/kw/report.py": {
+    "mtime": 1794328866.444707,
+    "seen": 1794340376.1619267,
+    "ast_hash": "25bb4eae860245ef891c4fafc5dd1706",
+    "semantic_hash": ""
+  },
+  "server/kw/science.py": {
+    "mtime": 1794384384.9681287,
+    "seen": 1794386684.5696995,
+    "ast_hash": "b4b9b4b3bd917f6cdd2ff6bfca38fcf3",
+    "semantic_hash": ""
+  },
+  "server/kw/tools.py": {
+    "mtime": 1794385878.3193867,
+    "seen": 1794386684.5697012,
+    "ast_hash": "9857318669a15159265247deac7cb3f9",
+    "semantic_hash": ""
+  },
+  "server/tests/test_science.py": {
+    "mtime": 1794386337.2012236,
+    "seen": 1794386684.5697043,
+    "ast_hash": "9d7558be800dfffffcc27bb02c364abd",
+    "semantic_hash": ""
+  },
+  "web/package.json": {
+    "mtime": 1794387468.3660285,
+    "seen": 1794388816.016511,
+    "ast_hash": "d85dd55a53c6d25160ade7b1530eb3e0",
+    "semantic_hash": ""
+  },
+  "web/src/Analyst.tsx": {
+    "mtime": 1794382794.0754452,
+    "seen": 1794383934.5493555,
+    "ast_hash": "9900bf5b588d7612ffab4099382d8d38",
+    "semantic_hash": ""
+  },
+  "web/src/App.tsx": {
+    "mtime": 1794392211.3822556,
+    "seen": 1794397425.378701,
+    "ast_hash": "2b10cc4818ea6f469a1ef441ff157bbd",
+    "semantic_hash": ""
+  },
+  "web/src/Detail.tsx": {
+    "mtime": 1794386339.0337205,
+    "seen": 1794386684.56971,
+    "ast_hash": "b40b30cea3c69681f4e429edf33d7876",
+    "semantic_hash": ""
+  },
+  "web/src/Map.tsx": {
+    "mtime": 1794328749.9926345,
+    "seen": 1794340376.161935,
+    "ast_hash": "2097b9ee9096e777880a34de86aeec02",
+    "semantic_hash": ""
+  },
+  "web/src/Record.tsx": {
+    "mtime": 1794384566.039208,
+    "seen": 1794386684.5697136,
+    "ast_hash": "34c2b0fe0181d077b44819a46dabb47d",
+    "semantic_hash": ""
+  },
+  "web/src/Timeline.tsx": {
+    "mtime": 1794328767.4092262,
+    "seen": 1794340376.1619372,
+    "ast_hash": "e0004765e40e3a1af22483bed23a6adb",
+    "semantic_hash": ""
+  },
+  "web/src/api.ts": {
+    "mtime": 1794413566.744952,
+    "seen": 1794414464.5919197,
+    "ast_hash": "57e15d65056b1fdbc844e6c6a7c5c6c9",
+    "semantic_hash": ""
+  },
+  "web/src/main.tsx": {
+    "mtime": 1794324690.0222526,
+    "seen": 1794340376.1619391,
+    "ast_hash": "43a9be975bb92bdfe2d5247386679ebd",
+    "semantic_hash": ""
+  },
+  "web/tsconfig.json": {
+    "mtime": 1794324224.1377327,
+    "seen": 1794340376.1619403,
+    "ast_hash": "9b47ac6ac6222794328e7bc2d8d6af82",
+    "semantic_hash": ""
+  },
+  "web/vite.config.ts": {
+    "mtime": 1794346633.3532228,
+    "seen": 1794347363.225741,
+    "ast_hash": "96bfeaa6d601bc55265947ff985418d3",
+    "semantic_hash": ""
+  },
+  "AI_USE.md": {
+    "mtime": 1794340363.6732662,
+    "seen": 1794340376.1619427,
+    "ast_hash": "869c6f43bb57dde14652d4d0634af1df",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1794347355.2259803,
+    "seen": 1794347363.225743,
+    "ast_hash": "00500ae76a9f98473f1fada5dd26ee8c",
+    "semantic_hash": ""
+  },
+  "README.md": {
+    "mtime": 1794386678.4881651,
+    "seen": 1794386684.5697367,
+    "ast_hash": "e76327426b3adfbd7d6e941ed425abc3",
+    "semantic_hash": ""
+  },
+  "harmonized_fire_calendar_improvements.md": {
+    "mtime": 1794321536.9982824,
+    "seen": 1794340376.1619463,
+    "ast_hash": "8df65429c794bd51c96be4cd2d305a5b",
+    "semantic_hash": ""
+  },
+  "harmonized_fire_calendar_improvements_round2.md": {
+    "mtime": 1794327096.766189,
+    "seen": 1794340376.1619475,
+    "ast_hash": "0bc07dd48d5ec1471677405b3a8b2a3f",
+    "semantic_hash": ""
+  },
+  "harmonized_fire_calendar_web_app_master_prompt (1).md": {
+    "mtime": 1794319693.0329497,
+    "seen": 1794340376.1619484,
+    "ast_hash": "5bf341cada7097545d113b6745febb22",
+    "semantic_hash": ""
+  },
+  "server/requirements.txt": {
+    "mtime": 1794324134.9736633,
+    "seen": 1794340376.1619508,
+    "ast_hash": "78e04bbb98b212a988db28fa7c28fcab",
+    "semantic_hash": ""
+  },
+  "web/index.html": {
+    "mtime": 1794391635.6857657,
+    "seen": 1794397425.3787374,
+    "ast_hash": "50b6341fd4de1d54842bbaa8fe156cce",
+    "semantic_hash": ""
+  },
+  "web/src/pages/Connect.tsx": {
+    "mtime": 1794392211.3809125,
+    "seen": 1794397425.3787138,
+    "ast_hash": "5b3a39ecb65a6ab33f875b2c3ec20c59",
+    "semantic_hash": ""
+  },
+  "web/src/pages/Data.tsx": {
+    "mtime": 1794392211.3786259,
+    "seen": 1794397425.378715,
+    "ast_hash": "f6b0a05a3ef80ec4deaf999aff0c02fa",
+    "semantic_hash": ""
+  },
+  "web/src/pages/Method.tsx": {
+    "mtime": 1794397141.437963,
+    "seen": 1794397425.3787181,
+    "ast_hash": "2e5d22fa9b0d15f6ae439d723552bf90",
+    "semantic_hash": ""
+  },
+  "web/src/pages/News.tsx": {
+    "mtime": 1794392211.3779664,
+    "seen": 1794397425.3787193,
+    "ast_hash": "fdd150688f273063c1b3a5aec5fd960f",
+    "semantic_hash": ""
+  },
+  "web/src/pages/Warning.tsx": {
+    "mtime": 1794392211.377191,
+    "seen": 1794397425.378722,
+    "ast_hash": "08a9f81bba8c534236a46b28f86d8e50",
+    "semantic_hash": ""
+  },
+  "web/src/pages/shared.tsx": {
+    "mtime": 1794392360.261914,
+    "seen": 1794397425.3787243,
+    "ast_hash": "5290eca55b8906eaed859d7acb80bd01",
+    "semantic_hash": ""
+  },
+  "server/kw/alerts.py": {
+    "mtime": 1794347988.1418178,
+    "seen": 1794381547.2940536,
+    "ast_hash": "539c82c820aed639ffb2170403efa54a",
+    "semantic_hash": ""
+  },
+  "server/kw/globe.py": {
+    "mtime": 1794383127.6395462,
+    "seen": 1794383934.5493042,
+    "ast_hash": "771f11c6a708863f5c85d40f067519f2",
+    "semantic_hash": ""
+  },
+  "server/tests/test_alerts.py": {
+    "mtime": 1794348000.207624,
+    "seen": 1794381547.2940829,
+    "ast_hash": "f36b8f8d37013d7f86dd5b1340be9eb5",
+    "semantic_hash": ""
+  },
+  "web/public/draco/draco_wasm_wrapper.js": {
+    "mtime": 1794388180.3208113,
+    "seen": 1794388816.0165153,
+    "ast_hash": "7a48a3fdc5785631621f4b20cd0937dc",
+    "semantic_hash": ""
+  },
+  "web/src/pages/Home.tsx": {
+    "mtime": 1794414133.9233544,
+    "seen": 1794414464.5919292,
+    "ast_hash": "9ce9d2a97a2eb11ad281b39ca1b30bf7",
+    "semantic_hash": ""
+  },
+  "web/src/pages/scene.ts": {
+    "mtime": 1794414339.172313,
+    "seen": 1794414464.5919368,
+    "ast_hash": "d091a7fc310f01dc82ae9bfb5c71b539",
+    "semantic_hash": ""
+  },
+  "web/public/models/earth.jpg": {
+    "mtime": 1794387508.7697382,
+    "seen": 1794388816.0166118,
+    "ast_hash": "e15eb8d2a32d001aa4e06884f6a566cd",
+    "semantic_hash": ""
+  },
+  "web/src/lib/iso-kit.ts": {
+    "mtime": 1794397074.7085316,
+    "seen": 1794397425.3787107,
+    "ast_hash": "94dcc235836a04924b19e3b394080a2e",
+    "semantic_hash": ""
+  },
+  "web/src/pages/SatelliteFigure.tsx": {
+    "mtime": 1794397208.7986147,
+    "seen": 1794397425.3787205,
+    "ast_hash": "c0a00eaf77a1ecb310b2f24bfded0da1",
+    "semantic_hash": ""
+  },
+  "web/public/models/earth-water.jpg": {
+    "mtime": 1794389978.573243,
+    "seen": 1794397425.3787384,
+    "ast_hash": "7dd1857a60a7a7bee6fb9e4b6c9fc9dd",
+    "semantic_hash": ""
+  },
+  "web/public/shots/explore.jpg": {
+    "mtime": 1794412241.0679665,
+    "seen": 1794414464.5919547,
+    "ast_hash": "a5c1f4cdbafbcb3f4f42390d651deac5",
+    "semantic_hash": ""
+  },
+  "web/src/pages/ConsoleScreens.tsx": {
+    "mtime": 1794414123.643321,
+    "seen": 1794414464.591926,
+    "ast_hash": "912c9c1c0c0ead7305eb316b8846c376",
+    "semantic_hash": ""
+  },
+  "web/src/pages/StoryCharts.tsx": {
+    "mtime": 1794413555.7000976,
+    "seen": 1794414464.5919342,
+    "ast_hash": "3943ec253acd89ddb28db1b7c6f57324",
+    "semantic_hash": ""
+  }
+}
