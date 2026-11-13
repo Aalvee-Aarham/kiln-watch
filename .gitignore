@@ -1,0 +1,24 @@
+node_modules/
+web/dist/
+__pycache__/
+*.pyc
+.venv/
+.env
+# raw FIRMS cache is re-downloadable; built region JSON in data/regions IS committed
+data/cache/
+data/global/*
+!data/global/outlook.json
+data/sensor_days/
+data/news_cache/
+# alert tokens are secrets
+data/alerts.json
+data/regions/aoi-*/
+*.tmp
+fetch.log
+build.log
+graphify-out/cache/
+*.log
+.graphifyignore.bak
+
+.vercel
+.env*

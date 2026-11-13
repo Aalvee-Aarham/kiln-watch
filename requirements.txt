@@ -1,0 +1,5 @@
+# Vercel installs these for api/index.py (same as server/requirements.txt, minus the uvicorn server).
+# Pinned to the versions the app was tested with; mcp 2.x renamed FastMCP and breaks the server.
+duckdb==2.0.0
+fastapi==0.141.1
+mcp==1.30.0

@@ -1,0 +1,18 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "installCommand": "cd web && npm ci --no-audit --no-fund",
+  "buildCommand": "cd web && npm run build && mkdir -p dist/data && cp -r ../data/regions dist/data/regions",
+  "outputDirectory": "web/dist",
+  "functions": {
+    "api/index.py": {
+      "maxDuration": 60,
+      "includeFiles": "{server/kw/**,data/regions/**,data/global/outlook.json,data/sensor_days.parquet}"
+    }
+  },
+  "rewrites": [
+    { "source": "/api/(.*)", "destination": "/api/index" },
+    { "source": "/mcp", "destination": "/api/index" },
+    { "source": "/((?!assets/|data/|models/|draco/|api/|mcp).*)", "destination": "/index.html" }
+  ]
+}

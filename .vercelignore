@@ -1,0 +1,19 @@
+# secrets and user tokens never leave this machine
+.env
+data/alerts.json
+data/alerts-test.json
+# large or re-downloadable data (the 1.8 GB global aggregate, raw FIRMS cache, caches)
+data/cache/
+data/news_cache/
+data/sensor_days/
+data/global/agg-*
+data/global/cells-*
+data/global/tmp-*
+# local tooling
+**/node_modules/
+web/dist/
+graphify-out/
+**/__pycache__/
+*.log
+.claude/
+.env.local
